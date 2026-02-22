@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Maintenance Requests</title>
+</head>
+<body class="p-4">
+    <h1 class="text-2xl">Maintenance Requests</h1>
+    <p><a href="{% url 'maintenance:request_create' %}">Create new request</a></p>
+    <ul class="mt-4">
+        {% for req in object_list %}
+        <li><a href="{% url 'maintenance:request_detail' req.pk %}">{{ req.title }}</a> — {{ req.car }} — {{ req.status }}</li>
+        {% empty %}
+        <li>No requests</li>
+        {% endfor %}
+    </ul>
+</body>
+</html>

@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="text-2xl">Fuel KPIs</h1>
+<div class="max-w-3xl">
+    <canvas id="litersChart"></canvas>
+    <div class="mt-6">
+        <canvas id="costChart"></canvas>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const labels = {{ chart_labels|safe }};
+    const liters = {{ chart_liters|safe }};
+    const cost = {{ chart_cost|safe }};
+    new Chart(document.getElementById('litersChart'), {
+        type: 'bar',
+        data: { labels, datasets: [{ label: 'Total Liters', data: liters, backgroundColor: '#38bdf8' }] },
+    });
+    new Chart(document.getElementById('costChart'), {
+        type: 'bar',
+        data: { labels, datasets: [{ label: 'Total Cost', data: cost, backgroundColor: '#fb7185' }] },
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Maintenance Request</title>
+</head>
+<body class="p-4">
+    <h1 class="text-2xl">{{ object.title }}</h1>
+    <p>Car: {{ object.car }}</p>
+    <p>Status: {{ object.status }}</p>
+    <p>Created: {{ object.created_at }}</p>
+    <p>{{ object.description }}</p>
+    <hr class="my-4">
+    <h2 class="text-xl">Images</h2>
+    <p><a href="{% url 'maintenance:image_upload' object.pk %}">Upload image</a></p>
+    <div class="grid grid-cols-3 gap-4 mt-2">
+        {% for img in object.images.all %}
+        <figure>
+            <img src="{{ img.image.url }}" alt="{{ img.caption }}" style="max-width: 100%; height: auto;">
+            <figcaption>{{ img.caption }}</figcaption>
+        </figure>
+        {% empty %}
+        <p>No images</p>
+        {% endfor %}
+    </div>
+</body>
+</html>

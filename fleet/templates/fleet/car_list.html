@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="flex items-center justify-between">
+  <h1 class="text-2xl">Cars</h1>
+  <a href="{% url 'fleet:car_create' %}" class="px-3 py-2 bg-blue-600 text-white rounded">Create</a>
+  </div>
+<form method="get" class="mt-4 grid grid-cols-1 md:grid-cols-4 gap-3">
+  <input type="text" name="q" value="{{ request.GET.q }}" placeholder="Search plate/brand/model" class="border rounded p-2 w-full">
+  <select name="status" class="border rounded p-2 w-full">
+    <option value="">All status</option>
+    <option value="active" {% if request.GET.status == 'active' %}selected{% endif %}>Active</option>
+    <option value="maintenance" {% if request.GET.status == 'maintenance' %}selected{% endif %}>Maintenance</option>
+    <option value="inactive" {% if request.GET.status == 'inactive' %}selected{% endif %}>Inactive</option>
+  </select>
+  <select name="sort" class="border rounded p-2 w-full">
+    <option value="-created_at" {% if request.GET.sort == '-created_at' or not request.GET.sort %}selected{% endif %}>Newest</option>
+    <option value="plate_number" {% if request.GET.sort == 'plate_number' %}selected{% endif %}>Plate</option>
+    <option value="brand" {% if request.GET.sort == 'brand' %}selected{% endif %}>Brand</option>
+    <option value="model" {% if request.GET.sort == 'model' %}selected{% endif %}>Model</option>
+    <option value="year" {% if request.GET.sort == 'year' %}selected{% endif %}>Year</option>
+  </select>
+  <button type="submit" class="px-3 py-2 bg-gray-800 text-white rounded">Apply</button>
+</form>
+<table class="min-w-full mt-4 border rounded overflow-hidden">
+    <thead>
+        <tr class="bg-gray-100 hover:bg-gray-200">
+            <th class="p-2 text-left">Plate</th>
+            <th class="p-2 text-left">Brand</th>
+            <th class="p-2 text-left">Model</th>
+            <th class="p-2 text-left">Year</th>
+            <th class="p-2 text-left">Status</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for car in cars %}
+        <tr class="border-b hover:bg-gray-50">
+            <td class="p-2"><a class="text-blue-600" href="{% url 'fleet:car_detail' car.pk %}">{{ car.plate_number }}</a></td>
+            <td class="p-2">{{ car.brand }}</td>
+            <td class="p-2">{{ car.model }}</td>
+            <td class="p-2">{{ car.year }}</td>
+            <td class="p-2">{{ car.status }}</td>
+        </tr>
+        {% empty %}
+        <tr><td class="p-2" colspan="5">No cars</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% if is_paginated %}
+<div class="mt-4 flex items-center space-x-2">
+  {% if page_obj.has_previous %}
+    <a class="px-3 py-2 border rounded" href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.sort %}sort={{ request.GET.sort }}&{% endif %}page={{ page_obj.previous_page_number }}">Previous</a>
+  {% endif %}
+  <span>Page {{ page_obj.number }} of {{ paginator.num_pages }}</span>
+  {% if page_obj.has_next %}
+    <a class="px-3 py-2 border rounded" href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.sort %}sort={{ request.GET.sort }}&{% endif %}page={{ page_obj.next_page_number }}">Next</a>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

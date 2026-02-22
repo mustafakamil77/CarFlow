@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="text-2xl">{{ view.object|yesno:'Edit Car,Create Car' }}</h1>
+<form method="post" class="mt-4 max-w-xl bg-white p-4 rounded shadow">
+  {% csrf_token %}
+  {{ form.as_p }}
+  <div class="mt-4">
+    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Save</button>
+    <a href="{% if view.object %}{% url 'fleet:car_detail' view.object.pk %}{% else %}{% url 'fleet:car_list' %}{% endif %}" class="ml-2 px-4 py-2 border rounded">Cancel</a>
+  </div>
+</form>
+{% endblock %}

@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block content %}
+    <div class="flex items-center justify-between">
+      <h1 class="text-2xl">{{ object.plate_number }} {{ object.brand }} {{ object.model }}</h1>
+      <div class="space-x-2">
+        <a href="{% url 'fleet:car_edit' object.pk %}" class="px-3 py-2 bg-indigo-600 text-white rounded">Edit</a>
+        <a href="{% url 'fleet:car_delete' object.pk %}" class="px-3 py-2 bg-red-600 text-white rounded">Delete</a>
+      </div>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+      <div class="p-4 bg-white rounded shadow">
+        <p>Year: {{ object.year }}</p>
+        <p>Status: {{ object.status }}</p>
+        <p>Notes: {{ object.notes|default:'-' }}</p>
+        <p>Conditions: {{ conditions_count }}</p>
+        <p>Maintenance: {{ maintenance_count }}</p>
+      </div>
+      <div class="p-4 bg-white rounded shadow">
+        <div id="map" style="height: 300px;" class="rounded"></div>
+      </div>
+    </div>
+    <hr class="my-4">
+    <h2 class="text-xl">Conditions</h2>
+    <p><a href="{% url 'fleet:car_condition_create' object.pk %}">Add condition</a></p>
+    <ul class="mt-2">
+        {% for cond in object.conditions.all %}
+        <li>{{ cond.recorded_at }} — Odometer: {{ cond.odometer }} — Fuel: {{ cond.fuel_level }} — Health: {{ cond.health_score }}</li>
+        {% empty %}
+        <li>No conditions</li>
+        {% endfor %}
+    </ul>
+    <hr class="my-4">
+    <h2 class="text-xl">Images</h2>
+    <p><a href="{% url 'fleet:car_image_upload' object.pk %}">Upload image</a></p>
+    <div class="grid grid-cols-3 gap-4 mt-2">
+        {% for img in object.images.all %}
+        <figure>
+            <img src="{{ img.image.url }}" alt="{{ img.caption }}" style="max-width: 100%; height: auto;">
+            <figcaption>{{ img.caption }}</figcaption>
+        </figure>
+        {% empty %}
+        <p>No images</p>
+        {% endfor %}
+    </div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script>
+  const lat = {{ object.current_latitude|default:'null' }};
+  const lon = {{ object.current_longitude|default:'null' }};
+  const map = L.map('map').setView([lat || 0, lon || 0], lat && lon ? 13 : 2);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+  if (lat !== null && lon !== null) {
+    const m = L.marker([lat, lon]).addTo(map);
+    m.bindPopup('{{ object.plate_number }} {{ object.model }}').openPopup();
+  }
+</script>
+{% endblock %}

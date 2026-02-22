@@ -1,0 +1,379 @@
+project tree
+----------------------------------------------------------
+├── accounts
+│   ├── admin.py
+│   ├── apps.py
+│   ├── __init__.py
+│   ├── migrations
+│   │   └── __init__.py
+│   ├── models.py
+│   ├── tests.py
+│   └── views.py
+├── fleet
+│   ├── admin.py
+│   ├── apps.py
+│   ├── __init__.py
+│   ├── migrations
+│   │   └── __init__.py
+│   ├── models.py
+│   ├── tests.py
+│   └── views.py
+├── fuel
+│   ├── admin.py
+│   ├── apps.py
+│   ├── __init__.py
+│   ├── migrations
+│   │   └── __init__.py
+│   ├── models.py
+│   ├── tests.py
+│   └── views.py
+├── maintenance
+│   ├── admin.py
+│   ├── apps.py
+│   ├── __init__.py
+│   ├── migrations
+│   │   └── __init__.py
+│   ├── models.py
+│   ├── tests.py
+│   └── views.py
+├── manage.py
+├── project
+│   ├── asgi.py
+│   ├── __init__.py
+│   ├── __pycache__
+│   │   ├── __init__.cpython-310.pyc
+│   │   └── settings.cpython-310.pyc
+│   ├── settings.py
+│   ├── urls.py
+│   └── wsgi.py
+├── projectTree.txt
+└── reports
+    ├── admin.py
+    ├── apps.py
+    ├── __init__.py
+    ├── migrations
+    │   └── __init__.py
+    ├── models.py
+    ├── tests.py
+    └── views.py
+
+12 directories, 44 files
+
+
+
+
+--------------------------------------------------------------------
+
+**ROLE:**
+You are a senior Django full-stack engineer and software architect. Build a production-ready fleet management web application based on the following detailed requirements.
+
+---
+
+# 📌 Project Overview
+
+Develop a **Fleet Management Web System** focused on vehicle maintenance tracking and periodic condition logging.
+
+### 🧱 Tech Stack
+
+* Backend: Django (latest stable)
+* Database: SQLite (development friendly)
+* Frontend: Tailwind CSS + Vanilla JavaScript
+* Maps: OpenStreetMap (Leaflet.js recommended)
+* Python version: 3.11+
+* Follow clean architecture and best practices.
+
+---
+
+# 🚗 Core Functional Requirements
+
+## 1️⃣ Vehicle Management
+
+Implement full CRUD for vehicles.
+
+### Fields
+
+* plate_number
+* brand
+* model
+* year
+* current_latitude
+* current_longitude
+* notes (optional)
+* created_at
+
+### Features
+
+* List view with search and filters
+* Detail page per vehicle
+* Interactive map showing vehicle location using OpenStreetMap
+* Ability to update vehicle coordinates
+
+---
+
+## 2️⃣ Vehicle Periodic Condition (Photographic Inspection)
+
+Allow users to log vehicle condition snapshots.
+
+### CarCondition
+
+* car (FK)
+* date
+* mileage
+* notes
+* is_post_maintenance (boolean)
+* created_by
+
+### CarImage
+
+* condition (FK)
+* image
+* angle (choices: front, rear, left, right, interior, other)
+
+### Required Features
+
+* Upload multiple images per condition
+* Timeline view per vehicle
+* Condition detail page with gallery
+* Image preview before upload
+* Automatic image cleanup on delete
+
+---
+
+## 3️⃣ Maintenance Requests
+
+### MaintenanceRequest Fields
+
+* car (FK)
+* requested_by (User FK)
+* description
+* priority (low, medium, high, critical)
+* status (open, in_progress, completed)
+* created_at
+* resolved_at
+* images (optional)
+
+### Required Workflow
+
+When a maintenance request is created:
+
+✅ Save request
+✅ Send email notification to maintenance department
+✅ Include:
+
+* request details
+* vehicle info
+* direct link to request page
+
+### Additional Rules
+
+* Status tracking workflow
+* When marked **completed**:
+
+  * allow creating a new CarCondition marked as post-maintenance
+
+---
+
+## 4️⃣ Fuel Consumption Upload via Excel
+
+Allow uploading Excel file containing fuel logs.
+
+### Expected Columns
+
+* plate_number
+* date
+* mileage
+* liters
+* cost
+
+### Requirements
+
+* Validate column names
+* Validate data types
+* Skip invalid rows with logging
+* Bulk insert optimized
+* Show upload summary:
+
+  * total rows
+  * success
+  * failed
+
+Use **pandas or openpyxl**.
+
+---
+
+# 🔐 Roles & Permissions
+
+Implement role-based access:
+
+* Fleet Manager
+* Maintenance Technician
+* Driver
+
+### Suggested Permissions
+
+Fleet Manager:
+
+* full access
+
+Technician:
+
+* view vehicles
+* manage maintenance
+
+Driver:
+
+* view assigned vehicles
+* create condition reports
+
+Use Django Groups and Permissions.
+
+---
+
+# 📊 Reports & Analytics
+
+Implement dashboard with charts:
+
+* Fuel consumption per vehicle
+* Maintenance frequency
+* Monthly fuel cost
+
+Use Chart.js.
+
+---
+
+# 🔔 Smart Notifications
+
+Implement automated alerts:
+
+* upcoming maintenance based on mileage threshold
+* overdue maintenance
+
+Use periodic task system (Celery or Django Q preferred, fallback to cron).
+
+---
+
+# 📄 PDF Export
+
+Provide PDF export for:
+
+* vehicle condition report
+* maintenance history
+
+Use reportlab or WeasyPrint.
+
+---
+
+# 🎨 Frontend & UX Requirements
+
+Use Tailwind CSS with:
+
+* responsive design
+* clean modern UI
+* dashboard layout
+* modals
+* dropdowns
+* dynamic tables
+* loading states
+* toast notifications
+
+Prefer **django-tailwind build workflow**, not only CDN.
+
+---
+
+# 🗺️ Map Integration
+
+Use Leaflet.js with OpenStreetMap to:
+
+* show vehicle markers
+* popup with vehicle info
+* support multiple vehicles on map
+* auto-fit bounds
+
+---
+
+# ⚙️ Technical Best Practices
+
+## Django Structure
+
+Create modular apps:
+
+* accounts
+* fleet
+* maintenance
+* fuel
+* reports
+
+Follow:
+
+* class-based views
+* service layer when appropriate
+* clean models
+* reusable templates
+
+---
+
+## Media & Static Handling
+
+* configure MEDIA_ROOT
+* use django-cleanup
+* use Whitenoise for static files
+* proper file naming for uploads
+
+---
+
+## Email
+
+Configure SMTP-ready email backend.
+
+Use:
+
+* django-templated-email
+* async sending via Celery/Django Q
+
+---
+
+## Optional (Future Ready)
+
+Prepare project to optionally support:
+
+* Django REST Framework API
+* PostgreSQL migration
+* Docker deployment
+
+---
+
+# 🚀 Development Priority Order
+
+Implement in this exact order:
+
+1. Vehicle management + map
+2. Vehicle condition with images
+3. Maintenance requests + email
+4. Fuel Excel upload
+5. Roles & permissions
+6. Dashboard & reports
+7. Notifications
+8. PDF export
+
+---
+
+# 📦 Expected Output from TRAE AI
+
+Generate:
+
+✅ complete Django project
+✅ models
+✅ migrations
+✅ admin configuration
+✅ forms
+✅ views
+✅ URLs
+✅ Tailwind setup
+✅ basic templates
+✅ sample dashboard
+✅ requirements.txt
+✅ README with run instructions
+
+Code must be clean, production-ready, and well-commented.
+
+---

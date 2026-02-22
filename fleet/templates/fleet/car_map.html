@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Vehicle Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        #map { height: 70vh; }
+    </style>
+</head>
+<body class="p-4">
+    <h1 class="text-2xl">Vehicle Map</h1>
+    <div id="map"></div>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        const cars = {{ cars|safe }};
+        const map = L.map('map').setView([0, 0], 2);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19
+        }).addTo(map);
+        cars.forEach(c => {
+            const marker = L.marker([c.current_latitude, c.current_longitude]).addTo(map);
+            marker.bindPopup(`${c.plate_number} ${c.brand} ${c.model}`);
+        });
+        if (cars.length > 0) {
+            const group = L.featureGroup(cars.map(c => L.marker([c.current_latitude, c.current_longitude])));
+            map.fitBounds(group.getBounds(), { padding: [20, 20] });
+        }
+    </script>
+</body>
+</html>

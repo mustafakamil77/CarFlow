@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>CarFlow</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-gray-50">
+    <header class="bg-white shadow">
+        <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+            <h1 class="text-xl font-semibold">CarFlow</h1>
+            <nav class="space-x-4">
+                <a class="text-blue-600" href="/fleet/cars/">Fleet</a>
+                <a class="text-blue-600" href="/reports/dashboard/">Reports</a>
+                <a class="text-blue-600" href="/fuel/upload/">Fuel Import</a>
+                <a class="text-blue-600" href="/maintenance/requests/">Maintenance</a>
+            </nav>
+        </div>
+    </header>
+    <main class="max-w-6xl mx-auto px-4 py-6">
+        {% if messages %}
+        <div class="fixed top-4 right-4 space-y-2 z-50">
+            {% for message in messages %}
+            <div class="rounded shadow px-4 py-3 {% if message.tags == 'success' %}bg-green-100 text-green-800{% elif message.tags == 'error' %}bg-red-100 text-red-800{% else %}bg-indigo-100 text-indigo-800{% endif %}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% block content %}{% endblock %}
+    </main>
+</body>
+</html>

@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="text-2xl mb-4">Welcome to CarFlow</h1>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+  <div class="p-4 bg-white rounded shadow">
+    <h2 class="text-xl mb-2">Fleet</h2>
+    <p class="mb-2">Manage vehicles, conditions, images, and map.</p>
+    <a class="text-blue-600" href="/fleet/cars/">Go to Fleet</a>
+  </div>
+  <div class="p-4 bg-white rounded shadow">
+    <h2 class="text-xl mb-2">Fuel</h2>
+    <p class="mb-2">Upload fuel Excel and review records.</p>
+    <a class="text-blue-600" href="/fuel/upload/">Fuel Import</a>
+  </div>
+  <div class="p-4 bg-white rounded shadow">
+    <h2 class="text-xl mb-2">Maintenance</h2>
+    <p class="mb-2">Create and manage maintenance requests.</p>
+    <a class="text-blue-600" href="/maintenance/requests/">Maintenance</a>
+  </div>
+  <div class="p-4 bg-white rounded shadow">
+    <h2 class="text-xl mb-2">Reports</h2>
+    <p class="mb-2">View fuel KPIs and export PDF.</p>
+    <a class="text-blue-600" href="/reports/dashboard/">Reports Dashboard</a>
+  </div>
+</div>
+{% endblock %}
