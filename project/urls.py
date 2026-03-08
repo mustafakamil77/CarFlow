@@ -21,7 +21,7 @@ from django.conf.urls.static import static
 from django.views.generic import TemplateView
 
 urlpatterns = [
-    path('', TemplateView.as_view(template_name='home.html'), name='home'),
+    path('', TemplateView.as_view(template_name='reports/dashboard.html'), name='home'),
     path('admin/', admin.site.urls),
     path('fleet/', include('fleet.urls')),
     path('accounts/', include('django.contrib.auth.urls')),
@@ -29,6 +29,8 @@ urlpatterns = [
     path('maintenance/', include('maintenance.urls')),
     path('fuel/', include('fuel.urls')),
     path('reports/', include('reports.urls')),
+    path('staff/', include('staff.urls')),
+    
 ]
 
 if settings.DEBUG:

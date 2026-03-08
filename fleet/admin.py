@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Car, CarCondition, CarImage
+from .models import Car, CarCondition, CarRecord, CarRecordImage
 
 
 @admin.register(Car)
@@ -18,7 +18,15 @@ class CarConditionAdmin(admin.ModelAdmin):
     search_fields = ("car__plate_number",)
 
 
-@admin.register(CarImage)
-class CarImageAdmin(admin.ModelAdmin):
-    list_display = ("car", "created_at", "caption")
+@admin.register(CarRecord)
+class CarRecordAdmin(admin.ModelAdmin):
+    list_display = ("car", "recorded_at", "condition")
+    list_filter = ("recorded_at", "condition")
+    search_fields = ("car__plate_number",)
+
+
+@admin.register(CarRecordImage)
+class CarRecordImageAdmin(admin.ModelAdmin):
+    list_display = ("record", "created_at", "caption")
     list_filter = ("created_at",)
+    search_fields = ("record__car__plate_number",)

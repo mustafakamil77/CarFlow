@@ -1,0 +1,55 @@
+<aside id="sidebar" class="w-64 flex-shrink-0 bg-sidebar text-white flex flex-col transition-all duration-300 border-r border-slate-700 md:relative fixed inset-y-0 left-0 z-40 transform -translate-x-full md:translate-x-0">
+<div class="h-16 flex items-center px-6 border-b border-slate-700"><div class="flex items-center text-white">
+<i class="fas fa-car-side text-2xl mr-3"></i>
+<span class="text-[20px] font-bold tracking-wide text-white">CarFlow</span>
+</div></div>
+<nav class="flex-1 overflow-y-auto py-4">
+<ul class="space-y-1">
+<li>
+<a class="flex items-center px-6 py-[12px] bg-white/10 rounded-lg mx-2 text-white transition-colors" href="{% url 'home' %}">
+<i class="fas fa-th-large w-5 mr-3 text-center"></i>
+<span class="font-medium">Dashboard</span>
+</a>
+</li>
+<li>
+<a class="flex items-center px-6 py-[12px] text-slate-300 hover:bg-slate-800 hover:text-white transition-colors" href="{% url 'fleet:car_list' %}">
+<i class="fas fa-truck w-5 mr-3 text-center"></i>
+<span class="font-medium">Fleet</span>
+</a>
+</li>
+<li>
+<a class="flex items-center px-6 py-[12px] text-slate-300 hover:bg-slate-800 hover:text-white transition-colors" href="{% url 'fuel:dashboard' %}">
+<i class="fas fa-gas-pump w-5 mr-3 text-center"></i>
+<span class="font-medium">Fuel</span>
+</a>
+</li>
+<li>
+<a class="flex items-center px-6 py-[12px] text-slate-300 hover:bg-slate-800 hover:text-white transition-colors" href="{% url 'maintenance:request_list' %}">
+<i class="fas fa-tools w-5 mr-3 text-center"></i>
+<span class="font-medium">Maintenance</span>
+</a>
+</li>
+<li>
+<a class="flex items-center px-6 py-[12px] text-slate-300 hover:bg-slate-800 hover:text-white transition-colors" href="{% url 'reports:dashboard' %}">
+<i class="fas fa-chart-bar w-5 mr-3 text-center"></i>
+<span class="font-medium">Reports</span>
+</a>
+</li>
+<li>
+<a class="flex items-center px-6 py-[12px] text-slate-300 hover:bg-slate-800 hover:text-white transition-colors" href="{% url 'staff:list' %}">
+<i class="fas fa-user-friends w-5 mr-3 text-center"></i>
+<span class="font-medium">Staff</span>
+</a>
+</li>
+<li>
+<a class="flex items-center px-6 py-[12px] text-slate-300 hover:bg-slate-800 hover:text-white transition-colors" href="{% url 'accounts:settings' %}">
+<i class="fas fa-cog w-5 mr-3 text-center"></i>
+<span class="font-medium">Settings</span>
+</a>
+</li>
+</ul>
+</nav>
+<div class="p-6 border-t border-slate-700">
+<p class="text-xs text-slate-400">© 2023 CarFlow Inc.</p>
+</div>
+</aside>

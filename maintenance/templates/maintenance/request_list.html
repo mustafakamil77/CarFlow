@@ -1,18 +1,19 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <title>Maintenance Requests</title>
-</head>
-<body class="p-4">
-    <h1 class="text-2xl">Maintenance Requests</h1>
-    <p><a href="{% url 'maintenance:request_create' %}">Create new request</a></p>
-    <ul class="mt-4">
-        {% for req in object_list %}
-        <li><a href="{% url 'maintenance:request_detail' req.pk %}">{{ req.title }}</a> — {{ req.car }} — {{ req.status }}</li>
-        {% empty %}
-        <li>No requests</li>
-        {% endfor %}
-    </ul>
-</body>
-</html>
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-4xl mx-auto">
+  <div class="flex items-center justify-between">
+    <h1 class="text-2xl font-bold">Maintenance Requests</h1>
+    <a href="{% url 'maintenance:request_create' %}" class="px-4 py-2 bg-blue-600 text-white rounded">Create new request</a>
+  </div>
+  <ul class="mt-6 space-y-3">
+    {% for req in object_list %}
+    <li class="p-4 bg-white rounded border">
+      <a class="text-blue-600 font-medium" href="{% url 'maintenance:request_detail' req.pk %}">{{ req.title }}</a>
+      <div class="text-sm text-slate-600 mt-1">{{ req.car }} — {{ req.status }}</div>
+    </li>
+    {% empty %}
+    <li class="p-4 bg-white rounded border">No requests</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endblock %}

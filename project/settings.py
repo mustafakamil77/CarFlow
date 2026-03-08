@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'maintenance',
     'fuel',
     'reports',
+    'staff',
     'django_q',
 ]
 

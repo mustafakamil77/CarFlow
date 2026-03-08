@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+
+<html lang="en"><head><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CarFlow - Fleet Management Dashboard</title>
+<!-- Tailwind CSS v3 with Plugins -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Configuration for custom colors -->
+<script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        sidebar: '#111827',
+                        'sidebar-hover': '#1f2937',
+                        'sidebar-active': '#1f2937',
+                        'bg-main': '#f3f4f6',
+                        primary: '#2563eb',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+<!-- Google Fonts: Inter -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Custom Styles for specific visual tweaks -->
+<style data-purpose="custom-overrides">
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom scrollbar for sidebar if needed */
+        .sidebar-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+        .sidebar-scroll::-webkit-scrollbar-thumb {
+            background-color: rgba(255,255,255,0.2);
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body class="bg-bg-main h-screen overflow-hidden flex text-slate-800">
+<!-- BEGIN: Sidebar -->
+<aside class="w-64 bg-sidebar text-white flex-shrink-0 flex flex-col transition-all duration-300 h-full" data-purpose="sidebar-navigation">
+<!-- Logo Area -->
+<div class="h-16 flex items-center px-6 border-b border-white/10" data-purpose="sidebar-logo">
+<img alt="CarFlow Logo" class="h-8 w-8 mr-3 object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAvmGlX-z_dHAbaNY_0p2uy5jWhypgtynWMOkJ1vXNqn7hk-rzG7etbSA_sMBpOrCnNLjjM0fhinzPvN8Kxj_GXiyGzcgP8uLII_Ez1DAiPZ3ZDbIl5h7TW2YYglNF2QeNEb4Qa4bzFaDa7Iu0vklhsmxTGzqKqSpNcqEJ3YiTs-bT_L8zj4c0izDFOADlUS9UlAH4PjfopwHiisLRi-HsLnpSREJA_di3Iq4ZtQzCU3AWpgZW3KB8SsHGqtzepaAD4G-CYagE3ykoq"/>
+<span class="text-[20px] font-bold tracking-tight text-white">CarFlow</span>
+</div>
+<!-- Navigation Menu -->
+<nav class="flex-1 overflow-y-auto py-4 sidebar-scroll space-y-1" data-purpose="sidebar-menu">
+<!-- Dashboard -->
+<a class="flex items-center px-6 py-3 text-gray-400 hover:bg-sidebar-hover hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined mr-3">dashboard</span>
+    Dashboard
+</a>
+<!-- Fleet (Active) -->
+<a class="flex items-center px-6 py-3 text-white border-l-4 border-blue-500 transition-colors bg-blue-900" href="#">
+<span class="material-symbols-outlined mr-3">directions_car</span>
+    Fleet
+</a>
+<!-- Fuel -->
+<a class="flex items-center px-6 py-3 text-gray-400 hover:bg-sidebar-hover hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined mr-3">local_gas_station</span>
+    Fuel
+</a>
+<!-- Maintenance -->
+<a class="flex items-center px-6 py-3 text-gray-400 hover:bg-sidebar-hover hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined mr-3">build</span>
+    Maintenance
+</a>
+<!-- Reports -->
+<a class="flex items-center px-6 py-3 text-gray-400 hover:bg-sidebar-hover hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined mr-3">bar_chart</span>
+    Reports
+</a>
+<!-- Staff -->
+<a class="flex items-center px-6 py-3 text-gray-400 hover:bg-sidebar-hover hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined mr-3">group</span>
+    Staff
+</a>
+<!-- Settings -->
+<a class="flex items-center px-6 py-3 text-gray-400 hover:bg-sidebar-hover hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined mr-3">settings</span>
+    Settings
+</a>
+</nav>
+<!-- Sidebar Footer -->
+<div class="p-6 text-xs text-gray-400 border-t border-white/10">
+            © 2023 CarFlow Systems
+        </div>
+</aside>
+<!-- END: Sidebar -->
+<!-- BEGIN: Main Content Area -->
+<main class="flex-1 flex flex-col h-full overflow-hidden bg-bg-main relative" data-purpose="main-wrapper">
+<!-- BEGIN: Header -->
+<header class="bg-white shadow-sm h-16 flex items-center justify-between px-8 flex-shrink-0 z-10">
+<!-- Left: Title -->
+<div>
+<h1 class="text-xl font-bold text-gray-900">Vehicle Fleet List View</h1>
+</div>
+<!-- Right: User Profile -->
+<div class="flex items-center space-x-3 cursor-pointer" data-purpose="user-profile">
+<div class="text-right hidden sm:block">
+<p class="text-sm font-semibold text-gray-900 leading-none">John Doe</p>
+<p class="text-xs text-gray-500 leading-none mt-1">Fleet Manager</p>
+</div>
+<img alt="User Avatar" class="h-10 w-10 rounded-full object-cover border border-gray-200" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCiQCaqLOhLItPl-rz_VZonGNZAohyjF8nA91Ky10zTHvTWCII0EKt22HTjVqFtnEcSzrmadk5ZJfIVDjDq63D3jXRq0lLkkR-3KK7T35jORzHiaoLef7DnJUF8j0wZdNucniv7ua67w5tTz-PXhKfZK4vDLVaGDW24E8IwO8Ml6lKlPtAA3_ce5vYMb6Rd_eWPf4VRuT-NE9Ew9-nBy0uzVLqm6lMYhdNB1VtIUX0reR5ON4XNW3s-JMLV4L47vSvxWT_UWO9gEGtr"/>
+<span class="material-symbols-outlined text-gray-400">expand_more</span>
+</div>
+</header>
+<!-- END: Header -->
+<!-- BEGIN: Content Scroll Area -->
+<div class="flex-1 overflow-y-auto p-8" data-purpose="scrollable-content">
+<!-- BEGIN: Controls Section -->
+<section class="bg-white p-4 rounded-lg shadow-sm mb-6 flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between" data-purpose="controls">
+<!-- Search Bar -->
+<div class="relative flex-grow w-full lg:w-auto lg:max-w-md">
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-gray-400">search</span>
+</div>
+<input class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm" placeholder="Search vehicles by ID, Model, Plate..." type="text"/>
+</div>
+<!-- Filters & Action -->
+<div class="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
+<!-- Status Filter -->
+<div class="flex items-center space-x-2">
+<label class="text-sm text-gray-700 whitespace-nowrap font-bold">Status</label>
+<select class="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+<option>Active</option>
+<option>In Maintenance</option>
+<option>Inactive</option>
+</select>
+</div>
+<!-- Type Filter -->
+<div class="flex items-center space-x-2">
+<label class="text-sm text-gray-700 whitespace-nowrap font-bold">Type</label>
+<select class="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+<option>Sedan</option>
+<option>Truck</option>
+<option>Van</option>
+<option>SUV</option>
+</select>
+</div>
+<!-- Add Button -->
+<button class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-[#2563eb] hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors whitespace-nowrap" type="button">
+            Add New Vehicle
+        </button>
+</div>
+</section>
+<!-- END: Controls Section -->
+<!-- BEGIN: Data Table Card -->
+<section class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden" data-purpose="data-table-container">
+<div class="overflow-x-auto">
+<table class="min-w-full divide-y divide-gray-200">
+<thead class="bg-gray-50">
+<tr>
+<th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-24 text-[11px] font-bold" scope="col">Thumbnail</th>
+<th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider text-[11px] font-bold" scope="col">Vehicle ID</th>
+<th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider text-[11px] font-bold" scope="col">Model</th>
+<th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider text-[11px] font-bold" scope="col">License Plate</th>
+<th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider text-[11px] font-bold" scope="col">Status</th>
+<th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider text-[11px] font-bold" scope="col">Current Driver</th>
+</tr>
+</thead>
+<tbody class="bg-white divide-y divide-gray-200">
+<!-- Row 1 -->
+<tr class="hover:bg-gray-50 transition-colors">
+<td class="px-6 py-4 whitespace-nowrap">
+<div class="h-12 flex-shrink-0 w-20">
+<img alt="Vehicle Thumbnail" class="h-12 rounded object-cover border border-gray-100 w-20" src="https://lh3.googleusercontent.com/aida-public/AB6AXuArZP5IlILmAKO7SwqQQgrqd9wtqnr-G1hnglx6MH2F5frQ009Sc4hNa0KPbY01V81c_m6BujCQJ40t4GEB2EZRTv8cSvxGmuy6QpJeWcXmHKn1ItC7GZtLidJcZY-UVUof-hG6YgIQ97vdIuupBjzxU6vQzTO99diR1fsk7paHKKhfbqKiqaC3gGcYFmXcNFqrqSq11XBwUDXjeWRs-xm-mBSnYyvtENfcvJfWBF9KQHxgccPARo3V2uz_pY9NUIaybwcr4r6jZQ_0"/>
+</div>
+</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<div class="text-sm font-medium text-gray-900">V-120</div>
+</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<div class="text-sm text-gray-900">Ford F-150</div>
+<div class="text-xs text-gray-500">Truck</div>
+</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded bg-gray-100 text-gray-800 font-mono">ABC-123</span>
+</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-700">Active</span>
+</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    Sarah Johnson
+                                </td>
+</tr>
+<!-- Row 2 -->
+<tr class="hover:bg-gray-50 transition-colors">
+<td class="px-6 py-4 whitespace-nowrap">
+<div class="h-12 flex-shrink-0 w-20">
+<img alt="Vehicle Thumbnail" class="h-12 rounded object-cover border border-gray-100 w-20" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDda_97gPZplgas-PaU7LNEGHtJ7-hdTfKkoR_JBY5jjKreNZcuBEiL2s19tRDGhrjDGbtxzp6Uv6vgYFw7GQIVhQRL97nCf7THPEmnSUjtUrU5sOfrkUo0sbGr8byU_x64tdSXmFtLd1m9H23eaFQswfbTzs423pZotnYPf9Bf50kTb4z1o25-ZTr-r5jgZkyo_vO0gZfyEvkHPFSyRUAoE-mVsRN2nHIup2fgVntWt19U44jdmRf4QnOMHPaowrGxDAtl8B_JkdM4"/>
+</div>
+</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<div class="text-sm font-medium text-gray-900">V-210</div>
+</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<div class="text-sm text-gray-900">Toyota Camry</div>
+<div class="text-xs text-gray-500">Sedan</div>
+</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded bg-gray-100 text-gray-800 font-mono">XYZ-789</span>
+</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-700">In Maintenance</span>
+</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+<span class="italic text-gray-400">Unassigned</span>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="hover:bg-gray-50 transition-colors">
+<td class="px-6 py-4 whitespace-nowrap">
+<div class="h-12 flex-shrink-0 w-20">
+<img alt="Vehicle Thumbnail" class="h-12 rounded object-cover border border-gray-100 w-20" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD6WYTd9Jwpl-VlVZCdUQezZ1wohY3K0NSf0hFFM0eHKX8ik1PFg2BYlCHJT4TUDN53JtT3p-8gXbGxaVJqp_BIVmF0FAysBqdidh7qVAxwqPq5G9LRkT0sW0LTHfdxWdAbZvfIw5XoiWolINhVEeSta-io6w8IkG4525Jj8yK094wlKA70orkoAyV_G2zMBKcNccMrLhL_n63EPGCPIoO6oP1kmeSB2Iv83A65mhosrVHRvCXRo805xXopSCRE6orW2f21Et70BmoY"/>
+</div>
+</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<div class="text-sm font-medium text-gray-900">V-125</div>
+</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<div class="text-sm text-gray-900">Ford Transit</div>
+<div class="text-xs text-gray-500">Van</div>
+</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded bg-gray-100 text-gray-800 font-mono">LMN-456</span>
+</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-700">Active</span>
+</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    Mike Ross
+                                </td>
+</tr>
+<!-- Row 4 -->
+<tr class="hover:bg-gray-50 transition-colors">
+<td class="px-6 py-4 whitespace-nowrap">
+<div class="h-12 flex-shrink-0 w-20">
+<img alt="Vehicle Thumbnail" class="h-12 rounded object-cover border border-gray-100 w-20" src="https://lh3.googleusercontent.com/aida-public/AB6AXuArZP5IlILmAKO7SwqQQgrqd9wtqnr-G1hnglx6MH2F5frQ009Sc4hNa0KPbY01V81c_m6BujCQJ40t4GEB2EZRTv8cSvxGmuy6QpJeWcXmHKn1ItC7GZtLidJcZY-UVUof-hG6YgIQ97vdIuupBjzxU6vQzTO99diR1fsk7paHKKhfbqKiqaC3gGcYFmXcNFqrqSq11XBwUDXjeWRs-xm-mBSnYyvtENfcvJfWBF9KQHxgccPARo3V2uz_pY9NUIaybwcr4r6jZQ_0"/>
+</div>
+</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<div class="text-sm font-medium text-gray-900">V-305</div>
+</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<div class="text-sm text-gray-900">Chevrolet Tahoe</div>
+<div class="text-xs text-gray-500">SUV</div>
+</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded bg-gray-100 text-gray-800 font-mono">QWE-321</span>
+</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-700">Inactive</span>
+</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+<span class="italic text-gray-400">N/A</span>
+</td>
+</tr>
+<!-- Row 5 -->
+<tr class="hover:bg-gray-50 transition-colors">
+<td class="px-6 py-4 whitespace-nowrap">
+<div class="h-12 flex-shrink-0 w-20">
+<img alt="Vehicle Thumbnail" class="h-12 rounded object-cover border border-gray-100 w-20" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDda_97gPZplgas-PaU7LNEGHtJ7-hdTfKkoR_JBY5jjKreNZcuBEiL2s19tRDGhrjDGbtxzp6Uv6vgYFw7GQIVhQRL97nCf7THPEmnSUjtUrU5sOfrkUo0sbGr8byU_x64tdSXmFtLd1m9H23eaFQswfbTzs423pZotnYPf9Bf50kTb4z1o25-ZTr-r5jgZkyo_vO0gZfyEvkHPFSyRUAoE-mVsRN2nHIup2fgVntWt19U44jdmRf4QnOMHPaowrGxDAtl8B_JkdM4"/>
+</div>
+</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<div class="text-sm font-medium text-gray-900">V-401</div>
+</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<div class="text-sm text-gray-900">Honda Civic</div>
+<div class="text-xs text-gray-500">Sedan</div>
+</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded bg-gray-100 text-gray-800 font-mono">CVB-654</span>
+</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-700">Active</span>
+</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    Emily Blunt
+                                </td>
+</tr>
+<!-- Row 6 -->
+<tr class="hover:bg-gray-50 transition-colors">
+<td class="px-6 py-4 whitespace-nowrap">
+<div class="h-12 flex-shrink-0 w-20">
+<img alt="Vehicle Thumbnail" class="h-12 rounded object-cover border border-gray-100 w-20" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD6WYTd9Jwpl-VlVZCdUQezZ1wohY3K0NSf0hFFM0eHKX8ik1PFg2BYlCHJT4TUDN53JtT3p-8gXbGxaVJqp_BIVmF0FAysBqdidh7qVAxwqPq5G9LRkT0sW0LTHfdxWdAbZvfIw5XoiWolINhVEeSta-io6w8IkG4525Jj8yK094wlKA70orkoAyV_G2zMBKcNccMrLhL_n63EPGCPIoO6oP1kmeSB2Iv83A65mhosrVHRvCXRo805xXopSCRE6orW2f21Et70BmoY"/>
+</div>
+</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<div class="text-sm font-medium text-gray-900">V-118</div>
+</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<div class="text-sm text-gray-900">Ram 1500</div>
+<div class="text-xs text-gray-500">Truck</div>
+</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded bg-gray-100 text-gray-800 font-mono">ASD-987</span>
+</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-700">In Maintenance</span>
+</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    John Smith
+                                </td>
+</tr>
+<!-- Row 7 -->
+<tr class="hover:bg-gray-50 transition-colors">
+<td class="px-6 py-4 whitespace-nowrap">
+<div class="h-12 flex-shrink-0 w-20">
+<img alt="Vehicle Thumbnail" class="h-12 rounded object-cover border border-gray-100 w-20" src="https://lh3.googleusercontent.com/aida-public/AB6AXuArZP5IlILmAKO7SwqQQgrqd9wtqnr-G1hnglx6MH2F5frQ009Sc4hNa0KPbY01V81c_m6BujCQJ40t4GEB2EZRTv8cSvxGmuy6QpJeWcXmHKn1ItC7GZtLidJcZY-UVUof-hG6YgIQ97vdIuupBjzxU6vQzTO99diR1fsk7paHKKhfbqKiqaC3gGcYFmXcNFqrqSq11XBwUDXjeWRs-xm-mBSnYyvtENfcvJfWBF9KQHxgccPARo3V2uz_pY9NUIaybwcr4r6jZQ_0"/>
+</div>
+</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<div class="text-sm font-medium text-gray-900">V-222</div>
+</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<div class="text-sm text-gray-900">Nissan Altima</div>
+<div class="text-xs text-gray-500">Sedan</div>
+</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded bg-gray-100 text-gray-800 font-mono">JKL-012</span>
+</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-700">Active</span>
+</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    Jessica Pearson
+                                </td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Pagination Footer (Optional but good for completeness) -->
+<div class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+<div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+<div>
+<p class="text-sm text-gray-700">
+                                Showing <span class="font-medium">1</span> to <span class="font-medium">7</span> of <span class="font-medium">42</span> results
+                            </p>
+</div>
+<div>
+<nav aria-label="Pagination" class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+<a class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50" href="#">
+<span class="sr-only">Previous</span>
+<svg aria-hidden="true" class="h-5 w-5" fill="currentColor" viewbox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path clip-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" fill-rule="evenodd"></path></svg>
+</a>
+<a aria-current="page" class="z-10 bg-blue-50 border-blue-500 text-blue-600 relative inline-flex items-center px-4 py-2 border text-sm font-medium bg-blue-900" href="#">1</a>
+<a class="bg-white border-gray-300 text-gray-500 hover:bg-gray-50 relative inline-flex items-center px-4 py-2 border text-sm font-medium" href="#">2</a>
+<a class="bg-white border-gray-300 text-gray-500 hover:bg-gray-50 relative inline-flex items-center px-4 py-2 border text-sm font-medium" href="#">3</a>
+<a class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50" href="#">
+<span class="sr-only">Next</span>
+<svg aria-hidden="true" class="h-5 w-5" fill="currentColor" viewbox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path clip-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" fill-rule="evenodd"></path></svg>
+</a>
+</nav>
+</div>
+</div>
+</div>
+</section>
+<!-- END: Data Table Card -->
+</div>
+<!-- END: Content Scroll Area -->
+</main>
+<!-- END: Main Content Area -->
+</body></html>

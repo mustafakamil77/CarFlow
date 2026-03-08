@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CarFlow Dashboard - Add New Vehicle</title>
+<!-- Tailwind CSS v3 with Plugins -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Google Fonts: Inter -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<!-- FontAwesome for Icons -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              sidebar: '#1E2640', // Deep Navy from mockup
+              accent: '#3B82F6',  // Bright Blue for active/buttons
+              bg: '#F3F4F6',      // Light Gray background
+              text: '#111827',    // Dark Gray text
+              subtext: '#6B7280'  // Lighter text
+            }
+          }
+        }
+      }
+    }
+  </script>
+<!-- Custom Styles for specific adjustments not covered by utilities -->
+<style data-purpose="custom-overrides">
+    /* Ensure full height layout */
+    body, html {
+      height: 100%;
+      margin: 0;
+    }
+    
+    /* Custom scrollbar styling for aesthetics */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f1f1; 
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #c1c1c1; 
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #a8a8a8; 
+    }
+  </style>
+</head>
+<body class="flex h-screen overflow-hidden font-sans bg-brand-bg text-brand-text">
+<!-- BEGIN: Sidebar -->
+<aside class="w-64 flex-shrink-0 flex flex-col bg-brand-sidebar text-white transition-all duration-300" data-purpose="sidebar-navigation">
+<!-- Logo Area -->
+<div class="h-16 flex items-center px-6 border-b border-gray-700/50">
+<div class="flex items-center gap-3"><i class="fas fa-car text-blue-400 text-xl mr-3"></i><span class="text-2xl font-bold tracking-tight text-white">CarFlow</span></div>
+</div>
+<!-- Navigation Menu -->
+<nav class="flex-1 overflow-y-auto py-6 space-y-1">
+<!-- Nav Item: Dashboard -->
+<a class="flex items-center gap-4 px-6 py-3 text-gray-400 hover:text-white hover:bg-white/5 transition-colors group" href="#">
+<i class="fa-solid fa-border-all w-5 text-center group-hover:text-blue-400"></i>
+<span class="font-medium">Dashboard</span>
+</a>
+<!-- Nav Item: Fleet (Active) -->
+<a class="flex items-center gap-4 px-6 py-3 text-white border-l-4 border-blue-500 transition-colors bg-slate-700" href="#">
+<i class="fa-solid fa-truck w-5 text-center text-white"></i>
+<span class="font-medium">Fleet</span>
+</a>
+<!-- Nav Item: Fuel -->
+<a class="flex items-center gap-4 px-6 py-3 text-gray-400 hover:text-white hover:bg-white/5 transition-colors group" href="#">
+<i class="fa-solid fa-gas-pump w-5 text-center group-hover:text-blue-400"></i>
+<span class="font-medium">Fuel</span>
+</a>
+<!-- Nav Item: Maintenance -->
+<a class="flex items-center gap-4 px-6 py-3 text-gray-400 hover:text-white hover:bg-white/5 transition-colors group" href="#">
+<i class="fa-solid fa-wrench w-5 text-center group-hover:text-blue-400"></i>
+<span class="font-medium">Maintenance</span>
+</a>
+<!-- Nav Item: Reports -->
+<a class="flex items-center gap-4 px-6 py-3 text-gray-400 hover:text-white hover:bg-white/5 transition-colors group" href="#">
+<i class="fa-solid fa-chart-line w-5 text-center group-hover:text-blue-400"></i>
+<span class="font-medium">Reports</span>
+</a>
+<!-- Nav Item: Staff -->
+<a class="flex items-center gap-4 px-6 py-3 text-gray-400 hover:text-white hover:bg-white/5 transition-colors group" href="#">
+<i class="fa-solid fa-users w-5 text-center group-hover:text-blue-400"></i>
+<span class="font-medium">Staff</span>
+</a>
+<!-- Nav Item: Settings -->
+<a class="flex items-center gap-4 px-6 py-3 text-gray-400 hover:text-white hover:bg-white/5 transition-colors group" href="#">
+<i class="fa-solid fa-gear w-5 text-center group-hover:text-blue-400"></i>
+<span class="font-medium">Settings</span>
+</a>
+</nav>
+</aside>
+<!-- END: Sidebar -->
+<!-- BEGIN: Main Content Area -->
+<main class="flex-1 flex flex-col h-full overflow-hidden bg-brand-bg relative">
+<!-- BEGIN: Top Header -->
+<header class="h-16 bg-white shadow-sm flex items-center justify-between px-8 flex-shrink-0 z-10" data-purpose="top-navigation">
+<!-- Page Title -->
+<h1 class="text-xl font-bold text-gray-800">Add New Vehicle</h1>
+<!-- User Profile -->
+<div class="flex items-center gap-3">
+<span class="text-sm font-semibold text-gray-700">John Doe</span>
+<!-- Avatar Placeholder -->
+<img alt="User Avatar" class="w-10 h-10 rounded-full border border-gray-200 object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBfx0YIo4YCpkjAFHldluEEz2c-6JruBIwtlE85jPA_fkxqR5p3ryfyaHhXcrm9SxdPYk81kOgaoZdWdEgqp8qn_tiTwTTLJJYR6hMndmmfIr4c9wxkpgfuZaIKgAdqYnp4yoH5HdGdaSQAzSkzpcmdQniafcLQzRNzMrpYrxcFtTQMRuYrJrZfApYZOHR5WFniUJh4_ToHmGLLQX8LQE7dcceYIbVJ6OGMcM1HYGHoN-8O-Fa_swn0h_OJ9Eu2UQCxeh0PjHzKnSKp"/>
+</div>
+</header>
+<!-- END: Top Header -->
+<!-- BEGIN: Scrollable Content -->
+<div class="flex-1 overflow-y-auto p-8" data-purpose="main-content-scroll-container">
+<!-- BEGIN: Form Card -->
+<section class="max-w-4xl mx-auto bg-white rounded-lg shadow-sm border border-gray-200 p-10" data-purpose="vehicle-form-card">
+<form action="#" method="POST" onsubmit="event.preventDefault();">
+<!-- Section: Basic Information -->
+<div class="mb-8">
+<h2 class="font-bold text-gray-900 mb-4 font-bold text-xl">Basic Information</h2>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<!-- Field: Model -->
+<div class="space-y-1">
+<label class="block text-sm font-semibold text-gray-700" for="model">Model</label>
+<input class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 border" id="model" name="model" placeholder="Model" type="text"/>
+</div>
+<!-- Field: Make -->
+<div class="space-y-1">
+<label class="block text-sm font-semibold text-gray-700" for="make">Make</label>
+<input class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 border" id="make" name="make" placeholder="Make" type="text"/>
+</div>
+<!-- Field: Year -->
+<div class="space-y-1">
+<label class="block text-sm font-semibold text-gray-700" for="year">Year</label>
+<input class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 border" id="year" name="year" placeholder="Year" type="number"/>
+</div>
+</div>
+</div>
+<!-- Section: Identification -->
+<div class="mb-8">
+<h2 class="font-bold text-gray-900 mb-4 font-bold text-xl">Identification</h2>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<!-- Field: VIN -->
+<div class="space-y-1">
+<label class="block text-sm font-semibold text-gray-700" for="vin">VIN</label>
+<input class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 border" id="vin" name="vin" placeholder="VIN" type="text"/>
+</div>
+<!-- Field: License Plate -->
+<div class="space-y-1">
+<label class="block text-sm font-semibold text-gray-700" for="license_plate">License Plate</label>
+<input class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 border" id="license_plate" name="license_plate" placeholder="License Plate" type="text"/>
+</div>
+<!-- Field: ID -->
+<div class="space-y-1">
+<label class="block text-sm font-semibold text-gray-700" for="vehicle_id">ID</label>
+<input class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 border" id="vehicle_id" name="vehicle_id" placeholder="ID" type="text"/>
+</div>
+</div>
+</div>
+<!-- Section: Specifications -->
+<div class="mb-8">
+<h2 class="font-bold text-gray-900 mb-4 font-bold text-xl">Specifications</h2>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<!-- Field: Fuel Tank Capacity -->
+<div class="space-y-1">
+<label class="block text-sm font-semibold text-gray-700" for="fuel_capacity">Fuel Tank Capacity</label>
+<input class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 border" id="fuel_capacity" name="fuel_capacity" placeholder="Fuel Tank Capacity" type="text"/>
+</div>
+<!-- Field: Initial Mileage -->
+<div class="space-y-1">
+<label class="block text-sm font-semibold text-gray-700" for="initial_mileage">Initial Mileage</label>
+<input class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 border" id="initial_mileage" name="initial_mileage" placeholder="Initial Mileage" type="text"/>
+</div>
+</div>
+</div>
+<!-- Section: Photos & Documents -->
+<div class="mb-8">
+<h2 class="font-bold text-gray-900 mb-4 font-bold text-xl">Photos &amp; Documents</h2>
+<!-- Upload Area -->
+<div class="mt-2 flex justify-center rounded-lg border border-dashed border-gray-300 px-6 py-10 bg-gray-50/50 hover:bg-gray-50 transition-colors cursor-pointer group">
+<div class="text-center">
+<!-- Using placeholder for upload icon -->
+<div class="mx-auto h-12 w-12 text-gray-300 group-hover:text-blue-500 transition-colors mb-2">
+<div class="flex justify-center mb-4"><i class="fas fa-cloud-upload-alt text-5xl text-gray-400"></i></div>
+</div>
+<div class="mt-2 flex text-sm leading-6 text-gray-600 justify-center">
+<span class="relative cursor-pointer rounded-md bg-transparent font-semibold text-blue-600 focus-within:outline-none focus-within:ring-2 focus-within:ring-blue-600 focus-within:ring-offset-2 hover:text-blue-500">
+                    Drag &amp; Drop
+                  </span>
+<p class="pl-1">or <span class="text-blue-600 font-semibold">Browse files</span></p>
+</div>
+<p class="text-xs leading-5 text-gray-500 mt-1">or dragdrop or Browse files.</p>
+</div>
+</div>
+</div>
+<!-- Footer Actions -->
+<div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
+<button class="rounded-md bg-white px-5 py-2.5 text-sm font-semibold text-gray-700 border border-gray-300 shadow-sm hover:bg-gray-50 transition-colors" type="button">
+              Cancel
+            </button>
+<button class="rounded-md bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 transition-colors" type="submit">
+              Add Vehicle
+            </button>
+</div>
+</form>
+</section>
+<!-- END: Form Card -->
+</div>
+<!-- END: Scrollable Content -->
+</main>
+<!-- END: Main Content Area -->
+</body></html>

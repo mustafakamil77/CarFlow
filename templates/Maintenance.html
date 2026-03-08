@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CarFlow - Maintenance &amp; Repairs Hub</title>
+<!-- Tailwind CSS v3 with Plugins -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Configuration -->
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            sidebar: '#1e2b46', // Dark blue for sidebar
+            'sidebar-active': '#2c3b59', // Lighter blue for active state
+            main: '#f3f5f9', // Light gray for main background
+            'brand-blue': '#2563eb', // Primary blue for buttons
+            'urgent-bg': '#fee2e2',
+            'urgent-text': '#ef4444',
+            'routine-bg': '#dbeafe',
+            'routine-text': '#3b82f6',
+            'routine-yellow-bg': '#fef3c7',
+            'routine-yellow-text': '#d97706',
+          },
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Icons (Phosphor Icons - clean and modern) -->
+<script src="https://unpkg.com/@phosphor-icons/web"></script>
+<style data-purpose="custom-overrides">
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    /* Smooth transition for hover effects */
+    .nav-item {
+      transition: background-color 0.2s ease, color 0.2s ease;
+    }
+  </style>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/></head>
+<body class="bg-main h-screen flex overflow-hidden" style="font-family: 'Inter', sans-serif;">
+<!-- BEGIN: Sidebar -->
+<aside class="w-64 bg-sidebar text-gray-300 flex flex-col flex-shrink-0" data-purpose="sidebar">
+<!-- Logo Section -->
+<div class="h-16 flex items-center px-6 border-b border-gray-700/50">
+<i class="fas fa-car text-blue-400 text-2xl mr-2"></i>
+<span class="text-white text-xl font-bold tracking-tight">CarFlow</span>
+</div>
+<!-- Navigation Links -->
+<nav class="flex-1 px-3 py-6 space-y-1 overflow-y-auto">
+<a class="nav-item flex items-center px-3 py-2.5 rounded-lg text-gray-400 hover:bg-sidebar-active hover:text-white group mb-1" href="#">
+<i class="ph ph-squares-four text-xl mr-3"></i>
+<span class="text-sm font-medium">Dashboard</span>
+</a>
+<a class="nav-item flex items-center px-3 py-2.5 rounded-lg text-gray-400 hover:bg-sidebar-active hover:text-white group mb-1" href="#">
+<i class="ph ph-truck text-xl mr-3"></i>
+<span class="text-sm font-medium">Fleet</span>
+</a>
+<a class="nav-item flex items-center px-3 py-2.5 rounded-lg text-gray-400 hover:bg-sidebar-active hover:text-white group mb-1" href="#">
+<i class="ph ph-gas-pump text-xl mr-3"></i>
+<span class="text-sm font-medium">Fuel</span>
+</a>
+<!-- Active State Item -->
+<a class="nav-item flex items-center px-3 py-2.5 rounded-lg bg-gray-700/50 text-white group shadow-sm mb-1" href="#">
+<i class="ph ph-wrench text-xl mr-3"></i>
+<span class="text-sm font-medium">Maintenance</span>
+</a>
+<a class="nav-item flex items-center px-3 py-2.5 rounded-lg text-gray-400 hover:bg-sidebar-active hover:text-white group mb-1" href="#">
+<i class="ph ph-chart-bar text-xl mr-3"></i>
+<span class="text-sm font-medium">Reports</span>
+</a>
+<a class="nav-item flex items-center px-3 py-2.5 rounded-lg text-gray-400 hover:bg-sidebar-active hover:text-white group mb-1" href="#">
+<i class="ph ph-users text-xl mr-3"></i>
+<span class="text-sm font-medium">Staff</span>
+</a>
+<a class="nav-item flex items-center px-3 py-2.5 rounded-lg text-gray-400 hover:bg-sidebar-active hover:text-white group mb-1" href="#">
+<i class="ph ph-gear text-xl mr-3"></i>
+<span class="text-sm font-medium">Settings</span>
+</a>
+</nav>
+</aside>
+<!-- END: Sidebar -->
+<!-- BEGIN: Main Content Area -->
+<div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+<!-- BEGIN: Header -->
+<header class="bg-white border-b border-gray-200 h-16 flex items-center justify-between px-8" data-purpose="top-header">
+<h1 class="text-xl font-bold text-gray-900">Maintenance &amp; Repairs Hub</h1>
+<!-- User Profile -->
+<div class="flex items-center gap-3">
+<span class="text-sm font-medium text-gray-700">John Doe</span>
+<img alt="User Avatar" class="h-10 w-10 rounded-full object-cover border border-gray-200" src="https://lh3.googleusercontent.com/aida-public/AB6AXuABkXvXGch8VEvxkfAnzLFtVa1ojFsfLXU2xX9FdWQv8JOUWNrkwzG11lh5xa_ZJkBWjv-oNQnvB-Xkip-9e0tucyQC9hHTNRWOEEZH2Vd40ORX2xWlH6QEkiORLx3-nOu9lP9CNlnSldimujd6V28tofEdUpQOqDIXWR6vz6uHT5pbMfOnxp0Unrp7zsvov2sJ9H35_Ixtpe0jKrwG3e0NJk7pFl61KPZceRRK9DxKYydUTPLEsRQiEhyWbUvQ7KaDK5Q9_8kFhPDH"/>
+</div>
+</header>
+<!-- END: Header -->
+<!-- BEGIN: Content Scrollable Area -->
+<main class="flex-1 overflow-y-auto p-8" data-purpose="dashboard-content">
+<!-- BEGIN: Stats Cards Row -->
+<section class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+<!-- Card 1: Pending Repairs -->
+<div class="bg-white rounded-xl p-6 shadow-sm border border-gray-100 relative overflow-hidden">
+<div class="flex justify-between items-start mb-4">
+<h3 class="text-gray-900 text-sm font-semibold">Pending Repairs</h3>
+<div class="h-10 w-10 rounded-lg bg-red-100 flex items-center justify-center text-red-500">
+<i class="ph-fill ph-wrench text-xl"></i>
+</div>
+</div>
+<div>
+<div class="text-4xl font-bold text-gray-900 mb-1">12</div>
+<p class="text-sm text-red-500 font-medium">3 urgent</p>
+</div>
+</div>
+<!-- Card 2: Service History -->
+<div class="bg-white rounded-xl p-6 shadow-sm border border-gray-100 relative overflow-hidden">
+<div class="flex justify-between items-start mb-4">
+<h3 class="text-gray-900 text-sm font-semibold">Service History</h3>
+<div class="h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center text-blue-500">
+<i class="ph-fill ph-clipboard-text text-xl"></i>
+</div>
+</div>
+<div>
+<div class="flex items-baseline gap-2 mb-1">
+<span class="text-4xl font-bold text-gray-900">45</span>
+<span class="text-lg font-semibold text-gray-900">Completed</span>
+</div>
+<p class="text-sm text-gray-500">This Month</p>
+</div>
+</div>
+<!-- Card 3: Maintenance Cost -->
+<div class="bg-white rounded-xl p-6 shadow-sm border border-gray-100 relative overflow-hidden">
+<div class="flex justify-between items-start mb-4">
+<h3 class="text-gray-900 text-sm font-semibold">Maintenance Cost</h3>
+<div class="h-10 w-10 rounded-lg bg-green-100 flex items-center justify-center text-green-500">
+<i class="ph-fill ph-currency-dollar text-xl"></i>
+</div>
+</div>
+<div>
+<div class="text-4xl font-bold text-gray-900 mb-1">$12,500</div>
+<p class="text-sm text-gray-500">YTD</p>
+</div>
+</div>
+</section>
+<!-- END: Stats Cards Row -->
+<!-- BEGIN: Table Section -->
+<section class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden" data-purpose="tasks-table">
+<!-- Table Header -->
+<div class="px-6 py-6 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+<h2 class="text-lg font-bold text-gray-900">Upcoming Maintenance Tasks</h2>
+<button class="bg-brand-blue hover:bg-blue-700 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors shadow-sm">
+            Schedule New Service
+          </button>
+</div>
+<!-- Table Content -->
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-gray-50/50 text-gray-500 text-xs font-bold uppercase tracking-wider border-b border-gray-100">
+<th class="px-6 py-4">Vehicle ID</th>
+<th class="px-6 py-4">Task</th>
+<th class="px-6 py-4">Due Date</th>
+<th class="px-6 py-4">Priority</th>
+<th class="px-6 py-4 text-right">Action</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-gray-100 text-sm">
+<!-- Row 1 -->
+<tr class="hover:bg-gray-50/50 transition-colors">
+<td class="px-6 py-4 font-medium text-gray-900">V-305</td>
+<td class="px-6 py-4 text-gray-700">Brake Inspection</td>
+<td class="px-6 py-4 text-gray-500">Oct 28, 2023</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-600">
+                  Urgent
+                </span>
+</td>
+<td class="px-6 py-4 text-right">
+<a class="text-brand-blue hover:text-blue-800 font-medium" href="#">[View]</a>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="hover:bg-gray-50/50 transition-colors">
+<td class="px-6 py-4 font-medium text-gray-900">V-120</td>
+<td class="px-6 py-4 text-gray-700">Oil Change</td>
+<td class="px-6 py-4 text-gray-500">Oct 30, 2023</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-600">
+                  Routine
+                </span>
+</td>
+<td class="px-6 py-4 text-right">
+<a class="text-brand-blue hover:text-blue-800 font-medium" href="#">[View]</a>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="hover:bg-gray-50/50 transition-colors">
+<td class="px-6 py-4 font-medium text-gray-900">V-402</td>
+<td class="px-6 py-4 text-gray-700">Engine Check</td>
+<td class="px-6 py-4 text-gray-500">Oct 29, 2023</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-600">
+                  Urgent
+                </span>
+</td>
+<td class="px-6 py-4 text-right">
+<a class="text-brand-blue hover:text-blue-800 font-medium" href="#">[View]</a>
+</td>
+</tr>
+<!-- Row 4 -->
+<tr class="hover:bg-gray-50/50 transition-colors">
+<td class="px-6 py-4 font-medium text-gray-900">V-210</td>
+<td class="px-6 py-4 text-gray-700">Tire Rotation</td>
+<td class="px-6 py-4 text-gray-500">Nov 1, 2023</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                  Routine
+                </span>
+</td>
+<td class="px-6 py-4 text-right">
+<a class="text-brand-blue hover:text-blue-800 font-medium" href="#">[View]</a>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<!-- END: Table Section -->
+</main>
+<!-- END: Content Scrollable Area -->
+</div>
+<!-- END: Main Content Area -->
+</body></html>

@@ -1,59 +1,97 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="flex items-center justify-between">
-  <h1 class="text-2xl">Cars</h1>
-  <a href="{% url 'fleet:car_create' %}" class="px-3 py-2 bg-blue-600 text-white rounded">Create</a>
+<div class="flex-1 overflow-y-auto p-8 custom-scrollbar">
+  <section class="bg-transparent mb-6">
+    <div class="flex flex-col xl:flex-row gap-4 xl:items-end justify-between">
+      <form method="get" class="flex flex-col md:flex-row gap-4 flex-1">
+        <div class="relative w-full md:w-96">
+          <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+            <svg aria-hidden="true" class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+          </div>
+          <input class="block w-full p-2.5 pl-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-white focus:ring-blue-500 focus:border-blue-500 shadow-sm" name="q" value="{{ request.GET.q }}" placeholder="Search vehicles by ID, Model, Plate..." type="text">
+        </div>
+        <div class="relative w-full md:w-auto">
+          <div class="flex flex-col">
+            <label class="text-xs font-medium text-gray-500 mb-1 ml-1" for="status-filter">Status</label>
+            <select class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 min-w-[160px] shadow-sm" id="status-filter" name="status">
+              <option value="">All Statuses</option>
+              <option value="active" {% if request.GET.status == 'active' %}selected{% endif %}>Active</option>
+              <option value="maintenance" {% if request.GET.status == 'maintenance' %}selected{% endif %}>In Maintenance</option>
+              <option value="inactive" {% if request.GET.status == 'inactive' %}selected{% endif %}>Inactive</option>
+            </select>
+          </div>
+        </div>
+        <div class="relative w-full md:w-auto">
+          <div class="flex flex-col">
+            <label class="text-xs font-medium text-gray-500 mb-1 ml-1" for="sort-filter">Sort</label>
+            <select class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 min-w-[160px] shadow-sm" id="sort-filter" name="sort">
+              <option value="-created_at" {% if request.GET.sort == '-created_at' or not request.GET.sort %}selected{% endif %}>Newest</option>
+              <option value="plate_number" {% if request.GET.sort == 'plate_number' %}selected{% endif %}>Plate</option>
+              <option value="brand" {% if request.GET.sort == 'brand' %}selected{% endif %}>Brand</option>
+              <option value="model" {% if request.GET.sort == 'model' %}selected{% endif %}>Model</option>
+              <option value="year" {% if request.GET.sort == 'year' %}selected{% endif %}>Year</option>
+            </select>
+          </div>
+        </div>
+        <div class="flex items-end">
+          <button type="submit" class="text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 focus:outline-none shadow-sm">Apply</button>
+        </div>
+      </form>
+      <a href="{% url 'fleet:car_create' %}" class="text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 focus:outline-none shadow-sm flex-shrink-0">Add New Vehicle</a>
+    </div>
+  </section>
+  <section class="bg-white rounded-lg shadow border border-gray-200 overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm text-left text-gray-500">
+        <thead class="text-xs text-gray-500 font-bold bg-gray-50/50 uppercase border-b border-gray-100">
+          <tr>
+            <th class="px-6 py-4 w-32" scope="col">Thumbnail</th>
+            <th class="px-6 py-4" scope="col">Vehicle ID</th>
+            <th class="px-6 py-4" scope="col">Model</th>
+            <th class="px-6 py-4" scope="col">License Plate</th>
+            <th class="px-6 py-4" scope="col">Status</th>
+            <th class="px-6 py-4" scope="col">Current Driver</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for car in cars %}
+          <tr class="bg-white border-b hover:bg-gray-50 transition-colors">
+            <td class="px-6 py-3">
+              <div class="h-12 w-20 overflow-hidden rounded-md border border-gray-200 bg-gray-100"></div>
+            </td>
+            <td class="px-6 py-4 font-medium text-gray-900"><a href="{% url 'fleet:car_detail' car.pk %}" class="text-blue-600">V-{{ car.pk }}</a></td>
+            <td class="px-6 py-4 text-gray-900">{{ car.brand }} {{ car.model }}</td>
+            <td class="px-6 py-4 text-gray-900">{{ car.plate_number }}</td>
+            <td class="px-6 py-4">
+              {% if car.status == 'active' %}
+              <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full flex items-center w-fit gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-green-600"></span> Active</span>
+              {% elif car.status == 'maintenance' %}
+              <span class="bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-0.5 rounded-full flex items-center w-fit gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-yellow-600"></span> In Maintenance</span>
+              {% elif car.status == 'inactive' %}
+              <span class="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded-full flex items-center w-fit gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-red-600"></span> Inactive</span>
+              {% else %}
+              <span class="bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-0.5 rounded-full flex items-center w-fit gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-gray-600"></span> {{ car.status }}</span>
+              {% endif %}
+            </td>
+            <td class="px-6 py-4 text-gray-900">-</td>
+          </tr>
+          {% empty %}
+          <tr><td class="px-6 py-4" colspan="6">No cars</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {% if is_paginated %}
+  <div class="mt-4 flex items-center space-x-2">
+    {% if page_obj.has_previous %}
+      <a class="px-3 py-2 border rounded" href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.sort %}sort={{ request.GET.sort }}&{% endif %}page={{ page_obj.previous_page_number }}">Previous</a>
+    {% endif %}
+    <span>Page {{ page_obj.number }} of {{ paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+      <a class="px-3 py-2 border rounded" href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.sort %}sort={{ request.GET.sort }}&{% endif %}page={{ page_obj.next_page_number }}">Next</a>
+    {% endif %}
   </div>
-<form method="get" class="mt-4 grid grid-cols-1 md:grid-cols-4 gap-3">
-  <input type="text" name="q" value="{{ request.GET.q }}" placeholder="Search plate/brand/model" class="border rounded p-2 w-full">
-  <select name="status" class="border rounded p-2 w-full">
-    <option value="">All status</option>
-    <option value="active" {% if request.GET.status == 'active' %}selected{% endif %}>Active</option>
-    <option value="maintenance" {% if request.GET.status == 'maintenance' %}selected{% endif %}>Maintenance</option>
-    <option value="inactive" {% if request.GET.status == 'inactive' %}selected{% endif %}>Inactive</option>
-  </select>
-  <select name="sort" class="border rounded p-2 w-full">
-    <option value="-created_at" {% if request.GET.sort == '-created_at' or not request.GET.sort %}selected{% endif %}>Newest</option>
-    <option value="plate_number" {% if request.GET.sort == 'plate_number' %}selected{% endif %}>Plate</option>
-    <option value="brand" {% if request.GET.sort == 'brand' %}selected{% endif %}>Brand</option>
-    <option value="model" {% if request.GET.sort == 'model' %}selected{% endif %}>Model</option>
-    <option value="year" {% if request.GET.sort == 'year' %}selected{% endif %}>Year</option>
-  </select>
-  <button type="submit" class="px-3 py-2 bg-gray-800 text-white rounded">Apply</button>
-</form>
-<table class="min-w-full mt-4 border rounded overflow-hidden">
-    <thead>
-        <tr class="bg-gray-100 hover:bg-gray-200">
-            <th class="p-2 text-left">Plate</th>
-            <th class="p-2 text-left">Brand</th>
-            <th class="p-2 text-left">Model</th>
-            <th class="p-2 text-left">Year</th>
-            <th class="p-2 text-left">Status</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for car in cars %}
-        <tr class="border-b hover:bg-gray-50">
-            <td class="p-2"><a class="text-blue-600" href="{% url 'fleet:car_detail' car.pk %}">{{ car.plate_number }}</a></td>
-            <td class="p-2">{{ car.brand }}</td>
-            <td class="p-2">{{ car.model }}</td>
-            <td class="p-2">{{ car.year }}</td>
-            <td class="p-2">{{ car.status }}</td>
-        </tr>
-        {% empty %}
-        <tr><td class="p-2" colspan="5">No cars</td></tr>
-        {% endfor %}
-    </tbody>
-</table>
-{% if is_paginated %}
-<div class="mt-4 flex items-center space-x-2">
-  {% if page_obj.has_previous %}
-    <a class="px-3 py-2 border rounded" href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.sort %}sort={{ request.GET.sort }}&{% endif %}page={{ page_obj.previous_page_number }}">Previous</a>
-  {% endif %}
-  <span>Page {{ page_obj.number }} of {{ paginator.num_pages }}</span>
-  {% if page_obj.has_next %}
-    <a class="px-3 py-2 border rounded" href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.sort %}sort={{ request.GET.sort }}&{% endif %}page={{ page_obj.next_page_number }}">Next</a>
   {% endif %}
 </div>
-{% endif %}
 {% endblock %}

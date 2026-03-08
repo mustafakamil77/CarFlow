@@ -1,34 +1,56 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>CarFlow</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+{% load static %}
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CarFlow - Fleet Management</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      fontFamily: { sans: ['Inter','sans-serif'] },
+      colors: { sidebar: '#1e293b', main: '#f1f5f9' }
+    }
+  }
+}
+</script>
+<link rel="stylesheet" href="{% static 'css/base.css' %}">
+<link rel="stylesheet" href="{% static 'css/layout.css' %}">
+{% block extra_css %}{% endblock %}
+<style>
+body{font-family:'Inter',sans-serif;background-color:#f3f4f6}
+::-webkit-scrollbar{width:8px}
+::-webkit-scrollbar-track{background:#f1f1f1}
+::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:#94a3b8}
+</style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body class="min-h-screen bg-gray-50">
-    <header class="bg-white shadow">
-        <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-            <h1 class="text-xl font-semibold">CarFlow</h1>
-            <nav class="space-x-4">
-                <a class="text-blue-600" href="/fleet/cars/">Fleet</a>
-                <a class="text-blue-600" href="/reports/dashboard/">Reports</a>
-                <a class="text-blue-600" href="/fuel/upload/">Fuel Import</a>
-                <a class="text-blue-600" href="/maintenance/requests/">Maintenance</a>
-            </nav>
-        </div>
-    </header>
-    <main class="max-w-6xl mx-auto px-4 py-6">
-        {% if messages %}
-        <div class="fixed top-4 right-4 space-y-2 z-50">
-            {% for message in messages %}
-            <div class="rounded shadow px-4 py-3 {% if message.tags == 'success' %}bg-green-100 text-green-800{% elif message.tags == 'error' %}bg-red-100 text-red-800{% else %}bg-indigo-100 text-indigo-800{% endif %}">
-                {{ message }}
-            </div>
-            {% endfor %}
-        </div>
-        {% endif %}
-        {% block content %}{% endblock %}
-    </main>
+<body class="flex h-screen overflow-hidden bg-main bg-slate-100">
+<div id="sidebar-backdrop" class="fixed inset-0 bg-black/30 z-30 hidden md:hidden"></div>
+{% include "partials/sidebar.html" %}
+<div class="flex-1 flex flex-col h-screen overflow-hidden">
+{% include "partials/navbar.html" %}
+<main class="flex-1 overflow-x-hidden overflow-y-auto bg-main p-8">
+{% block content %}{% endblock %}
+</main>
+</div>
+<script src="{% static 'js/app.js' %}"></script>
+{% block extra_js %}{% endblock %}
+<script>
+(function(){
+  var toggle=document.getElementById('sidebarToggle');
+  var sidebar=document.getElementById('sidebar');
+  var backdrop=document.getElementById('sidebar-backdrop');
+  function open(){sidebar.classList.remove('-translate-x-full');backdrop.classList.remove('hidden')}
+  function close(){sidebar.classList.add('-translate-x-full');backdrop.classList.add('hidden')}
+  if(toggle){toggle.addEventListener('click',function(){if(sidebar.classList.contains('-translate-x-full')){open()}else{close()}})}
+  if(backdrop){backdrop.addEventListener('click',close)}
+  window.addEventListener('resize',function(){if(window.innerWidth>=768){backdrop.classList.add('hidden');sidebar.classList.remove('-translate-x-full')}else{sidebar.classList.add('-translate-x-full')}})
+})();
+</script>
 </body>
 </html>

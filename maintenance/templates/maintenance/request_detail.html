@@ -1,27 +1,27 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <title>Maintenance Request</title>
-</head>
-<body class="p-4">
-    <h1 class="text-2xl">{{ object.title }}</h1>
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-4xl mx-auto">
+  <h1 class="text-2xl font-bold">{{ object.title }}</h1>
+  <div class="mt-2 text-slate-700">
     <p>Car: {{ object.car }}</p>
     <p>Status: {{ object.status }}</p>
     <p>Created: {{ object.created_at }}</p>
-    <p>{{ object.description }}</p>
-    <hr class="my-4">
-    <h2 class="text-xl">Images</h2>
-    <p><a href="{% url 'maintenance:image_upload' object.pk %}">Upload image</a></p>
-    <div class="grid grid-cols-3 gap-4 mt-2">
-        {% for img in object.images.all %}
-        <figure>
-            <img src="{{ img.image.url }}" alt="{{ img.caption }}" style="max-width: 100%; height: auto;">
-            <figcaption>{{ img.caption }}</figcaption>
-        </figure>
-        {% empty %}
-        <p>No images</p>
-        {% endfor %}
-    </div>
-</body>
-</html>
+    <p class="mt-2">{{ object.description }}</p>
+  </div>
+  <hr class="my-6">
+  <div class="flex items-center justify-between">
+    <h2 class="text-xl font-semibold">Images</h2>
+    <a href="{% url 'maintenance:image_upload' object.pk %}" class="px-3 py-2 bg-blue-600 text-white rounded">Upload image</a>
+  </div>
+  <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
+    {% for img in object.images.all %}
+    <figure class="bg-white border rounded p-2">
+      <img src="{{ img.image.url }}" alt="{{ img.caption }}" class="w-full h-auto rounded">
+      <figcaption class="text-sm text-slate-600 mt-1">{{ img.caption }}</figcaption>
+    </figure>
+    {% empty %}
+    <p>No images</p>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

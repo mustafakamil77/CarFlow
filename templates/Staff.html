@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CarFlow - Staff &amp; Driver Directory</title>
+<!-- Load Tailwind CSS v3 -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries">
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            sidebar: '#1e293b', 
+            sidebarActive: '#334155', 
+            primary: '#2563eb', 
+            bgMain: '#f3f4f6',
+            yellowBadgeBg: '#fef9c3',
+            yellowBadgeText: '#854d0e',
+            redBadgeBg: '#fee2e2',
+            redBadgeText: '#991b1b',
+          },
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+<!-- Configure Tailwind to match specific colors from the request -->
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            sidebar: '#1e293b', 
+            sidebarActive: '#334155', 
+            primary: '#2563eb', 
+            bgMain: '#f3f4f6',
+            yellowBadgeBg: '#fef9c3',
+            yellowBadgeText: '#854d0e',
+            redBadgeBg: '#fee2e2',
+            redBadgeText: '#991b1b',
+          },
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+<!-- Google Fonts: Inter -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<style data-purpose="custom-overrides">
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    /* Custom scrollbar for table if needed */
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #f1f1f1; 
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #c1c1c1; 
+      border-radius: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: #a8a8a8; 
+    }
+  </style>
+</head>
+<body class="bg-bgMain h-screen flex overflow-hidden text-gray-800">
+<!-- BEGIN: Sidebar -->
+<aside class="w-64 text-gray-300 flex flex-col flex-shrink-0 transition-all duration-300 bg-slate-800" data-purpose="sidebar">
+<!-- Logo Area -->
+<div class="h-16 flex items-center px-6 border-b border-gray-700/50"><img alt="CarFlow Logo" class="h-8 w-auto" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBMaZ509TX41M8yxNqoIHOhhhukAJixvPKREiP0ZtX3ahimcAgWVvqdbs0j0StFtTcBEFWu2olZHrjN1zEe0hhqzpYexGa5mtK5egE7Mp_5iOsaaJqEbVNPmGbd3BfINsAXNE1VPZNwHd2MZMd6ebPRS3N-37_AoUBLjRAvcemzLVV-BDTWkiUaEMeQnfsC4msluCfrKCw9MmNNWIKjbPIhMbz1PHwzHvEtfqcJRmldLp1siVQwbIGME7rm2TNCz1ryGVhppkmYO9fd"/><span class="ml-3 text-white font-bold text-xl">CarFlow</span></div>
+<!-- Navigation Menu -->
+<nav class="flex-1 overflow-y-auto py-6 space-y-1">
+<!-- Dashboard -->
+<a class="group flex items-center px-6 py-3 hover:bg-sidebarActive hover:text-white transition-colors" href="#">
+<svg class="mr-3 h-5 w-5 text-gray-400 group-hover:text-white" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span class="font-medium">Dashboard</span>
+</a>
+<!-- Fleet -->
+<a class="group flex items-center px-6 py-3 hover:bg-sidebarActive hover:text-white transition-colors" href="#">
+<svg class="mr-3 h-5 w-5 text-gray-400 group-hover:text-white" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span class="font-medium">Fleet</span>
+</a>
+<!-- Fuel -->
+<a class="group flex items-center px-6 py-3 hover:bg-sidebarActive hover:text-white transition-colors" href="#">
+<svg class="mr-3 h-5 w-5 text-gray-400 group-hover:text-white" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span class="font-medium">Fuel</span>
+</a>
+<!-- Maintenance -->
+<a class="group flex items-center px-6 py-3 hover:bg-sidebarActive hover:text-white transition-colors" href="#">
+<svg class="mr-3 h-5 w-5 text-gray-400 group-hover:text-white" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+<path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span class="font-medium">Maintenance</span>
+</a>
+<!-- Reports -->
+<a class="group flex items-center px-6 py-3 hover:bg-sidebarActive hover:text-white transition-colors" href="#">
+<svg class="mr-3 h-5 w-5 text-gray-400 group-hover:text-white" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span class="font-medium">Reports</span>
+</a>
+<!-- Staff (Active) -->
+<a class="group flex items-center px-6 py-3 bg-[#334155] text-white transition-colors" href="#">
+<svg class="mr-3 h-5 w-5 text-white" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span class="font-medium">Staff</span>
+</a>
+<!-- Settings -->
+<a class="group flex items-center px-6 py-3 hover:bg-sidebarActive hover:text-white transition-colors" href="#">
+<svg class="mr-3 h-5 w-5 text-gray-400 group-hover:text-white" fill="none" stroke="currentColor" viewbox="0 0 24 24">
+<path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+<path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+<span class="font-medium">Settings</span>
+</a>
+</nav>
+</aside>
+<!-- END: Sidebar -->
+<!-- BEGIN: Main Content Wrapper -->
+<main class="flex-1 flex flex-col min-w-0 overflow-hidden">
+<!-- BEGIN: Top Header -->
+<header class="h-16 bg-white border-b border-gray-200 flex justify-between items-center px-6 lg:px-8">
+<h1 class="font-bold text-gray-900 text-2xl">Staff &amp; Driver Directory</h1>
+<!-- User Profile -->
+<div class="flex items-center space-x-3">
+<span class="text-sm font-medium text-gray-700">John Doe</span>
+<!-- NOTE: Placeholder {{DATA:IMAGE:USER_AVATAR}} requested but not provided in prompt variable list, using generic placeholder -->
+<img alt="John Doe" class="h-10 w-10 rounded-full border border-gray-200 object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDPtlAhkbaqID15hh93lbkzAKvfXXamI-suR3qbECH-qd4Ovt041tKjDO1tsHdId2xnmAGWj2NLTreW4k91ahd4IHW8dOmvnpB-K16ZXUCS2KwJqBU2luZUsgq6iNqmfuzKD7uSorjH3e3klVBInFxZgBjn31qTd7VKqFUdmPHxE-sVd8Vx4JpvauqOmif23pM8_CFMVsyTh-xpc3DX3vIA4ueWjsA_rvywqVtf4Al6gqL7myaKuxuEW1j6sNgh2qbX5svkrBXx25d1"/>
+</div>
+</header>
+<!-- END: Top Header -->
+<!-- BEGIN: Content Area -->
+<div class="flex-1 overflow-auto p-6 lg:p-8 custom-scrollbar">
+<!-- Content Card -->
+<div class="bg-white rounded-lg shadow-sm border border-gray-100">
+<!-- Controls Bar -->
+<div class="p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
+<!-- Dropdown Filter -->
+<div class="relative">
+<select class="form-select block w-full pl-4 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md shadow-sm bg-white text-gray-700 cursor-pointer"><option>Department / Role</option><option>Driver</option><option>Manager</option><option>Maintenance</option></select>
+</div>
+<!-- Action Button -->
+<button class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 bg-blue-600 hover:bg-blue-700 text-white" type="button">
+            Invite New Staff
+          </button>
+</div>
+<!-- Data Table -->
+<div class="overflow-x-auto">
+<table class="min-w-full divide-y divide-gray-200" id="staff-table">
+<thead class="bg-gray-50 border-b border-gray-200"><tr><th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider" scope="col">Name</th><th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider" scope="col">Role</th><th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider" scope="col">License Expiry</th><th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider" scope="col">Assigned Vehicle</th><th class="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider" scope="col">Action</th></tr></thead>
+<tbody class="bg-white divide-y divide-gray-200"><!-- Row 1: Sarah Johnson -->
+<tr class="hover:bg-gray-50 transition-colors border-b border-gray-100">
+<td class="px-6 py-4 whitespace-nowrap">
+<div class="flex items-center">
+<div class="flex-shrink-0 h-10 w-10">
+<img alt="" class="h-10 w-10 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA33lZJPoeSC3pcvDoBsVCbGGGozR21nx9-d8gnOYf1IO7hE87rBrvjFr5MpptBJ6jl9pLhrZWULnoIjsiLOlwoLu8jBnPfFoLUF2E61m5Uj346Eb2pI0AifHdWc7m1hX5agYS3QLPoAJrFL3yFCmstb0jv1IQyPIWd9jYFjFo_fKsXK4FVojLker3wDkAVm1Ykq4ipZjkqUcArhR53iluTBi3mDits7NmolFy6YnFPHGPgrRu8ncRaZhGbtzzAaWM9pWOZisi32FxT"/>
+</div>
+<div class="ml-4">
+<div class="text-sm font-medium text-gray-900">Sarah Johnson</div>
+</div>
+</div>
+</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">Driver</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<div class="text-sm text-gray-900">License Expires: Oct 15, 2024</div>
+<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 mt-1">
+      Yellow Alert
+    </span>
+</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">V-210</td>
+<td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+<a class="text-blue-600 hover:text-blue-900" href="#">View Profile</a>
+</td>
+</tr>
+<!-- Row 2: Michael Brown -->
+<tr class="hover:bg-gray-50 transition-colors border-b border-gray-100">
+<td class="px-6 py-4 whitespace-nowrap">
+<div class="flex items-center">
+<div class="flex-shrink-0 h-10 w-10">
+<img alt="" class="h-10 w-10 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDPtlAhkbaqID15hh93lbkzAKvfXXamI-suR3qbECH-qd4Ovt041tKjDO1tsHdId2xnmAGWj2NLTreW4k91ahd4IHW8dOmvnpB-K16ZXUCS2KwJqBU2luZUsgq6iNqmfuzKD7uSorjH3e3klVBInFxZgBjn31qTd7VKqFUdmPHxE-sVd8Vx4JpvauqOmif23pM8_CFMVsyTh-xpc3DX3vIA4ueWjsA_rvywqVtf4Al6gqL7myaKuxuEW1j6sNgh2qbX5svkrBXx25d1"/>
+</div>
+<div class="ml-4">
+<div class="text-sm font-medium text-gray-900">Michael Brown</div>
+</div>
+</div>
+</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">Driver</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<div class="text-sm text-gray-900">License Expires: Nov 1, 2025</div>
+</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">V-305</td>
+<td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+<a class="text-blue-600 hover:text-blue-900" href="#">View Profile</a>
+</td>
+</tr>
+<!-- Row 3: Emily Davis -->
+<tr class="hover:bg-gray-50 transition-colors border-b border-gray-100">
+<td class="px-6 py-4 whitespace-nowrap">
+<div class="flex items-center">
+<div class="flex-shrink-0 h-10 w-10">
+<img alt="" class="h-10 w-10 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA33lZJPoeSC3pcvDoBsVCbGGGozR21nx9-d8gnOYf1IO7hE87rBrvjFr5MpptBJ6jl9pLhrZWULnoIjsiLOlwoLu8jBnPfFoLUF2E61m5Uj346Eb2pI0AifHdWc7m1hX5agYS3QLPoAJrFL3yFCmstb0jv1IQyPIWd9jYFjFo_fKsXK4FVojLker3wDkAVm1Ykq4ipZjkqUcArhR53iluTBi3mDits7NmolFy6YnFPHGPgrRu8ncRaZhGbtzzAaWM9pWOZisi32FxT"/>
+</div>
+<div class="ml-4">
+<div class="text-sm font-medium text-gray-900">Emily Davis</div>
+</div>
+</div>
+</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">Manager</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<div class="text-sm text-gray-900">License Expires: N/A</div>
+</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">None</td>
+<td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+<a class="text-blue-600 hover:text-blue-900" href="#">View Profile</a>
+</td>
+</tr>
+<!-- Row 4: David Wilson -->
+<tr class="hover:bg-gray-50 transition-colors border-b border-gray-100">
+<td class="px-6 py-4 whitespace-nowrap">
+<div class="flex items-center">
+<div class="flex-shrink-0 h-10 w-10">
+<img alt="" class="h-10 w-10 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDPtlAhkbaqID15hh93lbkzAKvfXXamI-suR3qbECH-qd4Ovt041tKjDO1tsHdId2xnmAGWj2NLTreW4k91ahd4IHW8dOmvnpB-K16ZXUCS2KwJqBU2luZUsgq6iNqmfuzKD7uSorjH3e3klVBInFxZgBjn31qTd7VKqFUdmPHxE-sVd8Vx4JpvauqOmif23pM8_CFMVsyTh-xpc3DX3vIA4ueWjsA_rvywqVtf4Al6gqL7myaKuxuEW1j6sNgh2qbX5svkrBXx25d1"/>
+</div>
+<div class="ml-4">
+<div class="text-sm font-medium text-gray-900">David Wilson</div>
+</div>
+</div>
+</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">Driver</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<div class="text-sm text-gray-900">License Expires: Sep 10, 2024</div>
+<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 mt-1">
+      Red Alert - Expiring Soon
+    </span>
+</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">V-120</td>
+<td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+<a class="text-blue-600 hover:text-blue-900" href="#">View Profile</a>
+</td>
+</tr>
+<!-- Row 5: Martia Brown -->
+<tr class="hover:bg-gray-50 transition-colors border-b border-gray-100">
+<td class="px-6 py-4 whitespace-nowrap">
+<div class="flex items-center">
+<div class="flex-shrink-0 h-10 w-10">
+<img alt="" class="h-10 w-10 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA33lZJPoeSC3pcvDoBsVCbGGGozR21nx9-d8gnOYf1IO7hE87rBrvjFr5MpptBJ6jl9pLhrZWULnoIjsiLOlwoLu8jBnPfFoLUF2E61m5Uj346Eb2pI0AifHdWc7m1hX5agYS3QLPoAJrFL3yFCmstb0jv1IQyPIWd9jYFjFo_fKsXK4FVojLker3wDkAVm1Ykq4ipZjkqUcArhR53iluTBi3mDits7NmolFy6YnFPHGPgrRu8ncRaZhGbtzzAaWM9pWOZisi32FxT"/>
+</div>
+<div class="ml-4">
+<div class="text-sm font-medium text-gray-900">Martia Brown</div>
+</div>
+</div>
+</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">Manager</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<div class="text-sm text-gray-900">License Expires: Oct 15, 2024</div>
+<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 mt-1">
+      Yellow Alert
+    </span>
+</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">V-305</td>
+<td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+<a class="text-blue-600 hover:text-blue-900" href="#">View Profile</a>
+</td>
+</tr>
+<!-- Row 6: Sarah Johnson (2) -->
+<tr class="hover:bg-gray-50 transition-colors border-b border-gray-100">
+<td class="px-6 py-4 whitespace-nowrap">
+<div class="flex items-center">
+<div class="flex-shrink-0 h-10 w-10">
+<img alt="" class="h-10 w-10 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA33lZJPoeSC3pcvDoBsVCbGGGozR21nx9-d8gnOYf1IO7hE87rBrvjFr5MpptBJ6jl9pLhrZWULnoIjsiLOlwoLu8jBnPfFoLUF2E61m5Uj346Eb2pI0AifHdWc7m1hX5agYS3QLPoAJrFL3yFCmstb0jv1IQyPIWd9jYFjFo_fKsXK4FVojLker3wDkAVm1Ykq4ipZjkqUcArhR53iluTBi3mDits7NmolFy6YnFPHGPgrRu8ncRaZhGbtzzAaWM9pWOZisi32FxT"/>
+</div>
+<div class="ml-4">
+<div class="text-sm font-medium text-gray-900">Sarah Johnson</div>
+</div>
+</div>
+</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">Driver</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<div class="text-sm text-gray-900">License Expires: Nov 15, 2024</div>
+<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 mt-1">
+      Yellow Alert
+    </span>
+</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">None</td>
+<td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+<a class="text-blue-600 hover:text-blue-900" href="#">View Profile</a>
+</td>
+</tr>
+<!-- Row 7: Lehizen Outt -->
+<tr class="hover:bg-gray-50 transition-colors border-b border-gray-100">
+<td class="px-6 py-4 whitespace-nowrap">
+<div class="flex items-center">
+<div class="flex-shrink-0 h-10 w-10">
+<img alt="" class="h-10 w-10 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA33lZJPoeSC3pcvDoBsVCbGGGozR21nx9-d8gnOYf1IO7hE87rBrvjFr5MpptBJ6jl9pLhrZWULnoIjsiLOlwoLu8jBnPfFoLUF2E61m5Uj346Eb2pI0AifHdWc7m1hX5agYS3QLPoAJrFL3yFCmstb0jv1IQyPIWd9jYFjFo_fKsXK4FVojLker3wDkAVm1Ykq4ipZjkqUcArhR53iluTBi3mDits7NmolFy6YnFPHGPgrRu8ncRaZhGbtzzAaWM9pWOZisi32FxT"/>
+</div>
+<div class="ml-4">
+<div class="text-sm font-medium text-gray-900">Lehizen Outt</div>
+</div>
+</div>
+</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">Manager</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<div class="text-sm text-gray-900">License Expires: Nov 26, 2024</div>
+<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 mt-1">
+      Yellow Alert
+    </span>
+</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">V-210</td>
+<td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+<a class="text-blue-600 hover:text-blue-900" href="#">View Profile</a>
+</td>
+</tr>
+<!-- Row 8: Mark Brown -->
+<tr class="hover:bg-gray-50 transition-colors border-b border-gray-100">
+<td class="px-6 py-4 whitespace-nowrap">
+<div class="flex items-center">
+<div class="flex-shrink-0 h-10 w-10">
+<img alt="" class="h-10 w-10 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDPtlAhkbaqID15hh93lbkzAKvfXXamI-suR3qbECH-qd4Ovt041tKjDO1tsHdId2xnmAGWj2NLTreW4k91ahd4IHW8dOmvnpB-K16ZXUCS2KwJqBU2luZUsgq6iNqmfuzKD7uSorjH3e3klVBInFxZgBjn31qTd7VKqFUdmPHxE-sVd8Vx4JpvauqOmif23pM8_CFMVsyTh-xpc3DX3vIA4ueWjsA_rvywqVtf4Al6gqL7myaKuxuEW1j6sNgh2qbX5svkrBXx25d1"/>
+</div>
+<div class="ml-4">
+<div class="text-sm font-medium text-gray-900">Mark Brown</div>
+</div>
+</div>
+</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">Driver</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<div class="text-sm text-gray-900">License Expires: Nov 1, 2025</div>
+</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">V-305</td>
+<td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+<a class="text-blue-600 hover:text-blue-900" href="#">View Profile</a>
+</td>
+</tr>
+<!-- Row 9: Emily Davis (2) -->
+<tr class="hover:bg-gray-50 transition-colors border-b border-gray-100">
+<td class="px-6 py-4 whitespace-nowrap">
+<div class="flex items-center">
+<div class="flex-shrink-0 h-10 w-10">
+<img alt="" class="h-10 w-10 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA33lZJPoeSC3pcvDoBsVCbGGGozR21nx9-d8gnOYf1IO7hE87rBrvjFr5MpptBJ6jl9pLhrZWULnoIjsiLOlwoLu8jBnPfFoLUF2E61m5Uj346Eb2pI0AifHdWc7m1hX5agYS3QLPoAJrFL3yFCmstb0jv1IQyPIWd9jYFjFo_fKsXK4FVojLker3wDkAVm1Ykq4ipZjkqUcArhR53iluTBi3mDits7NmolFy6YnFPHGPgrRu8ncRaZhGbtzzAaWM9pWOZisi32FxT"/>
+</div>
+<div class="ml-4">
+<div class="text-sm font-medium text-gray-900">Emily Davis</div>
+</div>
+</div>
+</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">Manager</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<div class="text-sm text-gray-900">License Expires: N/A</div>
+</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">None</td>
+<td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+<a class="text-blue-600 hover:text-blue-900" href="#">View Profile</a>
+</td>
+</tr>
+<!-- Row 10: David Wilson (2) -->
+<tr class="hover:bg-gray-50 transition-colors">
+<td class="px-6 py-4 whitespace-nowrap">
+<div class="flex items-center">
+<div class="flex-shrink-0 h-10 w-10">
+<img alt="" class="h-10 w-10 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDPtlAhkbaqID15hh93lbkzAKvfXXamI-suR3qbECH-qd4Ovt041tKjDO1tsHdId2xnmAGWj2NLTreW4k91ahd4IHW8dOmvnpB-K16ZXUCS2KwJqBU2luZUsgq6iNqmfuzKD7uSorjH3e3klVBInFxZgBjn31qTd7VKqFUdmPHxE-sVd8Vx4JpvauqOmif23pM8_CFMVsyTh-xpc3DX3vIA4ueWjsA_rvywqVtf4Al6gqL7myaKuxuEW1j6sNgh2qbX5svkrBXx25d1"/>
+</div>
+<div class="ml-4">
+<div class="text-sm font-medium text-gray-900">David Wilson</div>
+</div>
+</div>
+</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">Driver</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<div class="text-sm text-gray-900">License Expires: None</div>
+</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">V-120</td>
+<td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+<a class="text-blue-600 hover:text-blue-900" href="#">View Profile</a>
+</td>
+</tr></tbody>
+</table>
+</div>
+</div>
+</div>
+<!-- END: Content Area -->
+</main>
+<!-- END: Main Content Wrapper -->
+</body></html>

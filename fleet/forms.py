@@ -1,18 +1,25 @@
 from django import forms
-from .models import CarImage, CarCondition, Car
+from .models import CarRecordImage, CarCondition, Car
 from datetime import datetime
 
 
 class CarImageForm(forms.ModelForm):
     class Meta:
-        model = CarImage
+        model = CarRecordImage
         fields = ["image", "caption"]
 
 
 class CarConditionForm(forms.ModelForm):
     class Meta:
         model = CarCondition
-        fields = ["recorded_at", "odometer", "fuel_level", "health_score", "notes"]
+        fields = [ "odometer", "fuel_level", "health_score", "notes"]
+        widgets = {
+            "recorded_at": forms.DateTimeInput(attrs={"type": "datetime-local", "class": "border rounded p-2 w-full"}),
+            "odometer": forms.NumberInput(attrs={"class": "border rounded p-2 w-full", "min": "0", "step": "1"}),
+            "fuel_level": forms.NumberInput(attrs={"class": "border rounded p-2 w-full", "min": "0", "max": "100", "step": "1"}),
+            "health_score": forms.NumberInput(attrs={"class": "border rounded p-2 w-full", "min": "0", "max": "100", "step": "1"}),
+            "notes": forms.Textarea(attrs={"class": "border rounded p-2 w-full", "rows": 3}),
+        }
 
 
 class CarForm(forms.ModelForm):
