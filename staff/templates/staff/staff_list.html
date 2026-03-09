@@ -1,53 +1,37 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="flex items-center justify-between">
-  <h1 class="text-2xl font-bold">Staff & Driver Directory</h1>
-  <a href="#" class="px-4 py-2 bg-blue-600 text-white rounded">Invite New Staff</a>
-  </div>
+  <h1 class="text-2xl font-bold">Staff Directory</h1>
+  <div></div>
+</div>
 <div class="mt-6 bg-white rounded-lg shadow-sm border border-gray-100">
-  <div class="p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-    <div class="relative">
-      <select class="block w-full pl-4 pr-10 py-2 border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
-        <option>Department / Role</option>
-        <option>Driver</option>
-        <option>Manager</option>
-        <option>Maintenance</option>
-      </select>
-    </div>
-  </div>
   <div class="overflow-x-auto">
     <table class="min-w-full divide-y divide-gray-200">
       <thead class="bg-gray-50 border-b border-gray-200">
         <tr>
           <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Name</th>
           <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Role</th>
-          <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">License Expiry</th>
+          <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
           <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Assigned Vehicle</th>
-          <th class="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Action</th>
+          <th class="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
         </tr>
       </thead>
       <tbody class="bg-white divide-y divide-gray-200">
+        {% for e in employees %}
         <tr class="hover:bg-gray-50 transition-colors border-b border-gray-100">
           <td class="px-6 py-4 whitespace-nowrap">
-            <div class="flex items-center">
-              <div class="flex-shrink-0 h-10 w-10">
-                <img class="h-10 w-10 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA33lZJPoeSC3pcvDoBsVCbGGGozR21nx9-d8gnOYf1IO7hE87rBrvjFr5MpptBJ6jl9pLhrZWULnoIjsiLOlwoLu8jBnPfFoLUF2E61m5Uj346Eb2pI0AifHdWc7m1hX5agYS3QLPoAJrFL3yFCmstb0jv1IQyPIWd9jYFjFo_fKsXK4FVojLker3wDkAVm1Ykq4ipZjkqUcArhR53iluTBi3mDits7NmolFy6YnFPHGPgrRu8ncRaZhGbtzzAaWM9pWOZisi32FxT"/>
-              </div>
-              <div class="ml-4">
-                <div class="text-sm font-medium text-gray-900">Sarah Johnson</div>
-              </div>
-            </div>
+            <div class="text-sm font-medium text-gray-900">{{ e.user.get_full_name|default:e.user.username }}</div>
           </td>
-          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">Driver</td>
-          <td class="px-6 py-4 whitespace-nowrap">
-            <div class="text-sm text-gray-900">License Expires: Oct 15, 2024</div>
-            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 mt-1">Yellow Alert</span>
-          </td>
-          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">V-210</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 capitalize">{{ e.role }}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 capitalize">{{ e.status }}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ e.assigned_car.plate_number|default:"-" }}</td>
           <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-            <a class="text-blue-600 hover:text-blue-900" href="#">View Profile</a>
+            <a class="text-blue-600 hover:text-blue-900" href="{% url 'staff:profile' e.id %}">View Profile</a>
           </td>
         </tr>
+        {% empty %}
+        <tr><td class="px-6 py-4" colspan="5">No employees</td></tr>
+        {% endfor %}
       </tbody>
     </table>
   </div>

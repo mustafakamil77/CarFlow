@@ -23,6 +23,7 @@ class Car(models.Model):
     inspection_expiry_date = models.DateField(verbose_name="Periodic Inspection Expiry Date", blank=True, null=True)
     
     status = models.CharField(max_length=16, choices=STATUS_CHOICES, default="active", db_index=True, verbose_name="Status")
+    region = models.ForeignKey("accounts.Region", on_delete=models.SET_NULL, null=True, blank=True, related_name="cars")
     notes = models.TextField(blank=True, verbose_name="Notes")
     is_active = models.BooleanField(default=True, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -81,3 +82,24 @@ class CarRecordImage(models.Model):
 
     def __str__(self):
         return f"{self.record.car.plate_number} image"
+
+
+class CarImage(models.Model):
+    car = models.ForeignKey(Car, on_delete=models.CASCADE, related_name="images")
+    image = models.ImageField(upload_to="car_images/", blank=True, null=True)
+    caption = models.CharField(max_length=128, blank=True)
+    POSITION_CHOICES = [
+        ("front", "Front"),
+        ("left", "Left"),
+        ("right", "Right"),
+        ("rear", "Rear"),
+        ("interior", "Interior"),
+    ]
+    position = models.CharField(max_length=16, choices=POSITION_CHOICES, blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.car.plate_number} image"

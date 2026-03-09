@@ -1,12 +1,107 @@
 {% extends "base.html" %}
 {% block content %}
-<h1 class="text-2xl">{{ view.object|yesno:'Edit Car,Create Car' }}</h1>
-<form method="post" class="mt-4 max-w-xl bg-white p-4 rounded shadow">
-  {% csrf_token %}
-  {{ form.as_p }}
-  <div class="mt-4">
-    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Save</button>
-    <a href="{% if view.object %}{% url 'fleet:car_detail' view.object.pk %}{% else %}{% url 'fleet:car_list' %}{% endif %}" class="ml-2 px-4 py-2 border rounded">Cancel</a>
-  </div>
-</form>
+<div class="flex-1 overflow-y-auto p-8" data-purpose="main-content-scroll-container">
+  <section class="max-w-4xl mx-auto bg-white rounded-lg shadow-sm border border-gray-200 p-10" data-purpose="vehicle-form-card">
+    <h1 class="text-xl font-bold text-gray-800 mb-6">
+      {{ view.object|yesno:'Edit Vehicle,Add New Vehicle' }}
+    </h1>
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      <!-- Basic Information -->
+      <div class="mb-8">
+        <h2 class="font-bold text-gray-900 mb-4 text-xl">Basic Information</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div class="space-y-1">
+            <label class="block text-sm font-semibold text-gray-700">Model</label>
+            {{ form.model }}
+          </div>
+          <div class="space-y-1">
+            <label class="block text-sm font-semibold text-gray-700">Make (Brand)</label>
+            {{ form.brand }}
+          </div>
+          <div class="space-y-1">
+            <label class="block text-sm font-semibold text-gray-700">Year</label>
+            {{ form.year }}
+          </div>
+        </div>
+      </div>
+      <!-- Identification -->
+      <div class="mb-8">
+        <h2 class="font-bold text-gray-900 mb-4 text-xl">Identification</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div class="space-y-1 md:col-span-1">
+            <label class="block text-sm font-semibold text-gray-700">License Plate</label>
+            {{ form.plate_number }}
+          </div>
+          <div class="space-y-1">
+            <label class="block text-sm font-semibold text-gray-700">Status</label>
+            {{ form.status }}
+          </div>
+          <div class="space-y-1">
+            <label class="block text-sm font-semibold text-gray-700">Region</label>
+            {{ form.region }}
+          </div>
+          <div class="space-y-1">
+            <label class="block text-sm font-semibold text-gray-700">Active</label>
+            <div class="flex items-center h-[42px]">{{ form.is_active }}</div>
+          </div>
+        </div>
+      </div>
+      <!-- Location -->
+      <div class="mb-8">
+        <h2 class="font-bold text-gray-900 mb-4 text-xl">Location</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="space-y-1">
+            <label class="block text-sm font-semibold text-gray-700">Latitude</label>
+            {{ form.current_latitude }}
+          </div>
+          <div class="space-y-1">
+            <label class="block text-sm font-semibold text-gray-700">Longitude</label>
+            {{ form.current_longitude }}
+          </div>
+        </div>
+      </div>
+      <!-- Notes -->
+      <div class="mb-8">
+        <h2 class="font-bold text-gray-900 mb-4 text-xl">Notes</h2>
+        {{ form.notes }}
+      </div>
+      <!-- Photos -->
+      <div class="mb-8">
+        <h2 class="font-bold text-gray-900 mb-4 text-xl">Photos</h2>
+        <p class="text-sm text-slate-600 mb-3">أضف حتى 5 صور اختيارية للمواضع: Front, Left, Right, Rear, Interior.</p>
+        {% if formset and image_form_pairs %}
+          {{ formset.management_form }}
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {% for f,label in image_form_pairs %}
+            <div class="p-4 border rounded-lg bg-gray-50">
+              <div class="mb-2">
+                <span class="block text-sm font-semibold text-gray-700">{{ label }}</span>
+                {{ f.position }}
+              </div>
+              <div class="mb-2">
+                <label class="block text-sm font-semibold text-gray-700">Image</label>
+                {{ f.image }}
+              </div>
+              <div>
+                <label class="block text-sm font-semibold text-gray-700">Caption</label>
+                {{ f.caption }}
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="text-sm text-slate-500">You can add images after creating the car.</p>
+        {% endif %}
+      </div>
+      <!-- Footer -->
+      <div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
+        <a href="{% if view.object %}{% url 'fleet:car_detail' view.object.pk %}{% else %}{% url 'fleet:car_list' %}{% endif %}" class="rounded-md bg-white px-5 py-2.5 text-sm font-semibold text-gray-700 border border-gray-300 shadow-sm hover:bg-gray-50">Cancel</a>
+        <button class="rounded-md bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600" type="submit">
+          {{ view.object|yesno:'Save Changes,Add Vehicle' }}
+        </button>
+      </div>
+    </form>
+  </section>
+</div>
 {% endblock %}

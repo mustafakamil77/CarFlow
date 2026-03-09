@@ -6,7 +6,8 @@ from django.shortcuts import get_object_or_404, redirect
 from django.db.models import Q, Count
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from accounts.models import DriverAssignment
-from .forms import CarImageForm, CarConditionForm, CarForm
+from .forms import CarImageForm, CarConditionForm, CarForm, CarImageFormSet
+from django import forms as dj_forms
 
 
 class CarListView(LoginRequiredMixin, ListView):
@@ -116,8 +117,31 @@ class CarCreateView(ManagerRequiredMixin, CreateView):
     form_class = CarForm
     template_name = "fleet/car_form.html"
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        formset = CarImageFormSet()
+        positions = ["front", "left", "right", "rear", "interior"]
+        labels = ["Front", "Left", "Right", "Rear", "Interior"]
+        for i, f in enumerate(formset.forms):
+            # اجعل الموضع ثابتاً ومخفيّاً
+            f.fields["position"].widget = dj_forms.HiddenInput()
+            if i < len(positions):
+                f.initial["position"] = positions[i]
+        # مرّر الـ management_form عبر formset وأزواج (form, label) للعرض
+        context["formset"] = formset
+        context["image_form_pairs"] = list(zip(formset.forms[:5], labels))
+        return context
+
     def form_valid(self, form):
         response = super().form_valid(form)
+        formset = CarImageFormSet(self.request.POST or None, self.request.FILES or None, instance=self.object)
+        if formset.is_valid():
+            # Save only the forms that actually have an image
+            instances = formset.save(commit=False)
+            for img in instances:
+                if img.image:
+                    img.car = self.object
+                    img.save()
         messages.success(self.request, "Car created successfully.")
         return response
 
@@ -130,8 +154,29 @@ class CarUpdateView(ManagerRequiredMixin, UpdateView):
     form_class = CarForm
     template_name = "fleet/car_form.html"
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        formset = CarImageFormSet(instance=self.object)
+        positions = ["front", "left", "right", "rear", "interior"]
+        labels = ["Front", "Left", "Right", "Rear", "Interior"]
+        for i, f in enumerate(formset.forms):
+            f.fields["position"].widget = dj_forms.HiddenInput()
+            # لا نغيّر قيمة السجل الموجود، لكن نُعين initial للفراغ
+            if not getattr(f.instance, "position", None) and i < len(positions):
+                f.initial["position"] = positions[i]
+        context["formset"] = formset
+        context["image_form_pairs"] = list(zip(formset.forms[:5], labels))
+        return context
+
     def form_valid(self, form):
         response = super().form_valid(form)
+        formset = CarImageFormSet(self.request.POST or None, self.request.FILES or None, instance=self.object)
+        if formset.is_valid():
+            instances = formset.save(commit=False)
+            for img in instances:
+                if img.image:
+                    img.car = self.object
+                    img.save()
         messages.success(self.request, "Car updated successfully.")
         return response
 

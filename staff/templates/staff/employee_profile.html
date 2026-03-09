@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="flex items-center justify-between">
+  <h1 class="text-2xl font-bold">Employee Profile</h1>
+  <a href="{% url 'staff:leave_request' %}" class="px-4 py-2 bg-blue-600 text-white rounded">Request Leave</a>
+  </div>
+<div class="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+  <div class="lg:col-span-2 space-y-6">
+    <div class="bg-white rounded-lg shadow-sm border border-gray-100 p-6">
+      <h2 class="text-lg font-semibold mb-4">Details</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+        <div>
+          <div class="text-gray-500">Name</div>
+          <div class="font-medium">{{ employee.user.get_full_name|default:employee.user.username }}</div>
+        </div>
+        <div>
+          <div class="text-gray-500">Role</div>
+          <div class="font-medium capitalize">{{ employee.role }}</div>
+        </div>
+        <div>
+          <div class="text-gray-500">Status</div>
+          <div class="font-medium capitalize">{{ employee.status }}</div>
+        </div>
+        <div>
+          <div class="text-gray-500">Phone</div>
+          <div class="font-medium">{{ employee.phone|default:"-" }}</div>
+        </div>
+        <div>
+          <div class="text-gray-500">Assigned Vehicle</div>
+          <div class="font-medium">{% if assignment and assignment.car %}{{ assignment.car.plate_number }}{% else %}-{% endif %}</div>
+        </div>
+      </div>
+    </div>
+    <div class="bg-white rounded-lg shadow-sm border border-gray-100 p-6">
+      <h2 class="text-lg font-semibold mb-4">Leave History</h2>
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200 text-sm">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-4 py-2 text-left text-gray-500 uppercase">Start</th>
+              <th class="px-4 py-2 text-left text-gray-500 uppercase">End</th>
+              <th class="px-4 py-2 text-left text-gray-500 uppercase">Status</th>
+              <th class="px-4 py-2 text-left text-gray-500 uppercase">Reason</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            {% for lr in leaves %}
+            <tr>
+              <td class="px-4 py-2">{{ lr.start_date }}</td>
+              <td class="px-4 py-2">{{ lr.end_date }}</td>
+              <td class="px-4 py-2 capitalize">{{ lr.status }}</td>
+              <td class="px-4 py-2">{{ lr.reason|default:"-" }}</td>
+            </tr>
+            {% empty %}
+            <tr><td class="px-4 py-2" colspan="4">No leave requests</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div>
+    <div class="bg-white rounded-lg shadow-sm border border-gray-100 p-6">
+      <h2 class="text-lg font-semibold mb-4">Leave Balance</h2>
+      <div class="text-sm">
+        <div class="flex justify-between"><span class="text-gray-500">Annual</span><span class="font-medium">{{ balance.annual_leave_days }}</span></div>
+        <div class="flex justify-between mt-1"><span class="text-gray-500">Used</span><span class="font-medium">{{ balance.used_leave_days }}</span></div>
+        <div class="flex justify-between mt-1"><span class="text-gray-500">Remaining</span><span class="font-medium">{{ remaining_leave_days }}</span></div>
+      </div>
+      <a href="{% url 'staff:leave_request' %}" class="mt-4 inline-block w-full text-center px-4 py-2 bg-blue-600 text-white rounded">Request Leave</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

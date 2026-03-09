@@ -1,12 +1,18 @@
 from django import forms
-from .models import CarRecordImage, CarCondition, Car
+from .models import CarRecordImage, CarCondition, Car, CarImage
 from datetime import datetime
+from django.forms import inlineformset_factory
 
 
 class CarImageForm(forms.ModelForm):
     class Meta:
-        model = CarRecordImage
-        fields = ["image", "caption"]
+        model = CarImage
+        fields = ["image", "caption", "position"]
+        widgets = {
+            "image": forms.ClearableFileInput(attrs={"class": "block w-full text-sm border rounded p-2"}),
+            "caption": forms.TextInput(attrs={"class": "border rounded p-2 w-full", "placeholder": "Caption (optional)"}),
+            "position": forms.RadioSelect(attrs={"class": "flex flex-col gap-2"}),
+        }
 
 
 class CarConditionForm(forms.ModelForm):
@@ -33,6 +39,7 @@ class CarForm(forms.ModelForm):
             "current_latitude",
             "current_longitude",
             "status",
+            "region",
             "notes",
             "is_active",
         ]
@@ -44,6 +51,7 @@ class CarForm(forms.ModelForm):
             "current_latitude": forms.NumberInput(attrs={"step": "0.000001", "class": "border rounded p-2 w-full"}),
             "current_longitude": forms.NumberInput(attrs={"step": "0.000001", "class": "border rounded p-2 w-full"}),
             "status": forms.Select(attrs={"class": "border rounded p-2 w-full"}),
+            "region": forms.Select(attrs={"class": "border rounded p-2 w-full"}),
             "notes": forms.Textarea(attrs={"class": "border rounded p-2 w-full", "rows": 3}),
             "is_active": forms.CheckboxInput(attrs={"class": "mr-2"}),
         }
@@ -64,3 +72,19 @@ class CarForm(forms.ModelForm):
         if lon is not None and (lon < -180 or lon > 180):
             self.add_error("current_longitude", "Longitude must be between -180 and 180.")
         return cleaned
+
+
+# Inline formset to attach up to 5 optional images to a Car
+CarImageFormSet = inlineformset_factory(
+    parent_model=Car,
+    model=CarImage,
+    fields=["image", "caption", "position"],
+    extra=5,
+    max_num=5,
+    can_delete=False,
+    widgets={
+        "image": forms.ClearableFileInput(attrs={"class": "block w-full text-sm border rounded p-2"}),
+        "caption": forms.TextInput(attrs={"class": "border rounded p-2 w-full", "placeholder": "Caption (optional)"}),
+        "position": forms.RadioSelect(attrs={"class": "flex flex-col gap-2"}),
+    },
+)

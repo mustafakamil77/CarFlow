@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="flex items-center justify-between">
+  <h1 class="text-2xl font-bold">Leave Request</h1>
+  <div></div>
+</div>
+<div class="mt-6 max-w-lg bg-white rounded-lg shadow-sm border border-gray-100 p-6">
+  <form method="post">
+    {% csrf_token %}
+    <div class="grid grid-cols-1 gap-4">
+      <div>
+        <label class="block text-sm font-semibold text-gray-700">Start Date</label>
+        {{ form.start_date }}
+      </div>
+      <div>
+        <label class="block text-sm font-semibold text-gray-700">End Date</label>
+        {{ form.end_date }}
+      </div>
+      <div>
+        <label class="block text-sm font-semibold text-gray-700">Reason</label>
+        {{ form.reason }}
+      </div>
+    </div>
+    <div class="mt-6">
+      <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Submit</button>
+    </div>
+  </form>
+</div>
+{% endblock %}
