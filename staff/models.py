@@ -11,35 +11,29 @@ class Employee(models.Model):
         ("manager", "Manager"),
     ]
 
-    STATUS_CHOICES = [
-        ("working", "Working"),
-        ("on_leave", "On Leave"),
-        ("inactive", "Inactive"),
-    ]
-
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name="employee_profile"
+        on_delete=models.CASCADE
     )
 
-    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default="staff")
+    role = models.CharField(
+        max_length=20,
+        choices=ROLE_CHOICES,
+        default="staff"
+    )
+
     phone = models.CharField(max_length=20, blank=True)
-    photo = models.ImageField(upload_to="employee_photos/", blank=True, null=True)
 
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="working")
-
-    last_leave_date = models.DateField(null=True, blank=True)
+    photo = models.ImageField(
+        upload_to="employee_photos/",
+        null=True,
+        blank=True
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        ordering = ["user__username"]
 
     def __str__(self):
-        return f"{self.user}"
-
+        return str(self.user)
 
 # ===============================
 # Leave Balance

@@ -3,55 +3,294 @@
     <div class="flex items-center justify-between">
       <h1 class="text-2xl">{{ object.plate_number }} {{ object.brand }} {{ object.model }}</h1>
       <div class="space-x-2">
+        {% if current_assignment %}
+        <a href="{% url 'fleet:car_return' object.pk %}" class="px-3 py-2 bg-green-600 text-white rounded">Return</a>
+        {% else %}
+        <a href="{% url 'fleet:car_handover' object.pk %}" class="px-3 py-2 bg-blue-600 text-white rounded">Handover</a>
+        {% endif %}
         <a href="{% url 'fleet:car_edit' object.pk %}" class="px-3 py-2 bg-indigo-600 text-white rounded">Edit</a>
         <a href="{% url 'fleet:car_delete' object.pk %}" class="px-3 py-2 bg-red-600 text-white rounded">Delete</a>
       </div>
     </div>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-      <div class="p-4 bg-white rounded shadow">
-        <p>Year: {{ object.year }}</p>
-        <p>Status: {{ object.status }}</p>
-        <p>Notes: {{ object.notes|default:'-' }}</p>
-        <p>Conditions: {{ conditions_count }}</p>
-        <p>Maintenance: {{ maintenance_count }}</p>
-      </div>
-      <div class="p-4 bg-white rounded shadow">
-        <div id="map" style="height: 300px;" class="rounded"></div>
-      </div>
+      <section class="p-4 bg-white rounded shadow">
+        <h2 class="text-lg font-semibold mb-3">Identification</h2>
+        <p><span class="font-medium">Plate:</span> {{ object.plate_number }}</p>
+        <p><span class="font-medium">VIN:</span> {{ object.vin|default:'-' }}</p>
+      </section>
+      <section class="p-4 bg-white rounded shadow">
+        <h2 class="text-lg font-semibold mb-3">Make & Model</h2>
+        <p><span class="font-medium">Brand:</span> {{ object.brand }}</p>
+        <p><span class="font-medium">Model:</span> {{ object.model }}</p>
+        <p><span class="font-medium">Year:</span> {{ object.year }}</p>
+      </section>
+      <section class="p-4 bg-white rounded shadow">
+        <h2 class="text-lg font-semibold mb-3">Status & Region</h2>
+        <p><span class="font-medium">Status:</span> {{ object.status }}</p>
+        <p><span class="font-medium">Region:</span> {{ object.region|default:'-' }}</p>
+      </section>
+      <section class="p-4 bg-white rounded shadow">
+        <h2 class="text-lg font-semibold mb-3">Notes</h2>
+        <p class="whitespace-pre-line">{{ object.notes|default:'-' }}</p>
+      </section>
     </div>
-    <hr class="my-4">
-    <h2 class="text-xl">Conditions</h2>
-    <p><a href="{% url 'fleet:car_condition_create' object.pk %}">Add condition</a></p>
-    <ul class="mt-2">
-        {% for cond in object.conditions.all %}
-        <li>{{ cond.recorded_at }} — Odometer: {{ cond.odometer }} — Fuel: {{ cond.fuel_level }} — Health: {{ cond.health_score }}</li>
+
+    <section class="p-4 bg-white rounded shadow mt-6">
+      <h2 class="text-lg font-semibold mb-3">Current Driver</h2>
+      {% if current_assignment %}
+      <div class="text-sm text-gray-700">
+        <div><span class="font-medium">Driver:</span> {{ current_assignment.driver.user }}</div>
+        <div><span class="font-medium">Start:</span> {{ current_assignment.start_date|date:"Y-m-d H:i" }}</div>
+        <div><span class="font-medium">Odometer:</span> {{ current_assignment.start_odometer }}</div>
+      </div>
+      {% else %}
+      <div class="text-sm text-gray-600">No current driver</div>
+      {% endif %}
+    </section>
+
+    <section class="p-4 bg-white rounded shadow mt-6">
+      <h2 class="text-lg font-semibold mb-3">Last Handover</h2>
+      {% if last_handover_event %}
+      <div class="text-sm text-gray-700">
+        <div><span class="font-medium">Date:</span> {{ last_handover_event.created_at|date:"Y-m-d H:i" }}</div>
+        <div><span class="font-medium">Odometer:</span> {{ last_handover_event.odometer|default:"-" }}</div>
+        <div class="mt-2"><span class="font-medium">Notes:</span> <span class="whitespace-pre-line">{{ last_handover_event.notes|default:"-" }}</span></div>
+        {% if last_handover_condition %}
+        <div class="mt-2">
+          <div><span class="font-medium">Fuel:</span> {{ last_handover_condition.fuel_level|default:"-" }}</div>
+          <div><span class="font-medium">Scratches:</span> <span class="whitespace-pre-line">{{ last_handover_condition.scratches_notes|default:"-" }}</span></div>
+          <div><span class="font-medium">Cleanliness:</span> <span class="whitespace-pre-line">{{ last_handover_condition.cleanliness_notes|default:"-" }}</span></div>
+        </div>
+        {% endif %}
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-4">
+        {% for img in last_handover_event.images.all %}
+        <figure class="border rounded p-2 bg-white">
+          <img src="{{ img.image.url }}" alt="{{ img.caption }}" class="max-w-full h-auto">
+          {% if img.caption %}<figcaption class="text-xs text-gray-600 mt-1">{{ img.caption }}</figcaption>{% endif %}
+        </figure>
         {% empty %}
-        <li>No conditions</li>
+        <p class="text-sm text-gray-600">No images</p>
         {% endfor %}
-    </ul>
-    <hr class="my-4">
-    <h2 class="text-xl">Images</h2>
-    <p><a href="{% url 'fleet:car_image_upload' object.pk %}">Upload image</a></p>
-    <div class="grid grid-cols-3 gap-4 mt-2">
+      </div>
+      {% else %}
+      <div class="text-sm text-gray-600">No handover events</div>
+      {% endif %}
+    </section>
+
+    <hr class="my-6">
+    <section class="p-4 bg-white rounded shadow">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-lg font-semibold">Documents</h2>
+        <a href="{% url 'fleet:car_document_create' object.pk %}" class="px-3 py-2 bg-blue-600 text-white rounded text-sm">Add Car Document</a>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left text-gray-600">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-4 py-2">Type</th>
+              <th class="px-4 py-2">Number</th>
+              <th class="px-4 py-2">Issue</th>
+              <th class="px-4 py-2">Expiry</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for doc in object.documents.all %}
+            <tr class="border-t">
+              <td class="px-4 py-2">{{ doc.get_document_type_display }}</td>
+              <td class="px-4 py-2">{{ doc.number }}</td>
+              <td class="px-4 py-2">{{ doc.issue_date|default:'-' }}</td>
+              <td class="px-4 py-2">{{ doc.expiry_date|default:'-' }}</td>
+            </tr>
+            {% empty %}
+            <tr><td class="px-4 py-2" colspan="4">No documents</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <hr class="my-6">
+    <section class="p-4 bg-white rounded shadow">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-lg font-semibold">Accidents</h2>
+        <div class="flex items-center gap-2">
+          <span class="text-sm text-gray-500">Total: {{ accidents_count }}</span>
+          <a href="{% url 'fleet:car_event_create' object.pk %}" class="px-3 py-2 bg-blue-600 text-white rounded text-sm">Add Car Event</a>
+        </div>
+      </div>
+      <ul class="divide-y">
+        {% for ev in accidents %}
+        <li class="py-2">
+          <div class="text-sm"><span class="font-medium">{{ ev.created_at|date:"Y-m-d H:i" }}</span> — Odometer: {{ ev.odometer|default:'-' }}</div>
+          <div class="text-xs text-gray-600">{{ ev.notes|default:'-' }}</div>
+        </li>
+        {% empty %}
+        <li class="py-2">No accidents</li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    <hr class="my-6">
+    <section class="p-4 bg-white rounded shadow">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-lg font-semibold">Costs</h2>
+        <a href="{% url 'fleet:car_cost_create' object.pk %}" class="px-3 py-2 bg-blue-600 text-white rounded text-sm">Add Car Cost</a>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <div class="p-3 bg-gray-50 rounded border">
+          <div class="text-xs text-gray-500">This Month Total</div>
+          <div class="text-lg font-semibold">{{ month_total_cost }}</div>
+        </div>
+        <div class="p-3 bg-gray-50 rounded border md:col-span-2">
+          <div class="text-xs text-gray-500 mb-2">This Month by Category</div>
+          <div class="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
+            {% for item in month_category_totals %}
+            <div class="flex items-center justify-between">
+              <span>{{ item.label }}</span>
+              <span class="font-medium">{{ item.total }}</span>
+            </div>
+            {% empty %}
+            <div class="text-gray-500">No costs this month</div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left text-gray-600">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-4 py-2">Date</th>
+              <th class="px-4 py-2">Category</th>
+              <th class="px-4 py-2">Amount</th>
+              <th class="px-4 py-2">Vendor</th>
+              <th class="px-4 py-2">Invoice</th>
+              <th class="px-4 py-2">Maintenance</th>
+              <th class="px-4 py-2">Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for c in costs %}
+            <tr class="border-t">
+              <td class="px-4 py-2">{{ c.cost_date }}</td>
+              <td class="px-4 py-2">{{ c.get_category_display }}</td>
+              <td class="px-4 py-2">{{ c.amount }}</td>
+              <td class="px-4 py-2">{{ c.vendor|default:"-" }}</td>
+              <td class="px-4 py-2">{{ c.invoice_number|default:"-" }}</td>
+              <td class="px-4 py-2">
+                {% if c.maintenance_request %}
+                #{{ c.maintenance_request.id }} — {{ c.maintenance_request.title }}
+                {% else %}
+                -
+                {% endif %}
+              </td>
+              <td class="px-4 py-2">{{ c.description|default:"-" }}</td>
+            </tr>
+            {% empty %}
+            <tr><td class="px-4 py-2" colspan="7">No costs</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <hr class="my-6">
+    <section class="p-4 bg-white rounded shadow">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-lg font-semibold">Maintenance Requests</h2>
+        <div class="flex items-center gap-2">
+          <span class="text-sm text-gray-500">Total: {{ maintenance_count }}</span>
+          <a href="{% url 'maintenance:request_create_for_car' object.pk %}" class="px-3 py-2 bg-blue-600 text-white rounded text-sm">Add Maintenance Request</a>
+        </div>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left text-gray-600">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-4 py-2">Title</th>
+              <th class="px-4 py-2">Car</th>
+              <th class="px-4 py-2">Status</th>
+              <th class="px-4 py-2">Created</th>
+              <th class="px-4 py-2">Days</th>
+              <th class="px-4 py-2">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in maintenance_items %}
+            <tr class="border-t">
+              <td class="px-4 py-2">
+                <a href="{% url 'maintenance:request_detail' item.request.pk %}" class="text-blue-700 hover:underline">{{ item.request.title }}</a>
+                <span class="ml-2 text-xs text-gray-500">#{{ item.request.id }}</span>
+              </td>
+              <td class="px-4 py-2">{{ object.plate_number }}</td>
+              <td class="px-4 py-2">{{ item.request.get_status_display }}</td>
+              <td class="px-4 py-2">{{ item.created_date|date:"Y-m-d" }}</td>
+              <td class="px-4 py-2">{{ item.days_in_maintenance }}</td>
+              <td class="px-4 py-2">
+                {% if item.request.status != "completed" %}
+                <form method="post" action="{% url 'maintenance:request_complete' item.request.pk %}">
+                  {% csrf_token %}
+                  <button type="submit" class="px-3 py-2 bg-green-600 text-white rounded text-sm">Mark Completed</button>
+                </form>
+                {% else %}
+                <span class="text-gray-400">-</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td class="px-4 py-2" colspan="6">No maintenance requests</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <hr class="my-6">
+    <section class="p-4 bg-white rounded shadow">
+      <h2 class="text-lg font-semibold mb-3">Handover History</h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left text-gray-600">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-4 py-2">Driver</th>
+              <th class="px-4 py-2">Start</th>
+              <th class="px-4 py-2">End</th>
+              <th class="px-4 py-2">Start Odo</th>
+              <th class="px-4 py-2">End Odo</th>
+              <th class="px-4 py-2">Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for a in assignment_history %}
+            <tr class="border-t">
+              <td class="px-4 py-2">{{ a.driver.user }}</td>
+              <td class="px-4 py-2">{{ a.start_date|date:"Y-m-d" }}</td>
+              <td class="px-4 py-2">{{ a.end_date|date:"Y-m-d"|default:"-" }}</td>
+              <td class="px-4 py-2">{{ a.start_odometer }}</td>
+              <td class="px-4 py-2">{{ a.end_odometer|default:"-" }}</td>
+              <td class="px-4 py-2">{{ a.notes|default:"-" }}</td>
+            </tr>
+            {% empty %}
+            <tr><td class="px-4 py-2" colspan="6">No assignments</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <hr class="my-6">
+    <section>
+      <h2 class="text-lg font-semibold mb-3">Images</h2>
+      <p><a href="{% url 'fleet:car_image_upload' object.pk %}" class="text-blue-600">Upload image</a></p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-2">
         {% for img in object.images.all %}
-        <figure>
-            <img src="{{ img.image.url }}" alt="{{ img.caption }}" style="max-width: 100%; height: auto;">
-            <figcaption>{{ img.caption }}</figcaption>
+        <figure class="border rounded p-2 bg-white">
+          <img src="{{ img.image.url }}" alt="{{ img.caption }}" class="max-w-full h-auto">
+          <figcaption class="text-xs text-gray-600 mt-1">{{ img.caption }}</figcaption>
         </figure>
         {% empty %}
         <p>No images</p>
         {% endfor %}
-    </div>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<script>
-  const lat = {{ object.current_latitude|default:'null' }};
-  const lon = {{ object.current_longitude|default:'null' }};
-  const map = L.map('map').setView([lat || 0, lon || 0], lat && lon ? 13 : 2);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
-  if (lat !== null && lon !== null) {
-    const m = L.marker([lat, lon]).addTo(map);
-    m.bindPopup('{{ object.plate_number }} {{ object.model }}').openPopup();
-  }
-</script>
+      </div>
+    </section>
 {% endblock %}

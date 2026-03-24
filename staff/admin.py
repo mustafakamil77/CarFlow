@@ -1,14 +1,12 @@
 from django.contrib import admin
-from django.contrib import admin
 from .models import Employee, LeaveRequest, LeaveBalance
-# Register your models here.
 
 
 @admin.register(Employee)
 class EmployeeAdmin(admin.ModelAdmin):
-    list_display = ("user", "role", "status", "last_leave_date")
-    list_filter = ("role", "status")
-    search_fields = ("user__username",)
+    list_display = ("user", "role", "phone", "created_at")
+    list_filter = ("role",)
+    search_fields = ("user__username", "user__first_name", "user__last_name", "phone")
 
 
 @admin.register(LeaveRequest)
@@ -21,4 +19,3 @@ class LeaveRequestAdmin(admin.ModelAdmin):
 @admin.register(LeaveBalance)
 class LeaveBalanceAdmin(admin.ModelAdmin):
     list_display = ("employee", "annual_leave_days", "used_leave_days")
-

@@ -1,105 +1,250 @@
 from django.db import models
+from django.conf import settings
 
 
 class Car(models.Model):
+
     STATUS_CHOICES = [
-        ("active", "Active"),
+        ("available", "Available"),
+        ("assigned", "Assigned"),
         ("maintenance", "Maintenance"),
         ("inactive", "Inactive"),
     ]
 
-    plate_number = models.CharField(max_length=16, unique=True, db_index=True, verbose_name="Plate Number")
-    brand = models.CharField(max_length=100, null=True, blank=True)
-    model = models.CharField(max_length=64, verbose_name="Model")
-    year = models.PositiveIntegerField(verbose_name="Year")
-    current_latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True, verbose_name="Latitude")
-    current_longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True, verbose_name="Longitude")
-    
-    # بيانات الرخصة والفحص
-    license_number = models.CharField(max_length=32, verbose_name="Car License Number", blank=True, null=True)
-    transport_license_number = models.CharField(max_length=32, verbose_name="Transport License Number", blank=True, null=True)
-    license_expiry_date = models.DateField(verbose_name="License Expiry Date", blank=True, null=True)
-    transport_license_expiry_date = models.DateField(verbose_name="Transport License Expiry Date", blank=True, null=True)
-    inspection_expiry_date = models.DateField(verbose_name="Periodic Inspection Expiry Date", blank=True, null=True)
-    
-    status = models.CharField(max_length=16, choices=STATUS_CHOICES, default="active", db_index=True, verbose_name="Status")
-    region = models.ForeignKey("accounts.Region", on_delete=models.SET_NULL, null=True, blank=True, related_name="cars")
-    notes = models.TextField(blank=True, verbose_name="Notes")
-    is_active = models.BooleanField(default=True, db_index=True)
+    plate_number = models.CharField(max_length=20, unique=True, db_index=True)
+    brand = models.CharField(max_length=100, default='Unknown')
+    model = models.CharField(max_length=100)
+    year = models.PositiveIntegerField()
+    vin = models.CharField(max_length=64, blank=True)
+
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default="available",
+        db_index=True,
+    )
+
+    region = models.ForeignKey(
+        "accounts.Region",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="cars",
+    )
+
+    notes = models.TextField(blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["plate_number"]
+
+    def __str__(self):
+        return self.plate_number
+
+class CarDocument(models.Model):
+
+    DOCUMENT_TYPES = [
+        ("license", "License"),
+        ("transport_license", "Transport License"),
+        ("insurance", "Insurance"),
+        ("inspection", "Inspection"),
+    ]
+
+    car = models.ForeignKey(
+        Car,
+        on_delete=models.CASCADE,
+        related_name="documents"
+    )
+
+    document_type = models.CharField(max_length=32, choices=DOCUMENT_TYPES)
+
+    number = models.CharField(max_length=100)
+
+    issue_date = models.DateField(null=True, blank=True)
+    expiry_date = models.DateField(null=True, blank=True)
+
+    image = models.ImageField(
+        upload_to="car_documents/",
+        null=True,
+        blank=True
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         indexes = [
-            models.Index(fields=["status"]),
-            models.Index(fields=["plate_number"]),
-            models.Index(fields=["is_active"]),
+            models.Index(fields=["car", "document_type"])
         ]
-        ordering = ["-created_at"]
-        verbose_name = "Car"
-        verbose_name_plural = "Cars"
 
-    def __str__(self):
-        return f"{self.plate_number} {self.brand} {self.model}"
+class CarAssignment(models.Model):
 
+    car = models.ForeignKey(
+        Car,
+        on_delete=models.CASCADE,
+        related_name="assignments"
+    )
 
-class CarCondition(models.Model):
-    car = models.ForeignKey(Car, on_delete=models.CASCADE, related_name="conditions")
-    recorded_at = models.DateTimeField(auto_now_add=True)
-    odometer = models.PositiveIntegerField()
-    fuel_level = models.DecimalField(max_digits=5, decimal_places=2)
-    health_score = models.DecimalField(max_digits=5, decimal_places=2)
+    driver = models.ForeignKey(
+        "staff.Employee",
+        on_delete=models.CASCADE,
+        related_name="car_assignments"
+    )
+
+    start_date = models.DateTimeField()
+    end_date = models.DateTimeField(null=True, blank=True)
+
+    start_odometer = models.PositiveIntegerField()
+    end_odometer = models.PositiveIntegerField(null=True, blank=True)
+
     notes = models.TextField(blank=True)
 
-    class Meta:
-        ordering = ["-recorded_at"]
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
 
-    def __str__(self):
-        return f"{self.car.plate_number} - {self.recorded_at}"
-
-
-class CarRecord(models.Model):
-    car = models.ForeignKey(Car, on_delete=models.CASCADE, related_name="records")
-    recorded_at = models.DateTimeField(auto_now_add=True)
-    condition = models.CharField(max_length=64, choices=Car.STATUS_CHOICES, default="active", verbose_name="Condition")
-    notes = models.TextField(blank=True, verbose_name="Notes")
+    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        ordering = ["-recorded_at"]
+        ordering = ["-start_date"]
 
-    def __str__(self):
-        return f"{self.car.plate_number} - {self.recorded_at}"
+class CarEvent(models.Model):
 
+    EVENT_TYPES = [
+        ("inspection", "Inspection"),
+        ("handover", "Handover"),
+        ("return", "Return"),
+        ("maintenance", "Maintenance"),
+        ("accident", "Accident"),
+        ("status_change", "Status Change"),
+    ]
 
-class CarRecordImage(models.Model):
-    record = models.ForeignKey(CarRecord, on_delete=models.CASCADE, related_name="images")
-    image = models.ImageField(upload_to="car_record_images/")
-    caption = models.CharField(max_length=128, blank=True)
+    car = models.ForeignKey(
+        Car,
+        on_delete=models.CASCADE,
+        related_name="events"
+    )
+
+    event_type = models.CharField(max_length=32, choices=EVENT_TYPES)
+
+    odometer = models.PositiveIntegerField(null=True, blank=True)
+
+    notes = models.TextField(blank=True)
+
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["car", "-created_at"])
+        ]
+class CarEventCondition(models.Model):
+    event = models.OneToOneField(
+        CarEvent,
+        on_delete=models.CASCADE,
+        related_name="condition"
+    )
+    scratches_notes = models.TextField(blank=True)
+    cleanliness_notes = models.TextField(blank=True)
+    fuel_level = models.PositiveSmallIntegerField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+class CarEventImage(models.Model):
 
-    def __str__(self):
-        return f"{self.record.car.plate_number} image"
+    event = models.ForeignKey(
+        CarEvent,
+        on_delete=models.CASCADE,
+        related_name="images"
+    )
 
+    image = models.ImageField(upload_to="car_events/")
 
+    caption = models.CharField(max_length=200, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
 class CarImage(models.Model):
-    car = models.ForeignKey(Car, on_delete=models.CASCADE, related_name="images")
-    image = models.ImageField(upload_to="car_images/", blank=True, null=True)
-    caption = models.CharField(max_length=128, blank=True)
+
     POSITION_CHOICES = [
         ("front", "Front"),
+        ("rear", "Rear"),
         ("left", "Left"),
         ("right", "Right"),
-        ("rear", "Rear"),
         ("interior", "Interior"),
     ]
-    position = models.CharField(max_length=16, choices=POSITION_CHOICES, blank=True, null=True)
+
+    car = models.ForeignKey(
+        Car,
+        on_delete=models.CASCADE,
+        related_name="images"
+    )
+
+    image = models.ImageField(upload_to="car_images/")
+
+    position = models.CharField(
+        max_length=20,
+        choices=POSITION_CHOICES,
+        blank=True
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
+class CarCost(models.Model):
+    CATEGORY_CHOICES = [
+        ("maintenance", "Maintenance"),
+        ("fuel", "Fuel"),
+        ("wash", "Wash"),
+        ("insurance", "Insurance"),
+        ("registration", "Registration"),
+        ("other", "Other"),
+    ]
+
+    car = models.ForeignKey(
+        Car,
+        on_delete=models.CASCADE,
+        related_name="costs"
+    )
+
+    category = models.CharField(max_length=32, choices=CATEGORY_CHOICES, db_index=True)
+
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+
+    cost_date = models.DateField(db_index=True)
+
+    description = models.CharField(max_length=255, blank=True)
+
+    vendor = models.CharField(max_length=200, blank=True)
+
+    invoice_number = models.CharField(max_length=100, blank=True)
+
+    maintenance_request = models.ForeignKey(
+        "maintenance.MaintenanceRequest",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="costs"
+    )
+
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        ordering = ["-created_at"]
-
-    def __str__(self):
-        return f"{self.car.plate_number} image"
+        ordering = ["-cost_date", "-created_at"]
+        indexes = [
+            models.Index(fields=["car", "category", "cost_date"]),
+        ]

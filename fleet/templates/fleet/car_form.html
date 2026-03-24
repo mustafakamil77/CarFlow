@@ -34,30 +34,16 @@
             {{ form.plate_number }}
           </div>
           <div class="space-y-1">
+            <label class="block text-sm font-semibold text-gray-700">VIN</label>
+            {{ form.vin }}
+          </div>
+          <div class="space-y-1">
             <label class="block text-sm font-semibold text-gray-700">Status</label>
             {{ form.status }}
           </div>
           <div class="space-y-1">
             <label class="block text-sm font-semibold text-gray-700">Region</label>
             {{ form.region }}
-          </div>
-          <div class="space-y-1">
-            <label class="block text-sm font-semibold text-gray-700">Active</label>
-            <div class="flex items-center h-[42px]">{{ form.is_active }}</div>
-          </div>
-        </div>
-      </div>
-      <!-- Location -->
-      <div class="mb-8">
-        <h2 class="font-bold text-gray-900 mb-4 text-xl">Location</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div class="space-y-1">
-            <label class="block text-sm font-semibold text-gray-700">Latitude</label>
-            {{ form.current_latitude }}
-          </div>
-          <div class="space-y-1">
-            <label class="block text-sm font-semibold text-gray-700">Longitude</label>
-            {{ form.current_longitude }}
           </div>
         </div>
       </div>
@@ -82,10 +68,6 @@
               <div class="mb-2">
                 <label class="block text-sm font-semibold text-gray-700">Image</label>
                 {{ f.image }}
-              </div>
-              <div>
-                <label class="block text-sm font-semibold text-gray-700">Caption</label>
-                {{ f.caption }}
               </div>
             </div>
             {% endfor %}

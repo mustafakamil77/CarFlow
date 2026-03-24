@@ -106,9 +106,6 @@ def leave_approve(request, id):
     balance, _ = LeaveBalance.objects.select_for_update().get_or_create(employee=lr.employee)
     balance.used_leave_days = (balance.used_leave_days or 0) + days
     balance.save(update_fields=["used_leave_days"])
-    lr.employee.status = "on_leave"
-    lr.employee.last_leave_date = lr.start_date
-    lr.employee.save(update_fields=["status", "last_leave_date"])
     return redirect("staff:leave_admin")
 
 

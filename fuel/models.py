@@ -2,19 +2,28 @@ from django.db import models
 from fleet.models import Car
 
 
-class FuelRecord(models.Model):
-    car = models.ForeignKey(Car, on_delete=models.CASCADE, related_name="fuel_records")
-    date = models.DateField()
-    liters = models.DecimalField(max_digits=10, decimal_places=2)
-    cost = models.DecimalField(max_digits=10, decimal_places=2)
+class FuelLog(models.Model):
+
+    car = models.ForeignKey(
+        "fleet.Car",
+        on_delete=models.CASCADE,
+        related_name="fuel_logs"
+    )
+
+    driver = models.ForeignKey(
+        "staff.Employee",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+
+    liters = models.DecimalField(max_digits=8, decimal_places=2)
+
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+
     odometer = models.PositiveIntegerField()
 
-    class Meta:
-        ordering = ["-date"]
-        indexes = [models.Index(fields=["car", "date"])]
-        constraints = [
-            models.UniqueConstraint(fields=["car", "date", "odometer"], name="unique_fuel_entry")
-        ]
+    station = models.CharField(max_length=200, blank=True)
 
-    def __str__(self):
-        return f"{self.car.plate_number} {self.date} {self.liters}L"
+    created_at = models.DateTimeField(auto_now_add=True)
+    

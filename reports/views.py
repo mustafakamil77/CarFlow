@@ -1,6 +1,6 @@
 from django.views.generic import TemplateView
 from django.db.models import Sum
-from fuel.models import FuelRecord
+from fuel.models import FuelLog
 from fleet.models import Car
 import json
 from django.http import HttpResponse
@@ -14,8 +14,8 @@ class DashboardView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         data = (
-            FuelRecord.objects.values("car__plate_number")
-            .annotate(total_liters=Sum("liters"), total_cost=Sum("cost"))
+            FuelLog.objects.values("car__plate_number")
+            .annotate(total_liters=Sum("liters"), total_cost=Sum("price"))
             .order_by("car__plate_number")
         )
         labels = [d["car__plate_number"] for d in data]
@@ -36,8 +36,8 @@ class KPIPdfView(TemplateView):
         p.setFont("Helvetica-Bold", 16)
         p.drawString(50, height - 50, "Fuel KPIs by Car")
         data = (
-            FuelRecord.objects.values("car__plate_number")
-            .annotate(total_liters=Sum("liters"), total_cost=Sum("cost"))
+            FuelLog.objects.values("car__plate_number")
+            .annotate(total_liters=Sum("liters"), total_cost=Sum("price"))
             .order_by("car__plate_number")
         )
         y = height - 100
@@ -48,7 +48,7 @@ class KPIPdfView(TemplateView):
         y -= 20
         for d in data:
             p.drawString(50, y, str(d["car__plate_number"]))
-            p.drawString(200, y, f"{float(d['total_liters'] or 0):.2f}")
+            p.drawString(200, y, f"{float(d.get('total_liters') or 0):.2f}")
             p.drawString(350, y, f"{float(d['total_cost'] or 0):.2f}")
             y -= 20
             if y < 50:

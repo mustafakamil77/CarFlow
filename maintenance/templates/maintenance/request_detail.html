@@ -5,10 +5,17 @@
   <div class="mt-2 text-slate-700">
     <p>Car: {{ object.car }}</p>
     <p>Status: {{ object.status }}</p>
-    <p>Created: {{ object.created_at }}</p>
+    <p>Created: {{ object.created_at|date:"Y-m-d" }}</p>
+    <p>Days in maintenance: {{ days_in_maintenance }}</p>
     <p class="mt-2">{{ object.description }}</p>
   </div>
   <hr class="my-6">
+  {% if object.status != "completed" %}
+  <form method="post" action="{% url 'maintenance:request_complete' object.pk %}" class="mb-4">
+    {% csrf_token %}
+    <button type="submit" class="px-3 py-2 bg-green-600 text-white rounded">Mark Completed</button>
+  </form>
+  {% endif %}
   <div class="flex items-center justify-between">
     <h2 class="text-xl font-semibold">Images</h2>
     <a href="{% url 'maintenance:image_upload' object.pk %}" class="px-3 py-2 bg-blue-600 text-white rounded">Upload image</a>

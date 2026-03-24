@@ -4,9 +4,9 @@ from datetime import datetime
 from typing import Dict, List
 from django.db import transaction
 from fleet.models import Car
-from .models import FuelRecord
+from .models import FuelLog
 
-REQUIRED_COLUMNS = ["plate_number", "date", "liters", "cost", "odometer"]
+REQUIRED_COLUMNS = ["plate_number", "liters", "price", "odometer"]
 
 
 def _parse_row(row) -> Dict:
@@ -17,25 +17,19 @@ def _parse_row(row) -> Dict:
     except Car.DoesNotExist:
         errors.append(f"Unknown plate_number: {plate}")
         car = None
-    date_val = row.get("date")
-    try:
-        if isinstance(date_val, datetime):
-            date = date_val.date()
-        else:
-            date = pd.to_datetime(date_val).date()
-    except Exception:
-        errors.append(f"Invalid date: {date_val}")
-        date = None
+    # FuelLog لا يحتوي حقلاً للتاريخ؛ نستخدم created_at تلقائياً
     try:
         liters = float(row.get("liters"))
     except Exception:
         errors.append(f"Invalid liters: {row.get('liters')}")
         liters = None
+    # قبول price أو cost كاسم عمود للسعر
+    price_val = row.get("price", row.get("cost"))
     try:
-        cost = float(row.get("cost"))
+        price = float(price_val)
     except Exception:
-        errors.append(f"Invalid cost: {row.get('cost')}")
-        cost = None
+        errors.append(f"Invalid price: {price_val}")
+        price = None
     try:
         odometer = int(row.get("odometer"))
     except Exception:
@@ -43,10 +37,10 @@ def _parse_row(row) -> Dict:
         odometer = None
     return {
         "car": car,
-        "date": date,
         "liters": liters,
-        "cost": cost,
+        "price": price,
         "odometer": odometer,
+        "station": str(row.get("station")).strip() if "station" in row and row.get("station") is not None else "",
         "errors": errors,
     }
 
@@ -59,29 +53,31 @@ def process_excel(uploaded_file) -> Dict:
     except Exception as e:
         summary["errors"].append(f"Failed to read Excel: {e}")
         return summary
-    missing = [c for c in REQUIRED_COLUMNS if c not in df.columns]
+    # دعم أعمدة قديمة: إذا كان 'cost' موجوداً ولم توجد 'price' نسمح بالمتابعة
+    present = set(df.columns)
+    missing = [c for c in REQUIRED_COLUMNS if c not in present and not (c == "price" and "cost" in present)]
     if missing:
         summary["errors"].append(f"Missing columns: {', '.join(missing)}")
         return summary
     to_create = []
     for idx, row in df.iterrows():
         parsed = _parse_row(row)
-        if parsed["errors"] or not all([parsed["car"], parsed["date"], parsed["liters"], parsed["cost"], parsed["odometer"]]):
+        if parsed["errors"] or not all([parsed["car"], parsed["liters"], parsed["price"], parsed["odometer"]]):
             summary["errors"].append(f"Row {idx+1}: " + "; ".join(parsed["errors"]))
             continue
-        record = FuelRecord(
+        record = FuelLog(
             car=parsed["car"],
-            date=parsed["date"],
             liters=parsed["liters"],
-            cost=parsed["cost"],
+            price=parsed["price"],
             odometer=parsed["odometer"],
+            station=parsed["station"],
         )
         to_create.append(record)
     if not to_create:
         return summary
     try:
         with transaction.atomic():
-            FuelRecord.objects.bulk_create(to_create, ignore_conflicts=True)
+            FuelLog.objects.bulk_create(to_create, ignore_conflicts=True)
         summary["created"] = len(to_create)
     except Exception as e:
         summary["errors"].append(f"Bulk insert failed: {e}")
