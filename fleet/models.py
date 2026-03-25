@@ -13,7 +13,7 @@ class Car(models.Model):
 
     VEHICLE_TYPE_CHOICES = [
         ("Sedan", "Sedan"),
-        ("Chiller Van", "Chiller Van"),
+        ("Reefer Van", "Chiller Van"),
         ("Reefer Truck", "Reefer Truck"),
         ("Reefer Pickup", "Reefer Pickup"),
     ]
