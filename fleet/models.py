@@ -164,6 +164,7 @@ class CarEventCondition(models.Model):
     scratches_notes = models.TextField(blank=True)
     cleanliness_notes = models.TextField(blank=True)
     fuel_level = models.PositiveSmallIntegerField(null=True, blank=True)
+    liability_percent = models.PositiveSmallIntegerField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 class CarEventImage(models.Model):
 

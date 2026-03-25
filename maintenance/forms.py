@@ -38,3 +38,25 @@ class MaintenanceImageForm(forms.ModelForm):
     class Meta:
         model = MaintenanceImage
         fields = ["image", "caption"]
+
+
+class MaintenanceRequestEditForm(forms.ModelForm):
+    class Meta:
+        model = MaintenanceRequest
+        fields = ["title", "description", "status"]
+        widgets = {
+            "title": forms.TextInput(attrs={"class": "border rounded p-2 w-full"}),
+            "description": forms.Textarea(attrs={"class": "border rounded p-2 w-full", "rows": 4}),
+            "status": forms.Select(attrs={"class": "border rounded p-2 w-full"}),
+        }
+
+
+class MaintenanceCompleteForm(forms.Form):
+    completion_comment = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={"class": "border rounded p-2 w-full", "rows": 4}),
+    )
+    images = MultipleImageField(
+        required=False,
+        widget=MultiFileInput(attrs={"class": "block w-full text-sm border rounded p-2", "multiple": True}),
+    )

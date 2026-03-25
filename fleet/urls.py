@@ -13,6 +13,7 @@ from .views import (
     CarCostCreateView,
     CarHandoverView,
     CarReturnView,
+    CarAccidentCreateView,
 )
 
 app_name = "fleet"
@@ -32,4 +33,5 @@ urlpatterns = [
     path("cars/<int:pk>/costs/new/", CarCostCreateView.as_view(), name="car_cost_create"),
     path("cars/<int:pk>/handover/", CarHandoverView.as_view(), name="car_handover"),
     path("cars/<int:pk>/return/", CarReturnView.as_view(), name="car_return"),
+    path("cars/<int:pk>/accidents/new/", CarAccidentCreateView.as_view(), name="car_accident_create"),
 ]

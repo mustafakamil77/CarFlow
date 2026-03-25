@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="flex-1 overflow-y-auto p-8">
+  <section class="max-w-2xl mx-auto bg-white rounded-lg shadow-sm border border-gray-200 p-8">
+    <h1 class="text-xl font-bold text-gray-800 mb-6">Edit Maintenance Request</h1>
+    <div class="mb-4 text-sm text-gray-600">
+      <span class="font-medium">Car:</span>
+      <span class="ml-1">{{ object.car.plate_number }} — {{ object.car.brand }} {{ object.car.vehicle_type }} ({{ object.car.year }})</span>
+    </div>
+    <form method="post">
+      {% csrf_token %}
+      <div class="grid grid-cols-1 gap-6">
+        <div class="space-y-1">
+          <label class="block text-sm font-semibold text-gray-700">Title</label>
+          {{ form.title }}
+        </div>
+        <div class="space-y-1">
+          <label class="block text-sm font-semibold text-gray-700">Status</label>
+          {{ form.status }}
+        </div>
+        <div class="space-y-1">
+          <label class="block text-sm font-semibold text-gray-700">Description</label>
+          {{ form.description }}
+        </div>
+      </div>
+      <div class="flex items-center justify-end gap-3 pt-6">
+        <a href="{% url 'maintenance:request_detail' object.pk %}" class="rounded-md bg-white px-5 py-2.5 text-sm font-semibold text-gray-700 border border-gray-300 shadow-sm hover:bg-gray-50">Cancel</a>
+        <button type="submit" class="rounded-md bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700">Save</button>
+      </div>
+    </form>
+  </section>
+</div>
+{% endblock %}

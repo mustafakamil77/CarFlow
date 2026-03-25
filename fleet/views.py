@@ -6,12 +6,12 @@ from django.shortcuts import get_object_or_404, redirect
 from django.db.models import Q, Count, Sum
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from accounts.models import DriverAssignment
-from .forms import CarImageForm, CarConditionForm, CarForm, CarImageFormSet, CarDocumentForm, CarEventForm, CarCostForm, CarHandoverForm, CarReturnForm
+from .forms import CarImageForm, CarConditionForm, CarForm, CarImageFormSet, CarDocumentForm, CarEventForm, CarCostForm, CarHandoverForm, CarReturnForm, CarAccidentForm
 from django import forms as dj_forms
 from django.urls import reverse_lazy
 from django.utils import timezone
 from datetime import date
-from .services import assign_driver_to_car, return_car
+from .services import assign_driver_to_car, return_car, record_accident
 
 
 class CarListView(LoginRequiredMixin, ListView):
@@ -91,10 +91,21 @@ class CarDetailView(LoginRequiredMixin, DetailView):
                 context["last_handover_condition"] = None
         else:
             context["last_handover_condition"] = None
-        context["accidents"] = list(
-            car.events.filter(event_type="accident").order_by("-created_at")[:5]
-        )
-        context["accidents_count"] = car.events.filter(event_type="accident").count()
+        accidents_qs = car.events.filter(event_type="accident").order_by("-created_at")
+        context["accidents_count"] = accidents_qs.count()
+        accidents_items = []
+        for ev in accidents_qs[:5]:
+            try:
+                condition = ev.condition
+            except Exception:
+                condition = None
+            accidents_items.append(
+                {
+                    "event": ev,
+                    "liability_percent": getattr(condition, "liability_percent", None),
+                }
+            )
+        context["accidents_items"] = accidents_items
         costs = car.costs.all()
         month_start = today.replace(day=1)
         if month_start.month == 12:
@@ -403,4 +414,36 @@ class CarReturnView(ManagerRequiredMixin, FormView):
             form.add_error(None, str(e))
             return self.form_invalid(form)
         messages.success(self.request, "Car returned successfully.")
+        return redirect("fleet:car_detail", pk=self.car.pk)
+
+
+class CarAccidentCreateView(LoginRequiredMixin, FormView):
+    form_class = CarAccidentForm
+    template_name = "fleet/car_accident_form.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        self.car = get_object_or_404(Car, pk=kwargs["pk"])
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["car"] = self.car
+        ctx["current_assignment"] = (
+            self.car.assignments.select_related("driver__user").filter(end_date__isnull=True).order_by("-start_date").first()
+        )
+        return ctx
+
+    def form_valid(self, form):
+        try:
+            record_accident(
+                car=self.car,
+                notes=form.cleaned_data.get("notes", ""),
+                liability_percent=form.cleaned_data.get("liability_percent"),
+                images=form.cleaned_data.get("images") or [],
+                created_by=self.request.user if self.request.user.is_authenticated else None,
+            )
+        except Exception as e:
+            form.add_error(None, str(e))
+            return self.form_invalid(form)
+        messages.success(self.request, "Accident added successfully.")
         return redirect("fleet:car_detail", pk=self.car.pk)

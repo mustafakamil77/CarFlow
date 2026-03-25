@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="flex-1 overflow-y-auto p-8">
+  <section class="max-w-2xl mx-auto bg-white rounded-lg shadow-sm border border-gray-200 p-8">
+    <h1 class="text-xl font-bold text-gray-800 mb-4">Delete Image</h1>
+    <p class="text-sm text-gray-700 mb-4">Delete this image from request #{{ object.pk }}?</p>
+    <div class="border rounded p-2 bg-white">
+      <img src="{{ image.image.url }}" alt="" class="w-full h-auto rounded">
+    </div>
+    <form method="post" class="mt-6 flex items-center justify-end gap-3">
+      {% csrf_token %}
+      <a href="{% url 'maintenance:request_detail' object.pk %}" class="rounded-md bg-white px-5 py-2.5 text-sm font-semibold text-gray-700 border border-gray-300 shadow-sm hover:bg-gray-50">Cancel</a>
+      <button type="submit" class="rounded-md bg-red-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-red-700">Delete</button>
+    </form>
+  </section>
+</div>
+{% endblock %}

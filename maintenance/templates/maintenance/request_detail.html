@@ -1,34 +1,75 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="max-w-4xl mx-auto">
-  <h1 class="text-2xl font-bold">{{ object.title }}</h1>
-  <div class="mt-2 text-slate-700">
-    <p>Car: {{ object.car }}</p>
-    <p>Status: {{ object.status }}</p>
-    <p>Created: {{ object.created_at|date:"Y-m-d" }}</p>
-    <p>Days in maintenance: {{ days_in_maintenance }}</p>
-    <p class="mt-2">{{ object.description }}</p>
-  </div>
-  <hr class="my-6">
-  {% if object.status != "completed" %}
-  <form method="post" action="{% url 'maintenance:request_complete' object.pk %}" class="mb-4">
-    {% csrf_token %}
-    <button type="submit" class="px-3 py-2 bg-green-600 text-white rounded">Mark Completed</button>
-  </form>
-  {% endif %}
-  <div class="flex items-center justify-between">
-    <h2 class="text-xl font-semibold">Images</h2>
-    <a href="{% url 'maintenance:image_upload' object.pk %}" class="px-3 py-2 bg-blue-600 text-white rounded">Upload image</a>
-  </div>
-  <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
-    {% for img in object.images.all %}
-    <figure class="bg-white border rounded p-2">
-      <img src="{{ img.image.url }}" alt="{{ img.caption }}" class="w-full h-auto rounded">
-      <figcaption class="text-sm text-slate-600 mt-1">{{ img.caption }}</figcaption>
-    </figure>
-    {% empty %}
-    <p>No images</p>
-    {% endfor %}
-  </div>
+<div class="flex-1 overflow-y-auto p-8">
+  <section class="max-w-5xl mx-auto">
+    <div class="flex items-start justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900">{{ object.title }}</h1>
+        <div class="mt-1 text-sm text-gray-600">
+          <span class="font-medium">Car:</span> {{ object.car.plate_number }}
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        {% if object.status != "completed" %}
+        <a href="{% url 'maintenance:request_complete' object.pk %}" class="px-3 py-2 bg-green-600 text-white rounded text-sm">Mark Completed</a>
+        {% else %}
+        <a href="{% url 'maintenance:request_complete' object.pk %}" class="px-3 py-2 bg-green-600 text-white rounded text-sm">Edit Completion</a>
+        <a href="{% url 'maintenance:request_completion_delete' object.pk %}" class="px-3 py-2 bg-red-600 text-white rounded text-sm">Delete Completion</a>
+        {% endif %}
+        <a href="{% url 'maintenance:request_edit' object.pk %}" class="px-3 py-2 bg-indigo-600 text-white rounded text-sm">Edit</a>
+        <a href="{% url 'maintenance:request_delete' object.pk %}" class="px-3 py-2 bg-red-600 text-white rounded text-sm">Delete</a>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+      <section class="p-4 bg-white rounded shadow border border-gray-100 md:col-span-2">
+        <h2 class="text-lg font-semibold mb-3">Details</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-gray-700">
+          <div><span class="font-medium">Status:</span> {{ object.get_status_display }}</div>
+          <div><span class="font-medium">Created:</span> {{ object.created_at|date:"Y-m-d" }}</div>
+          <div><span class="font-medium">Days in maintenance:</span> {{ days_in_maintenance }}</div>
+          <div><span class="font-medium">Updated:</span> {{ object.updated_at|date:"Y-m-d" }}</div>
+          {% if object.completed_at %}
+          <div><span class="font-medium">Completed At:</span> {{ object.completed_at|date:"Y-m-d H:i" }}</div>
+          {% endif %}
+        </div>
+        <div class="mt-4">
+          <div class="text-sm font-medium text-gray-700 mb-1">Description</div>
+          <div class="text-sm text-gray-700 whitespace-pre-line">{{ object.description }}</div>
+        </div>
+        {% if object.completion_comment %}
+        <div class="mt-4">
+          <div class="text-sm font-medium text-gray-700 mb-1">Completion Comment</div>
+          <div class="text-sm text-gray-700 whitespace-pre-line">{{ object.completion_comment }}</div>
+        </div>
+        {% endif %}
+      </section>
+
+      <section class="p-4 bg-white rounded shadow border border-gray-100">
+        <h2 class="text-lg font-semibold mb-3">Meta</h2>
+        <div class="text-sm text-gray-700 space-y-2">
+          <div><span class="font-medium">Created By:</span> {{ object.created_by|default:"-" }}</div>
+          <div><span class="font-medium">Request ID:</span> #{{ object.pk }}</div>
+        </div>
+      </section>
+    </div>
+
+    <hr class="my-6">
+    <section class="p-4 bg-white rounded shadow border border-gray-100">
+      <h2 class="text-lg font-semibold mb-3">Images</h2>
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+        {% for img in object.images.all %}
+        <figure class="border rounded p-2 bg-white">
+          <img src="{{ img.image.url }}" alt="" class="w-full h-auto rounded">
+          <div class="mt-2 flex justify-end">
+            <a href="{% url 'maintenance:image_delete' img.pk %}" class="text-sm text-red-600">Delete</a>
+          </div>
+        </figure>
+        {% empty %}
+        <p class="text-sm text-gray-600">No images</p>
+        {% endfor %}
+      </div>
+    </section>
+  </section>
 </div>
 {% endblock %}

@@ -137,3 +137,32 @@ def return_car(
     DriverAssignment.objects.filter(car=car, active=True).update(active=False, end_date=today)
 
     return assignment, event
+
+
+@transaction.atomic
+def record_accident(
+    *,
+    car,
+    notes="",
+    liability_percent=None,
+    images=None,
+    created_by=None,
+):
+    event = CarEvent.objects.create(
+        car=car,
+        event_type="accident",
+        notes=notes or "",
+        created_by=created_by,
+    )
+
+    CarEventCondition.objects.create(
+        event=event,
+        liability_percent=liability_percent,
+    )
+
+    if images:
+        for image in images:
+            if image:
+                CarEventImage.objects.create(event=event, image=image, caption="")
+
+    return event

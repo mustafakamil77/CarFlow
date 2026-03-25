@@ -40,6 +40,17 @@ class MaintenanceRequest(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     updated_at = models.DateTimeField(auto_now=True)
+
+    previous_car_status = models.CharField(
+        max_length=20,
+        choices=Car.STATUS_CHOICES,
+        null=True,
+        blank=True,
+    )
+
+    completion_comment = models.TextField(blank=True)
+
+    completed_at = models.DateTimeField(null=True, blank=True)
 class MaintenanceImage(models.Model):
 
     request = models.ForeignKey(

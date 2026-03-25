@@ -116,14 +116,17 @@
         <h2 class="text-lg font-semibold">Accidents</h2>
         <div class="flex items-center gap-2">
           <span class="text-sm text-gray-500">Total: {{ accidents_count }}</span>
-          <a href="{% url 'fleet:car_event_create' object.pk %}" class="px-3 py-2 bg-blue-600 text-white rounded text-sm">Add Car Event</a>
+          <a href="{% url 'fleet:car_accident_create' object.pk %}" class="px-3 py-2 bg-blue-600 text-white rounded text-sm">Add Accidents</a>
         </div>
       </div>
       <ul class="divide-y">
-        {% for ev in accidents %}
+        {% for item in accidents_items %}
         <li class="py-2">
-          <div class="text-sm"><span class="font-medium">{{ ev.created_at|date:"Y-m-d H:i" }}</span> — Odometer: {{ ev.odometer|default:'-' }}</div>
-          <div class="text-xs text-gray-600">{{ ev.notes|default:'-' }}</div>
+          <div class="text-sm"><span class="font-medium">{{ item.event.created_at|date:"Y-m-d H:i" }}</span> — Odometer: {{ item.event.odometer|default:'-' }}</div>
+          <div class="text-xs text-gray-600">{{ item.event.notes|default:'-' }}</div>
+          {% if item.liability_percent != None %}
+          <div class="text-xs text-gray-600">Liability: {{ item.liability_percent }}%</div>
+          {% endif %}
         </li>
         {% empty %}
         <li class="py-2">No accidents</li>
@@ -228,10 +231,7 @@
               <td class="px-4 py-2">{{ item.days_in_maintenance }}</td>
               <td class="px-4 py-2">
                 {% if item.request.status != "completed" %}
-                <form method="post" action="{% url 'maintenance:request_complete' item.request.pk %}">
-                  {% csrf_token %}
-                  <button type="submit" class="px-3 py-2 bg-green-600 text-white rounded text-sm">Mark Completed</button>
-                </form>
+                <a href="{% url 'maintenance:request_complete' item.request.pk %}" class="px-3 py-2 bg-green-600 text-white rounded text-sm inline-block">Mark Completed</a>
                 {% else %}
                 <span class="text-gray-400">-</span>
                 {% endif %}

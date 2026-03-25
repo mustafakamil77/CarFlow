@@ -163,3 +163,34 @@ class CarReturnForm(forms.Form):
     image_front = forms.ImageField(required=False, widget=forms.ClearableFileInput(attrs={"class": "block w-full text-sm border rounded p-2"}))
     image_rear = forms.ImageField(required=False, widget=forms.ClearableFileInput(attrs={"class": "block w-full text-sm border rounded p-2"}))
     image_interior = forms.ImageField(required=False, widget=forms.ClearableFileInput(attrs={"class": "block w-full text-sm border rounded p-2"}))
+
+
+class MultiFileInput(forms.ClearableFileInput):
+    allow_multiple_selected = True
+
+
+class MultipleImageField(forms.ImageField):
+    def clean(self, data, initial=None):
+        if not data:
+            return []
+        if not isinstance(data, (list, tuple)):
+            data = [data]
+        cleaned_files = []
+        for item in data:
+            cleaned_files.append(forms.ImageField.clean(self, item, initial))
+        return cleaned_files
+
+
+class CarAccidentForm(forms.Form):
+    liability_percent = forms.IntegerField(
+        required=False,
+        widget=forms.NumberInput(attrs={"class": "border rounded p-2 w-full", "min": "0", "max": "100", "step": "1"}),
+    )
+    notes = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={"class": "border rounded p-2 w-full", "rows": 4}),
+    )
+    images = MultipleImageField(
+        required=False,
+        widget=MultiFileInput(attrs={"class": "block w-full text-sm border rounded p-2", "multiple": True}),
+    )
