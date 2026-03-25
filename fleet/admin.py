@@ -10,9 +10,9 @@ from .models import (
 
 @admin.register(Car)
 class CarAdmin(admin.ModelAdmin):
-    list_display = ("plate_number", "brand", "model", "year", "status", "region", "created_at")
+    list_display = ("plate_number", "brand", "vehicle_type", "year", "status", "region", "created_at")
     list_filter = ("status", "year", "brand", "region")
-    search_fields = ("plate_number", "brand", "model", "vin")
+    search_fields = ("plate_number", "brand", "vehicle_type", "vin")
     ordering = ("plate_number",)
     readonly_fields = ("created_at",)
 

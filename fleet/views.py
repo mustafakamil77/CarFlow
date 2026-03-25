@@ -28,15 +28,15 @@ class CarListView(LoginRequiredMixin, ListView):
         status = self.request.GET.get("status")
         sort = self.request.GET.get("sort")
         if q:
-            qs = qs.filter(Q(plate_number__icontains=q) | Q(brand__icontains=q) | Q(model__icontains=q))
+            qs = qs.filter(Q(plate_number__icontains=q) | Q(brand__icontains=q) | Q(vehicle_type__icontains=q))
         if status:
             if status == "active":
                 qs = qs.filter(status__in=["available", "assigned"])
             else:
                 qs = qs.filter(status=status)
-        if sort in {"plate_number", "brand", "model", "year", "-year", "created_at", "-created_at"}:
+        if sort in {"plate_number", "brand", "vehicle_type", "year", "-year", "created_at", "-created_at"}:
             qs = qs.order_by(sort)
-        if self.request.user.groups.filter(name="Driver").exists():
+        if self.request.user.groups.filter(name="Driver").exists() and not (self.request.user.is_superuser or self.request.user.groups.filter(name__in=["Manager", "Fleet Manager", "Admin"]).exists()):
             assigned_ids = list(
                 DriverAssignment.objects.filter(driver=self.request.user, active=True).values_list("car_id", flat=True)
             )
@@ -50,7 +50,7 @@ class CarDetailView(LoginRequiredMixin, DetailView):
 
     def get_queryset(self):
         qs = Car.objects.all()
-        if self.request.user.groups.filter(name="Driver").exists():
+        if self.request.user.groups.filter(name="Driver").exists() and not (self.request.user.is_superuser or self.request.user.groups.filter(name__in=["Manager", "Fleet Manager", "Admin"]).exists()):
             assigned_ids = list(
                 DriverAssignment.objects.filter(driver=self.request.user, active=True).values_list("car_id", flat=True)
             )
@@ -127,7 +127,7 @@ class CarMapView(LoginRequiredMixin, TemplateView):
                 "id": c.id,
                 "plate_number": c.plate_number,
                 "brand": c.brand,
-                "model": c.model,
+                "vehicle_type": c.vehicle_type,
                 "current_latitude": 0,
                 "current_longitude": 0,
             }
@@ -173,7 +173,7 @@ class ManagerRequiredMixin(UserPassesTestMixin):
             self.request.user.is_authenticated
             and (
                 self.request.user.is_superuser
-                or self.request.user.groups.filter(name="Fleet Manager").exists()
+                or self.request.user.groups.filter(name__in=["Manager", "Fleet Manager", "Admin"]).exists()
             )
         )
 

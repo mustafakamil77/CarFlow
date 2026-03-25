@@ -11,9 +11,16 @@ class Car(models.Model):
         ("inactive", "Inactive"),
     ]
 
+    VEHICLE_TYPE_CHOICES = [
+        ("Sedan", "Sedan"),
+        ("Chiller Van", "Chiller Van"),
+        ("Reefer Truck", "Reefer Truck"),
+        ("Reefer Pickup", "Reefer Pickup"),
+    ]
+
     plate_number = models.CharField(max_length=20, unique=True, db_index=True)
     brand = models.CharField(max_length=100, default='Unknown')
-    model = models.CharField(max_length=100)
+    vehicle_type = models.CharField(max_length=100, choices=VEHICLE_TYPE_CHOICES, verbose_name="Vehicle Type", default="Sedan")
     year = models.PositiveIntegerField()
     vin = models.CharField(max_length=64, blank=True)
 

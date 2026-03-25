@@ -49,7 +49,7 @@ class CarForm(forms.ModelForm):
         fields = [
             "plate_number",
             "brand",
-            "model",
+            "vehicle_type",
             "year",
             "vin",
             "status",
@@ -59,7 +59,7 @@ class CarForm(forms.ModelForm):
         widgets = {
             "plate_number": forms.TextInput(attrs={"class": "border rounded p-2 w-full"}),
             "brand": forms.TextInput(attrs={"class": "border rounded p-2 w-full"}),
-            "model": forms.TextInput(attrs={"class": "border rounded p-2 w-full"}),
+            "vehicle_type": forms.Select(attrs={"class": "border rounded p-2 w-full"}),
             "year": forms.NumberInput(attrs={"class": "border rounded p-2 w-full"}),
             "vin": forms.TextInput(attrs={"class": "border rounded p-2 w-full"}),
             "status": forms.Select(attrs={"class": "border rounded p-2 w-full"}),

@@ -20,7 +20,7 @@
         }).addTo(map);
         cars.forEach(c => {
             const marker = L.marker([c.current_latitude, c.current_longitude]).addTo(map);
-            marker.bindPopup(`${c.plate_number} ${c.brand} ${c.model}`);
+            marker.bindPopup(`${c.plate_number} ${c.brand} ${c.vehicle_type}`);
         });
         if (cars.length > 0) {
             const group = L.featureGroup(cars.map(c => L.marker([c.current_latitude, c.current_longitude])));

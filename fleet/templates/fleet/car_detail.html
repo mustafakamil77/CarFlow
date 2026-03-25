@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
     <div class="flex items-center justify-between">
-      <h1 class="text-2xl">{{ object.plate_number }} {{ object.brand }} {{ object.model }}</h1>
+      <h1 class="text-2xl">{{ object.plate_number }} {{ object.brand }} {{ object.vehicle_type }}</h1>
       <div class="space-x-2">
         {% if current_assignment %}
         <a href="{% url 'fleet:car_return' object.pk %}" class="px-3 py-2 bg-green-600 text-white rounded">Return</a>
@@ -19,9 +19,9 @@
         <p><span class="font-medium">VIN:</span> {{ object.vin|default:'-' }}</p>
       </section>
       <section class="p-4 bg-white rounded shadow">
-        <h2 class="text-lg font-semibold mb-3">Make & Model</h2>
+        <h2 class="text-lg font-semibold mb-3">Make & Vehicle Type</h2>
         <p><span class="font-medium">Brand:</span> {{ object.brand }}</p>
-        <p><span class="font-medium">Model:</span> {{ object.model }}</p>
+        <p><span class="font-medium">Vehicle Type:</span> {{ object.get_vehicle_type_display|default:object.vehicle_type }}</p>
         <p><span class="font-medium">Year:</span> {{ object.year }}</p>
       </section>
       <section class="p-4 bg-white rounded shadow">
@@ -219,7 +219,7 @@
             {% for item in maintenance_items %}
             <tr class="border-t">
               <td class="px-4 py-2">
-                <a href="{% url 'maintenance:request_detail' item.request.pk %}" class="text-blue-700 hover:underline">{{ item.request.title }}</a>
+                <a href="{% url 'maintenance:request_detail' item.request.pk %}" class="text-blue-700 hover:underline">{{ object.plate_number }} - {{ item.request.title }}</a>
                 <span class="ml-2 text-xs text-gray-500">#{{ item.request.id }}</span>
               </td>
               <td class="px-4 py-2">{{ object.plate_number }}</td>
