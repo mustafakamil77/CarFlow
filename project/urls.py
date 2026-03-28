@@ -19,6 +19,7 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from django.views.generic import TemplateView, RedirectView
+from django.contrib.auth import views as auth_views
 
 urlpatterns = [
     path('', TemplateView.as_view(template_name='reports/dashboard.html'), name='home'),
@@ -26,6 +27,7 @@ urlpatterns = [
     path('dashboard/', RedirectView.as_view(pattern_name='reports:dashboard', permanent=False)),
     path('cars/', RedirectView.as_view(pattern_name='fleet:car_list', permanent=False)),
     path('fleet/', include('fleet.urls')),
+    path('accounts/login/', auth_views.LoginView.as_view(template_name='Registration/login.html'), name='login'),
     path('accounts/', include('django.contrib.auth.urls')),
     path('accounts/', include('accounts.urls')),
     path('maintenance/', include('maintenance.urls')),

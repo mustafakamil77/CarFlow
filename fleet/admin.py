@@ -1,4 +1,9 @@
 from django.contrib import admin
+from import_export.admin import ImportExportModelAdmin
+from .models import Car
+from .resources import CarResource
+
+
 from .models import (
     Car,
     CarDocument,
@@ -9,13 +14,15 @@ from .models import (
 
 
 @admin.register(Car)
-class CarAdmin(admin.ModelAdmin):
+class CarAdmin(ImportExportModelAdmin):
+    resource_class = CarResource
     list_display = ("plate_number", "brand", "vehicle_type", "year", "status", "region", "created_at")
     list_filter = ("status", "year", "brand", "region")
     search_fields = ("plate_number", "brand", "vehicle_type", "vin")
     ordering = ("plate_number",)
     readonly_fields = ("created_at",)
-
+    
+    
 
 @admin.register(CarDocument)
 class CarDocumentAdmin(admin.ModelAdmin):
@@ -51,3 +58,6 @@ class CarImageAdmin(admin.ModelAdmin):
     list_filter = ("position", "created_at")
     search_fields = ("car__plate_number",)
     raw_id_fields = ("car",)
+
+
+

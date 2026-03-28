@@ -1,24 +1,220 @@
-{% extends "base.html" %}
-{% block content %}
-<div class="max-w-md mx-auto bg-white p-6 rounded shadow">
-  <h1 class="text-2xl mb-4">Sign in</h1>
-  <form method="post" action="{% url 'login' %}">
-    {% csrf_token %}
-    <input type="hidden" name="next" value="{{ next }}">
-    <div class="space-y-4">
-      <div>
-        <label class="block mb-1">Username</label>
-        {{ form.username }}
-      </div>
-      <div>
-        <label class="block mb-1">Password</label>
-        {{ form.password }}
-      </div>
-      <button type="submit" class="w-full mt-2 px-4 py-2 bg-blue-600 text-white rounded">Login</button>
-    </div>
-  </form>
-  <p class="mt-4 text-sm">
-    Forgot password? <a href="{% url 'password_reset' %}" class="text-blue-600">Reset it</a>
-  </p>
-</div>
-{% endblock %}
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Login | CarFlow</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Be+Vietnam+Pro:wght@400;500;600&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+    <script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              surface: "#f7f9ff",
+              "outline-variant": "#bec7d2",
+              "on-tertiary-container": "#fffbff",
+              primary: "#006191",
+              "tertiary-container": "#ab6300",
+              background: "#f7f9ff",
+              "on-secondary-fixed-variant": "#014b6e",
+              "inverse-on-surface": "#edf1f7",
+              tertiary: "#884e00",
+              "inverse-surface": "#2c3135",
+              "tertiary-fixed": "#ffdcbf",
+              "on-primary-fixed-variant": "#004b71",
+              "primary-fixed-dim": "#8fcdff",
+              "surface-container": "#eaeef4",
+              "surface-variant": "#dfe3e9",
+              "surface-container-lowest": "#ffffff",
+              "surface-container-highest": "#dfe3e9",
+              "primary-container": "#007bb6",
+              "on-secondary-container": "#215d81",
+              "on-surface": "#181c20",
+              outline: "#6f7881",
+              "inverse-primary": "#8fcdff",
+              "secondary-container": "#9fd5fe",
+              "on-tertiary": "#ffffff",
+              "surface-container-high": "#e5e8ee",
+              "on-tertiary-fixed-variant": "#6a3b00",
+              "on-tertiary-fixed": "#2d1600",
+              "on-surface-variant": "#3f4850",
+              "on-secondary-fixed": "#001e2f",
+              "on-error": "#ffffff",
+              "secondary-fixed-dim": "#97cdf6",
+              "on-background": "#181c20",
+              "surface-container-low": "#f0f4fa",
+              error: "#ba1a1a",
+              "on-primary": "#ffffff",
+              "surface-dim": "#d7dae0",
+              "tertiary-fixed-dim": "#ffb873",
+              "on-secondary": "#ffffff",
+              "error-container": "#ffdad6",
+              secondary: "#296388",
+              "surface-tint": "#006495",
+              "secondary-fixed": "#c9e6ff",
+              "surface-bright": "#f7f9ff",
+              "on-primary-container": "#fcfcff",
+              "on-error-container": "#93000a",
+              "primary-fixed": "#cbe6ff",
+              "on-primary-fixed": "#001e30",
+            },
+            fontFamily: {
+              headline: ["Plus Jakarta Sans"],
+              body: ["Be Vietnam Pro"],
+              label: ["Be Vietnam Pro"],
+            },
+            borderRadius: {
+              DEFAULT: "0.25rem",
+              lg: "0.5rem",
+              xl: "0.75rem",
+              full: "9999px",
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      .material-symbols-outlined {
+        font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+        vertical-align: middle;
+      }
+      .editorial-overlay {
+        background: linear-gradient(
+          to bottom,
+          rgba(0, 97, 145, 0.4),
+          rgba(0, 30, 48, 0.8)
+        );
+      }
+    </style>
+  </head>
+  <body class="bg-surface font-body text-on-surface overflow-hidden">
+    <main class="flex h-screen w-full">
+      <section class="hidden lg:flex lg:w-3/5 relative overflow-hidden">
+        <img
+          alt="Panoramic mountain view"
+          class="absolute inset-0 h-full w-full object-cover"
+          src="{% static 'img/login_bg.png' %}"
+          onerror="this.onerror=null;this.src='https://lh3.googleusercontent.com/aida/ADBb0ujtGaLwD6XTeT_WH_POy-CobDDd0Qr7Gmn9Gd39oDxbfHjfsigF-_JAKIhn0UvcqO8TiU8lx_8snnibDkek9YCKVMJwezZtOycXni2XcFp-jg2ihTpi0Kd4SFtQawnF1SVRYZToCnjis_JP78s9WPwlNES3In5v5oW9UgBbWo51oBKFJh8-erHpdZVu7encK2L4Ltza2bd3Sy1o7sqztrk_g1v80dtQVL_5KRuMise6hB69syd-3TIhROdM016vq1inXnSqI3A_7g';"
+        />
+        <div class="absolute inset-0 editorial-overlay flex flex-col justify-center px-20">
+          <div class="mb-8">
+            <span class="text-white/80 font-headline font-bold tracking-[0.2em] text-sm uppercase mb-2 block">CarFlow</span>
+            <h1 class="text-white font-headline font-extrabold text-6xl leading-tight tracking-tight">
+              Fleet Management
+            </h1>
+          </div>
+          <p class="text-white/90 font-body text-xl max-w-md leading-relaxed">
+            Manage your fleet operations, maintenance, and costs in one place.
+          </p>
+          <div class="absolute bottom-12 left-20 flex gap-6 text-white/60">
+            <div class="flex items-center gap-2">
+              <span class="material-symbols-outlined text-sm">directions_car</span>
+              <span class="text-xs uppercase tracking-widest font-semibold">Cars</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="material-symbols-outlined text-sm">build</span>
+              <span class="text-xs uppercase tracking-widest font-semibold">Maintenance</span>
+            </div>
+          </div>
+        </div>
+      </section>
+      <section class="w-full lg:w-2/5 bg-surface-container-lowest flex flex-col relative">
+        <div class="flex-grow flex items-center justify-center px-8 sm:px-12 md:px-20 py-12 z-10">
+          <div class="w-full max-w-md">
+            <div class="mb-10 text-center lg:text-left">
+              <h2 class="text-4xl font-headline font-extrabold text-on-surface mb-2 tracking-tight">Welcome</h2>
+              <p class="text-on-surface-variant font-body font-medium">Login</p>
+            </div>
+            <form class="space-y-6" method="post">
+              {% csrf_token %}
+              {% if next %}
+                <input type="hidden" name="next" value="{{ next }}" />
+              {% endif %}
+              {% if form.non_field_errors %}
+                <div class="rounded-xl border border-error/20 bg-error-container px-4 py-3 text-sm text-on-error-container">
+                  {{ form.non_field_errors }}
+                </div>
+              {% endif %}
+              <div class="space-y-1">
+                <label class="text-xs font-bold text-primary tracking-wider uppercase pl-1" for="{{ form.username.id_for_label }}">Username</label>
+                <div class="relative group">
+                  <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline group-focus-within:text-primary transition-colors">mail</span>
+                  <input
+                    class="w-full pl-12 pr-4 py-4 bg-surface-container-low border-none rounded-xl focus:ring-2 focus:ring-primary/20 transition-all font-body placeholder:text-outline-variant"
+                    id="{{ form.username.id_for_label }}"
+                    name="{{ form.username.html_name }}"
+                    value="{{ form.username.value|default_if_none:'' }}"
+                    type="text"
+                    autocomplete="username"
+                    placeholder="username"
+                    required
+                  />
+                </div>
+                {% if form.username.errors %}
+                  <div class="text-sm text-error">{{ form.username.errors }}</div>
+                {% endif %}
+              </div>
+              <div class="space-y-1">
+                <div class="flex justify-between items-center px-1">
+                  <label class="text-xs font-bold text-primary tracking-wider uppercase" for="{{ form.password.id_for_label }}">Password</label>
+                  <a class="text-xs font-semibold text-tertiary hover:underline" href="{% url 'password_reset' %}"></a>
+                </div>
+                <div class="relative group">
+                  <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline group-focus-within:text-primary transition-colors">lock</span>
+                  <input
+                    class="w-full pl-12 pr-4 py-4 bg-surface-container-low border-none rounded-xl focus:ring-2 focus:ring-primary/20 transition-all font-body placeholder:text-outline-variant"
+                    id="{{ form.password.id_for_label }}"
+                    name="{{ form.password.html_name }}"
+                    type="password"
+                    autocomplete="current-password"
+                    placeholder="••••••••"
+                    required
+                  />
+                </div>
+                {% if form.password.errors %}
+                  <div class="text-sm text-error">{{ form.password.errors }}</div>
+                {% endif %}
+              </div>
+              <button class="w-full py-4 bg-gradient-to-r from-primary to-primary-container text-white font-headline font-bold text-sm tracking-[0.1em] rounded-xl shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all active:scale-[0.98]">
+                LOGIN
+              </button>
+            </form>
+            <div class="relative my-10">
+              <div class="absolute inset-0 flex items-center">
+                <div class="w-full border-t border-surface-variant"></div>
+              </div>
+              <div class="relative flex justify-center text-xs uppercase tracking-widest font-bold">
+                <span class="px-4 bg-surface-container-lowest text-outline">OR</span>
+              </div>
+            </div>
+            <div class="text-center">
+              <p class="text-on-surface-variant text-sm font-medium">
+                Need an account? <span class="text-primary font-bold">Contact admin</span>
+              </p>
+            </div>
+          </div>
+        </div>
+        <div class="absolute bottom-0 left-0 right-0 h-32 opacity-10 pointer-events-none flex items-end justify-between overflow-hidden px-4">
+          <div class="flex items-end gap-1 translate-y-2">
+            <div class="w-12 h-16 bg-primary rounded-t-full"></div>
+            <div class="w-20 h-24 bg-primary rounded-t-full"></div>
+            <div class="w-12 h-16 bg-primary rounded-t-full"></div>
+          </div>
+          <div class="flex items-end gap-2 translate-y-4">
+            <div class="w-10 h-32 bg-primary rotate-[-6deg] rounded-sm"></div>
+            <div class="w-24 h-40 bg-primary" style="clip-path: polygon(50% 0%, 0% 100%, 100% 100%);"></div>
+          </div>
+          <div class="flex items-end gap-1 translate-y-2">
+            <div class="w-20 h-16 bg-primary" style="clip-path: polygon(50% 0%, 0% 100%, 100% 100%);"></div>
+            <div class="w-24 h-20 bg-primary" style="clip-path: polygon(50% 0%, 0% 100%, 100% 100%);"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+    <div class="fixed top-0 right-0 w-2/5 h-1 bg-gradient-to-r from-primary-container to-secondary"></div>
+  </body>
+</html>

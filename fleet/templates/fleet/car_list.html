@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="flex-1 overflow-y-auto p-8 custom-scrollbar">
+<div class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 custom-scrollbar">
   <section class="bg-transparent mb-6">
     <div class="flex flex-col xl:flex-row gap-4 xl:items-end justify-between">
       <form method="get" class="flex flex-col md:flex-row gap-4 flex-1">
@@ -34,14 +34,14 @@
           </div>
         </div>
         <div class="flex items-end">
-          <button type="submit" class="text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 focus:outline-none shadow-sm">Apply</button>
+          <button type="submit" class="tap-target text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 focus:outline-none shadow-sm">Apply</button>
         </div>
       </form>
-      <a href="{% url 'fleet:car_create' %}" class="text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 focus:outline-none shadow-sm flex-shrink-0">Add New Vehicle</a>
+      <a href="{% url 'fleet:car_create' %}" class="tap-target text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 focus:outline-none shadow-sm flex-shrink-0 inline-flex items-center justify-center">Add New Vehicle</a>
     </div>
   </section>
   <section class="bg-white rounded-lg shadow border border-gray-200 overflow-hidden">
-    <div class="overflow-x-auto">
+    <div class="table-scroll">
       <table class="w-full text-sm text-left text-gray-500">
         <thead class="text-xs text-gray-500 font-bold bg-gray-50/50 uppercase border-b border-gray-100">
           <tr>

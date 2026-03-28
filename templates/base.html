@@ -17,8 +17,13 @@ tailwind.config = {
   }
 }
 </script>
+{% if debug %}
 <link rel="stylesheet" href="{% static 'css/base.css' %}">
 <link rel="stylesheet" href="{% static 'css/layout.css' %}">
+{% else %}
+<link rel="stylesheet" href="{% static 'css/base.min.css' %}">
+<link rel="stylesheet" href="{% static 'css/layout.min.css' %}">
+{% endif %}
 {% block extra_css %}{% endblock %}
 <style>
 body{font-family:'Inter',sans-serif;background-color:#f3f4f6}
@@ -29,28 +34,16 @@ body{font-family:'Inter',sans-serif;background-color:#f3f4f6}
 </style>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body class="flex h-screen overflow-hidden bg-main bg-slate-100">
+<body class="flex h-[100dvh] md:h-screen overflow-hidden bg-main bg-slate-100">
 <div id="sidebar-backdrop" class="fixed inset-0 bg-black/30 z-30 hidden md:hidden"></div>
 {% include "partials/sidebar.html" %}
-<div class="flex-1 flex flex-col h-screen overflow-hidden">
+<div class="flex-1 flex flex-col h-full overflow-hidden">
 {% include "partials/navbar.html" %}
-<main class="flex-1 overflow-x-hidden overflow-y-auto bg-main p-8">
+<main class="flex-1 overflow-x-hidden overflow-y-auto bg-main p-4 sm:p-6 lg:p-8">
 {% block content %}{% endblock %}
 </main>
 </div>
-<script src="{% static 'js/app.js' %}"></script>
+<script type="module" src="{% static 'js/app.js' %}"></script>
 {% block extra_js %}{% endblock %}
-<script>
-(function(){
-  var toggle=document.getElementById('sidebarToggle');
-  var sidebar=document.getElementById('sidebar');
-  var backdrop=document.getElementById('sidebar-backdrop');
-  function open(){sidebar.classList.remove('-translate-x-full');backdrop.classList.remove('hidden')}
-  function close(){sidebar.classList.add('-translate-x-full');backdrop.classList.add('hidden')}
-  if(toggle){toggle.addEventListener('click',function(){if(sidebar.classList.contains('-translate-x-full')){open()}else{close()}})}
-  if(backdrop){backdrop.addEventListener('click',close)}
-  window.addEventListener('resize',function(){if(window.innerWidth>=768){backdrop.classList.add('hidden');sidebar.classList.remove('-translate-x-full')}else{sidebar.classList.add('-translate-x-full')}})
-})();
-</script>
 </body>
 </html>

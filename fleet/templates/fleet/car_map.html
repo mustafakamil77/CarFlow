@@ -1,31 +1,36 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <title>Vehicle Map</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <style>
-        #map { height: 70vh; }
-    </style>
-</head>
-<body class="p-4">
-    <h1 class="text-2xl">Vehicle Map</h1>
-    <div id="map"></div>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script>
-        const cars = {{ cars|safe }};
-        const map = L.map('map').setView([0, 0], 2);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19
-        }).addTo(map);
-        cars.forEach(c => {
-            const marker = L.marker([c.current_latitude, c.current_longitude]).addTo(map);
-            marker.bindPopup(`${c.plate_number} ${c.brand} ${c.vehicle_type}`);
-        });
-        if (cars.length > 0) {
-            const group = L.featureGroup(cars.map(c => L.marker([c.current_latitude, c.current_longitude])));
-            map.fitBounds(group.getBounds(), { padding: [20, 20] });
-        }
-    </script>
-</body>
-</html>
+{% extends "base.html" %}
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+#map { height: min(70vh, calc(100dvh - 14rem)); }
+@media (max-width: 480px) {
+  #map { height: calc(100dvh - 16rem); }
+}
+</style>
+{% endblock %}
+{% block content %}
+<div class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+  <section class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+    <div class="flex items-center justify-between gap-3 mb-4">
+      <h1 class="text-xl sm:text-2xl font-semibold text-gray-900">Vehicle Map</h1>
+    </div>
+    <div id="map" class="rounded border border-gray-200"></div>
+  </section>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+  const cars = {{ cars|safe }};
+  const map = L.map('map').setView([0, 0], 2);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+  cars.forEach(c => {
+    const marker = L.marker([c.current_latitude, c.current_longitude]).addTo(map);
+    marker.bindPopup(`${c.plate_number} ${c.brand} ${c.vehicle_type}`);
+  });
+  if (cars.length > 0) {
+    const group = L.featureGroup(cars.map(c => L.marker([c.current_latitude, c.current_longitude])));
+    map.fitBounds(group.getBounds(), { padding: [20, 20] });
+  }
+</script>
+{% endblock %}

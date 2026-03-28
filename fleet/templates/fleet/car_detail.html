@@ -1,15 +1,15 @@
 {% extends "base.html" %}
 {% block content %}
-    <div class="flex items-center justify-between">
-      <h1 class="text-2xl">{{ object.plate_number }} {{ object.brand }} {{ object.vehicle_type }}</h1>
-      <div class="space-x-2">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <h1 class="text-2xl break-words">{{ object.plate_number }} {{ object.brand }} {{ object.vehicle_type }}</h1>
+      <div class="flex flex-wrap items-center justify-start sm:justify-end gap-2">
         {% if current_assignment %}
-        <a href="{% url 'fleet:car_return' object.pk %}" class="px-3 py-2 bg-green-600 text-white rounded">Return</a>
+        <a href="{% url 'fleet:car_return' object.pk %}" class="tap-target inline-flex items-center justify-center px-3 py-2 bg-green-600 text-white rounded">Return</a>
         {% else %}
-        <a href="{% url 'fleet:car_handover' object.pk %}" class="px-3 py-2 bg-blue-600 text-white rounded">Handover</a>
+        <a href="{% url 'fleet:car_handover' object.pk %}" class="tap-target inline-flex items-center justify-center px-3 py-2 bg-blue-600 text-white rounded">Handover</a>
         {% endif %}
-        <a href="{% url 'fleet:car_edit' object.pk %}" class="px-3 py-2 bg-indigo-600 text-white rounded">Edit</a>
-        <a href="{% url 'fleet:car_delete' object.pk %}" class="px-3 py-2 bg-red-600 text-white rounded">Delete</a>
+        <a href="{% url 'fleet:car_edit' object.pk %}" class="tap-target inline-flex items-center justify-center px-3 py-2 bg-indigo-600 text-white rounded">Edit</a>
+        <a href="{% url 'fleet:car_delete' object.pk %}" class="tap-target inline-flex items-center justify-center px-3 py-2 bg-red-600 text-white rounded">Delete</a>
       </div>
     </div>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
