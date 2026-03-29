@@ -1,6 +1,7 @@
 from django.views.generic import ListView, DetailView, TemplateView
 from django.views.generic.edit import FormView, UpdateView
 from django.shortcuts import redirect, get_object_or_404
+from django.db.models import Q
 from .models import MaintenanceRequest, MaintenanceImage
 from .forms import MaintenanceRequestForm, MaintenanceImageForm, MaintenanceRequestEditForm, MaintenanceCompleteForm
 from fleet.models import Car
@@ -14,6 +15,18 @@ class MaintenanceRequestListView(LoginRequiredMixin, ListView):
     model = MaintenanceRequest
     paginate_by = 20
     template_name = "maintenance/request_list.html"
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        q = self.request.GET.get("q")
+        status = self.request.GET.get("status")
+        
+        if q:
+            qs = qs.filter(Q(title__icontains=q) | Q(car__plate_number__icontains=q) | Q(description__icontains=q))
+        if status:
+            qs = qs.filter(status=status)
+            
+        return qs.order_by("-created_at")
 
 
 class MaintenanceRequestDetailView(LoginRequiredMixin, DetailView):
