@@ -9,15 +9,19 @@
           <span class="font-medium">Car:</span> {{ object.car.plate_number }}
         </div>
       </div>
-      <div class="flex items-center gap-2">
+      <div class="flex flex-wrap items-center gap-2 mt-4 sm:mt-0">
+        <a href="{% url 'maintenance:request_report' object.pk %}" target="_blank" class="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm transition-colors flex items-center gap-1 shadow-sm">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+          Report
+        </a>
         {% if object.status != "completed" %}
-        <a href="{% url 'maintenance:request_complete' object.pk %}" class="px-3 py-2 bg-green-600 text-white rounded text-sm">Mark Completed</a>
+        <a href="{% url 'maintenance:request_complete' object.pk %}" class="px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded text-sm transition-colors shadow-sm">Mark Completed</a>
         {% else %}
-        <a href="{% url 'maintenance:request_complete' object.pk %}" class="px-3 py-2 bg-green-600 text-white rounded text-sm">Edit Completion</a>
-        <a href="{% url 'maintenance:request_completion_delete' object.pk %}" class="px-3 py-2 bg-red-600 text-white rounded text-sm">Delete Completion</a>
+        <a href="{% url 'maintenance:request_complete' object.pk %}" class="px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded text-sm transition-colors shadow-sm">Edit Completion</a>
+        <a href="{% url 'maintenance:request_completion_delete' object.pk %}" class="px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded text-sm transition-colors shadow-sm">Delete Completion</a>
         {% endif %}
-        <a href="{% url 'maintenance:request_edit' object.pk %}" class="px-3 py-2 bg-indigo-600 text-white rounded text-sm">Edit</a>
-        <a href="{% url 'maintenance:request_delete' object.pk %}" class="px-3 py-2 bg-red-600 text-white rounded text-sm">Delete</a>
+        <a href="{% url 'maintenance:request_edit' object.pk %}" class="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-sm transition-colors shadow-sm">Edit</a>
+        <a href="{% url 'maintenance:request_delete' object.pk %}" class="px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded text-sm transition-colors shadow-sm">Delete</a>
       </div>
     </div>
 
@@ -61,9 +65,7 @@
         {% for img in object.images.all %}
         <figure class="border rounded p-2 bg-white">
           <img src="{{ img.image.url }}" alt="" class="w-full h-auto rounded">
-          <div class="mt-2 flex justify-end">
-            <a href="{% url 'maintenance:image_delete' img.pk %}" class="text-sm text-red-600">Delete</a>
-          </div>
+          
         </figure>
         {% empty %}
         <p class="text-sm text-gray-600">No images</p>

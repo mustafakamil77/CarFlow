@@ -22,8 +22,9 @@
             </select>
           </div>
         </div>
-        <div class="flex items-end">
-          <button type="submit" class="text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 focus:outline-none shadow-sm">Apply Filter</button>
+        <div class="flex items-end gap-2">
+          <button type="submit" class="text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 focus:outline-none shadow-sm transition-colors">Apply Filter</button>
+          <a href="{% url 'maintenance:request_list' %}" class="text-gray-700 bg-gray-100 hover:bg-gray-200 focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-5 py-2.5 focus:outline-none shadow-sm transition-colors border border-gray-300 flex items-center justify-center">Reset</a>
         </div>
       </form>
       <a href="{% url 'maintenance:request_create' %}" class="text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 focus:outline-none shadow-sm flex-shrink-0">Create New Request</a>
@@ -40,11 +41,13 @@
             <th class="px-6 py-4" scope="col">Title</th>
             <th class="px-6 py-4" scope="col">Status</th>
             <th class="px-6 py-4" scope="col">Created At</th>
+            <th class="px-6 py-4" scope="col">Days</th>
             <th class="px-6 py-4 text-right" scope="col">Action</th>
           </tr>
         </thead>
         <tbody>
-          {% for req in object_list %}
+          {% for req_data in requests_with_days %}
+          {% with req=req_data.object %}
           <tr class="bg-white border-b hover:bg-gray-50 transition-colors">
             <td class="px-6 py-4 font-medium text-gray-900">#{{ req.pk }}</td>
             <td class="px-6 py-4 font-medium text-blue-600">
@@ -65,12 +68,16 @@
               {% endif %}
             </td>
             <td class="px-6 py-4 text-gray-500">{{ req.created_at|date:"Y-m-d H:i" }}</td>
+            <td class="px-6 py-4 text-gray-500">
+              {{req_data.days_count}}
+            </td>
             <td class="px-6 py-4 text-right">
               <a href="{% url 'maintenance:request_detail' req.pk %}" class="font-medium text-blue-600 hover:underline">View</a>
             </td>
           </tr>
+          {% endwith %}
           {% empty %}
-          <tr><td class="px-6 py-4 text-center" colspan="6">No maintenance requests found</td></tr>
+          <tr><td class="px-6 py-4 text-center" colspan="7">No maintenance requests found</td></tr>
           {% endfor %}
         </tbody>
       </table>

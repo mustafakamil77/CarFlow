@@ -11,9 +11,12 @@ from django.urls import reverse_lazy
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 
 
+from datetime import datetime, timedelta
+import calendar
+
 class MaintenanceRequestListView(LoginRequiredMixin, ListView):
     model = MaintenanceRequest
-    paginate_by = 20
+    paginate_by = 70
     template_name = "maintenance/request_list.html"
 
     def get_queryset(self):
@@ -27,6 +30,49 @@ class MaintenanceRequestListView(LoginRequiredMixin, ListView):
             qs = qs.filter(status=status)
             
         return qs.order_by("-created_at")
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        today = timezone.localdate()
+        
+        # حساب عدد الأيام مع استبعاد أيام الجمعة ومعالجة الحالات المختلفة
+        def calculate_business_days(req):
+            if not req.created_at:
+                return 0
+            
+            start = req.created_at.date()
+            if start > today:
+                return 0
+                
+            # إذا كان الطلب مكتملاً، نتوقف عند تاريخ الإكمال
+            end_date = req.updated_at.date() if req.status == "completed" else today
+            
+            # إذا كان الطلب ليس جديداً، لا نحسب الأيام
+            if req.status != "new":
+                return 0
+                
+            business_days = 0
+            current = start
+            
+            while current <= end_date:
+                # استبعاد أيام الجمعة (يوم 4 في weekday حيث الاثنين=0، الأحد=6)
+                if current.weekday() != 4:  # الجمعة هو اليوم 4
+                    business_days += 1
+                current += timedelta(days=1)
+            
+            return business_days
+        
+        # إضافة عدد الأيام لكل طلب
+        requests_with_days = []
+        for req in context['object_list']:
+            days_count = calculate_business_days(req)
+            requests_with_days.append({
+                'object': req,
+                'days_count': days_count
+            })
+        
+        context['requests_with_days'] = requests_with_days
+        return context
 
 
 class MaintenanceRequestDetailView(LoginRequiredMixin, DetailView):
@@ -52,6 +98,18 @@ class MaintenanceStaffRequiredMixin(UserPassesTestMixin):
             )
         )
 
+
+class MaintenanceRequestReportView(LoginRequiredMixin, DetailView):
+    model = MaintenanceRequest
+    template_name = "maintenance/request_report.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        req = self.object
+        start_date = req.created_at.date()
+        end_date = req.updated_at.date() if req.status == "completed" else timezone.localdate()
+        context["days_in_maintenance"] = (end_date - start_date).days + 1
+        return context
 
 class MaintenanceRequestCreateView(MaintenanceStaffRequiredMixin, FormView):
     form_class = MaintenanceRequestForm
