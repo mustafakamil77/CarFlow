@@ -1,7 +1,6 @@
 from django.views.generic import ListView, DetailView, TemplateView
 from django.views.generic.edit import FormView, UpdateView
 from django.shortcuts import redirect, get_object_or_404
-from django.db.models import Q
 from .models import MaintenanceRequest, MaintenanceImage
 from .forms import MaintenanceRequestForm, MaintenanceImageForm, MaintenanceRequestEditForm, MaintenanceCompleteForm
 from fleet.models import Car
@@ -11,67 +10,41 @@ from django.urls import reverse_lazy
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 
 
-from datetime import datetime, timedelta
-import calendar
+from django.db.models import Q
 
 class MaintenanceRequestListView(LoginRequiredMixin, ListView):
     model = MaintenanceRequest
-    paginate_by = 70
+    paginate_by = 20
     template_name = "maintenance/request_list.html"
 
     def get_queryset(self):
-        qs = super().get_queryset()
+        qs = super().get_queryset().order_by("-created_at")
         q = self.request.GET.get("q")
         status = self.request.GET.get("status")
         
         if q:
-            qs = qs.filter(Q(title__icontains=q) | Q(car__plate_number__icontains=q) | Q(description__icontains=q))
+            qs = qs.filter(
+                Q(title__icontains=q) | 
+                Q(car__plate_number__icontains=q) | 
+                Q(description__icontains=q)
+            )
         if status:
             qs = qs.filter(status=status)
             
-        return qs.order_by("-created_at")
+        return qs
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        today = timezone.localdate()
-        
-        # حساب عدد الأيام مع استبعاد أيام الجمعة ومعالجة الحالات المختلفة
-        def calculate_business_days(req):
-            if not req.created_at:
-                return 0
-            
-            start = req.created_at.date()
-            if start > today:
-                return 0
-                
-            # إذا كان الطلب مكتملاً، نتوقف عند تاريخ الإكمال
-            end_date = req.updated_at.date() if req.status == "completed" else today
-            
-            # إذا كان الطلب ليس جديداً، لا نحسب الأيام
-            if req.status != "new":
-                return 0
-                
-            business_days = 0
-            current = start
-            
-            while current <= end_date:
-                # استبعاد أيام الجمعة (يوم 4 في weekday حيث الاثنين=0، الأحد=6)
-                if current.weekday() != 4:  # الجمعة هو اليوم 4
-                    business_days += 1
-                current += timedelta(days=1)
-            
-            return business_days
-        
-        # إضافة عدد الأيام لكل طلب
         requests_with_days = []
-        for req in context['object_list']:
-            days_count = calculate_business_days(req)
+        for req in context["object_list"]:
+            start_date = req.created_at.date()
+            end_date = req.updated_at.date() if req.status == "completed" else timezone.localdate()
+            days_count = (end_date - start_date).days + 1
             requests_with_days.append({
-                'object': req,
-                'days_count': days_count
+                "object": req,
+                "days_count": days_count
             })
-        
-        context['requests_with_days'] = requests_with_days
+        context["requests_with_days"] = requests_with_days
         return context
 
 
@@ -99,17 +72,17 @@ class MaintenanceStaffRequiredMixin(UserPassesTestMixin):
         )
 
 
-class MaintenanceRequestReportView(LoginRequiredMixin, DetailView):
+class MaintenanceRequestReportView(MaintenanceStaffRequiredMixin, DetailView):
     model = MaintenanceRequest
     template_name = "maintenance/request_report.html"
 
     def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        req = self.object
-        start_date = req.created_at.date()
-        end_date = req.updated_at.date() if req.status == "completed" else timezone.localdate()
-        context["days_in_maintenance"] = (end_date - start_date).days + 1
-        return context
+        ctx = super().get_context_data(**kwargs)
+        ctx["days_in_maintenance"] = (
+            timezone.now().date() - self.object.created_at.date()
+        ).days
+        return ctx
+
 
 class MaintenanceRequestCreateView(MaintenanceStaffRequiredMixin, FormView):
     form_class = MaintenanceRequestForm

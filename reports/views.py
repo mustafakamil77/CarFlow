@@ -1,4 +1,5 @@
 import json
+from django.utils import timezone
 
 from django.core.cache import cache
 from django.db.models import Sum
@@ -35,6 +36,7 @@ class DashboardView(TemplateView):
         context["chart_cost"] = json.dumps(cost)
         context["inspections_total"] = VehicleInspection.objects.count()
         context["inspections_recent"] = VehicleInspection.objects.select_related("vehicle").order_by("-created_at")[:10]
+        context["current_time"] = timezone.now()
         return context
 
 
@@ -74,9 +76,16 @@ class VehicleQRSuccessView(TemplateView):
     template_name = "reports/qr_success.html"
 
 
-class VehicleQRReportView(FormView):
+from django.core.mail import send_mail
+from django.http import JsonResponse
+from maintenance.models import MaintenanceRequest, MaintenanceImage
+from django.views.decorators.csrf import ensure_csrf_cookie
+from django.utils.decorators import method_decorator
+from django.views import View
+
+@method_decorator(ensure_csrf_cookie, name='dispatch')
+class VehicleQRReportView(TemplateView):
     template_name = "reports/qr_vehicle_report_form.html"
-    form_class = VehicleInspectionForm
 
     def dispatch(self, request, *args, **kwargs):
         token = (kwargs.get("token") or "").strip()
@@ -93,37 +102,107 @@ class VehicleQRReportView(FormView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["vehicle"] = self.vehicle
+        context["vehicle_types"] = Car.VEHICLE_TYPES if hasattr(Car, 'VEHICLE_TYPES') else [
+            ('sedan', 'Sedan'), ('suv', 'SUV'), ('truck', 'Truck'), ('van', 'Van'), ('bus', 'Bus')
+        ]
         return context
 
-    def _rate_limit_key(self):
-        ip = self.request.META.get("REMOTE_ADDR", "")
-        token_prefix = (self.vehicle.qr_token or "")[:16]
-        return f"qr_submit:{ip}:{token_prefix}"
+class QRSubmitMileageView(View):
+    def post(self, request, token):
+        vehicle = Car.objects.filter(qr_token=token, qr_enabled=True).first()
+        if not vehicle:
+            return JsonResponse({'error': 'Invalid token'}, status=404)
 
-    def form_valid(self, form):
-        key = self._rate_limit_key()
-        current = cache.get(key, 0)
-        if current >= 10:
-            form.add_error(None, "Too many submissions. Please wait and try again.")
-            return self.form_invalid(form)
-        cache.set(key, current + 1, timeout=60)
+        try:
+            mileage = int(request.POST.get('mileage', 0))
+            if hasattr(vehicle, 'current_mileage') and mileage <= vehicle.current_mileage:
+                return JsonResponse({'error': f'Mileage must be greater than {vehicle.current_mileage}'}, status=400)
+            
+            # Save mileage
+            inspection = VehicleInspection.objects.create(
+                vehicle=vehicle,
+                mileage=mileage,
+                notes="QR mileage report",
+                created_via_qr=True
+            )
+            
+            if hasattr(vehicle, 'current_mileage'):
+                vehicle.current_mileage = mileage
+                vehicle.save(update_fields=["current_mileage"])
+                
+            CarEvent.objects.create(
+                car=vehicle,
+                event_type="inspection",
+                odometer=mileage,
+                notes="QR mileage report",
+                created_by=None,
+            )
+            return JsonResponse({'success': True, 'message': 'Mileage recorded successfully'})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
 
-        inspection = form.save(commit=False)
-        inspection.vehicle = self.vehicle
-        inspection.created_via_qr = True
-        inspection.save()
+class QRSubmitMaintenanceView(View):
+    def post(self, request, token):
+        vehicle = Car.objects.filter(qr_token=token, qr_enabled=True).first()
+        if not vehicle:
+            return JsonResponse({'error': 'Invalid token'}, status=404)
 
-        new_mileage = inspection.mileage or 0
-        if hasattr(self.vehicle, "current_mileage"):
-            self.vehicle.current_mileage = new_mileage
-            self.vehicle.save(update_fields=["current_mileage"])
+        description = request.POST.get('description', '').strip()
+        if len(description) < 5 or len(description) > 500:
+            return JsonResponse({'error': 'Description must be between 5 and 500 characters'}, status=400)
+            
+        title = request.POST.get('title', '').strip()
+        if not title:
+            title = f"QR Maintenance Request - {vehicle.plate_number}"
+        elif len(title) > 200:
+            return JsonResponse({'error': 'Title must be less than 200 characters'}, status=400)
 
-        CarEvent.objects.create(
-            car=self.vehicle,
-            event_type="inspection",
-            odometer=new_mileage,
-            notes=(inspection.notes or "QR vehicle report").strip(),
-            created_by=None,
-        )
+        images = request.FILES.getlist('images')
+        if len(images) < 2 or len(images) > 10:
+            return JsonResponse({'error': 'Please upload between 2 and 10 images'}, status=400)
 
-        return redirect(reverse("qr_success"))
+        for img in images:
+            if img.size > 5 * 1024 * 1024:
+                return JsonResponse({'error': 'Each image must be less than 5MB'}, status=400)
+            if img.content_type not in ['image/jpeg', 'image/png', 'image/webp']:
+                return JsonResponse({'error': 'Only JPG, PNG, and WEBP images are allowed'}, status=400)
+
+        try:
+            m_req = MaintenanceRequest.objects.create(
+                car=vehicle,
+                title=title,
+                description=description,
+                status="new",
+                odometer=vehicle.current_mileage if hasattr(vehicle, 'current_mileage') else 0
+            )
+
+            import os
+            from django.core.files.storage import FileSystemStorage
+            from django.utils import timezone
+            
+            for img in images:
+                # Custom upload path logic if strictly "uploads/maintenance/"
+                MaintenanceImage.objects.create(
+                    request=m_req,
+                    image=img
+                )
+
+            # Send email
+            try:
+                send_mail(
+                    'New Maintenance Request',
+                    f'A new maintenance request has been submitted for vehicle {vehicle.plate_number}.',
+                    'noreply@carflow.local',
+                    ['admin@carflow.local'],
+                    fail_silently=True,
+                )
+            except Exception:
+                pass
+
+            return JsonResponse({
+                'success': True, 
+                'request_id': m_req.id,
+                'received_at': timezone.now().strftime("%Y-%m-%d %H:%M:%S")
+            })
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)

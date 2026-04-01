@@ -20,10 +20,10 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.views.generic import TemplateView, RedirectView
 from django.contrib.auth import views as auth_views
-from reports.views import VehicleQRReportView, VehicleQRSuccessView
+from reports.views import VehicleQRReportView, VehicleQRSuccessView, DashboardView, QRSubmitMileageView, QRSubmitMaintenanceView
 
 urlpatterns = [
-    path('', TemplateView.as_view(template_name='reports/dashboard.html'), name='home'),
+    path('', DashboardView.as_view(), name='home'),
     path('admin/', admin.site.urls),
     path('dashboard/', RedirectView.as_view(pattern_name='reports:dashboard', permanent=False)),
     path('cars/', RedirectView.as_view(pattern_name='fleet:car_list', permanent=False)),
@@ -37,6 +37,8 @@ urlpatterns = [
     path('staff/', include('staff.urls')),
     path("r/success/", VehicleQRSuccessView.as_view(), name="qr_success"),
     path("r/<str:token>/", VehicleQRReportView.as_view(), name="qr_vehicle_report"),
+    path("api/r/<str:token>/mileage/", QRSubmitMileageView.as_view(), name="api_qr_mileage"),
+    path("api/r/<str:token>/maintenance/", QRSubmitMaintenanceView.as_view(), name="api_qr_maintenance"),
 ]
 
 if settings.DEBUG:

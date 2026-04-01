@@ -26,6 +26,7 @@ class VehicleInspectionForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
+        self.vehicle = kwargs.pop('vehicle', None)
         super().__init__(*args, **kwargs)
         file_widget_attrs = {
             "class": "mt-1 block w-full text-sm text-gray-700 file:mr-4 file:rounded-lg file:border-0 file:bg-blue-600 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-blue-700",
@@ -34,6 +35,20 @@ class VehicleInspectionForm(forms.ModelForm):
         }
         self.fields["image_car"].widget.attrs.update(file_widget_attrs)
         self.fields["image_odometer"].widget.attrs.update(file_widget_attrs)
+        
+        # Set minimum value based on current vehicle mileage
+        if self.vehicle and hasattr(self.vehicle, 'current_mileage'):
+            self.fields["mileage"].widget.attrs["min"] = str(self.vehicle.current_mileage + 1)
+            self.fields["mileage"].help_text = f"Current mileage is {self.vehicle.current_mileage}. Please enter a higher value."
+
+    def clean_mileage(self):
+        mileage = self.cleaned_data.get("mileage")
+        if mileage is not None and self.vehicle and hasattr(self.vehicle, 'current_mileage'):
+            if mileage <= self.vehicle.current_mileage:
+                raise forms.ValidationError(
+                    f"Mileage must be greater than the current registered mileage ({self.vehicle.current_mileage})."
+                )
+        return mileage
 
     def _validate_image(self, file):
         if not file:

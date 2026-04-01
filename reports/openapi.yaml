@@ -1,0 +1,71 @@
+openapi: 3.0.0
+info:
+  title: CarFlow QR API
+  description: API for submitting vehicle mileage and maintenance requests via QR.
+  version: 1.0.0
+paths:
+  /api/r/{token}/mileage/:
+    post:
+      summary: Submit vehicle mileage
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                mileage:
+                  type: integer
+                  description: The current mileage of the vehicle.
+              required:
+                - mileage
+      responses:
+        '200':
+          description: Mileage recorded successfully
+        '400':
+          description: Validation error
+        '404':
+          description: Invalid token
+
+  /api/r/{token}/maintenance/:
+    post:
+      summary: Submit maintenance request
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                description:
+                  type: string
+                  minLength: 5
+                  maxLength: 500
+                  description: Details of the maintenance issue.
+                images:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+                  minItems: 2
+                  maxItems: 10
+              required:
+                - description
+                - images
+      responses:
+        '200':
+          description: Maintenance request submitted successfully
+        '400':
+          description: Validation error
+        '404':
+          description: Invalid token

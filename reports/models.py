@@ -7,8 +7,8 @@ class VehicleInspection(models.Model):
         related_name="inspections",
     )
 
-    image_car = models.ImageField(upload_to="vehicle_reports/car/")
-    image_odometer = models.ImageField(upload_to="vehicle_reports/odometer/")
+    image_car = models.ImageField(upload_to="vehicle_reports/car/", blank=True, null=True)
+    image_odometer = models.ImageField(upload_to="vehicle_reports/odometer/", blank=True, null=True)
 
     mileage = models.PositiveIntegerField()
     notes = models.TextField(blank=True)

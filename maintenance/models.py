@@ -51,6 +51,14 @@ class MaintenanceRequest(models.Model):
     completion_comment = models.TextField(blank=True)
 
     completed_at = models.DateTimeField(null=True, blank=True)
+import os
+from django.utils import timezone
+
+def maintenance_image_upload_path(instance, filename):
+    timestamp = timezone.now().strftime("%Y%m%d_%H%M%S")
+    name, ext = os.path.splitext(filename)
+    return f"uploads/maintenance/{name}_{timestamp}{ext}"
+
 class MaintenanceImage(models.Model):
 
     request = models.ForeignKey(
@@ -59,7 +67,7 @@ class MaintenanceImage(models.Model):
         related_name="images"
     )
 
-    image = models.ImageField(upload_to="maintenance_images/")
+    image = models.ImageField(upload_to=maintenance_image_upload_path)
 
     caption = models.CharField(max_length=200, blank=True)
 

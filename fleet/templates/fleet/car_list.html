@@ -23,17 +23,6 @@
         </div>
         <div class="relative w-full md:w-auto">
           <div class="flex flex-col">
-            <label class="text-xs font-medium text-gray-500 mb-1 ml-1" for="region-filter">Region</label>
-            <select class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 min-w-[160px] shadow-sm" id="region-filter" name="region">
-              <option value="">All Regions</option>
-              {% for r in regions %}
-              <option value="{{ r.id }}" {% if request.GET.region == r.id|stringformat:"s" %}selected{% endif %}>{{ r.name }}</option>
-              {% endfor %}
-            </select>
-          </div>
-        </div>
-        <div class="relative w-full md:w-auto">
-          <div class="flex flex-col">
             <label class="text-xs font-medium text-gray-500 mb-1 ml-1" for="sort-filter">Sort</label>
             <select class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 min-w-[160px] shadow-sm" id="sort-filter" name="sort">
               <option value="-created_at" {% if request.GET.sort == '-created_at' or not request.GET.sort %}selected{% endif %}>Newest</option>
@@ -44,9 +33,8 @@
             </select>
           </div>
         </div>
-        <div class="flex items-end gap-2">
-          <button type="submit" class="tap-target text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 focus:outline-none shadow-sm transition-colors">Apply</button>
-          <a href="{% url 'fleet:car_list' %}" class="tap-target text-gray-700 bg-gray-100 hover:bg-gray-200 focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-5 py-2.5 focus:outline-none shadow-sm transition-colors border border-gray-300 flex items-center justify-center">Reset</a>
+        <div class="flex items-end">
+          <button type="submit" class="tap-target text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 focus:outline-none shadow-sm">Apply</button>
         </div>
       </form>
       <a href="{% url 'fleet:car_create' %}" class="tap-target text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 focus:outline-none shadow-sm flex-shrink-0 inline-flex items-center justify-center">Add New Vehicle</a>
@@ -61,7 +49,6 @@
             <th class="px-6 py-4" scope="col">Vehicle ID</th>
             <th class="px-6 py-4" scope="col">Vehicle Type</th>
             <th class="px-6 py-4" scope="col">License Plate</th>
-            <th class="px-6 py-4" scope="col">Region</th>
             <th class="px-6 py-4" scope="col">Status</th>
             <th class="px-6 py-4" scope="col">Current Driver</th>
           </tr>
@@ -75,7 +62,6 @@
             <td class="px-6 py-4 font-medium text-gray-900"><a href="{% url 'fleet:car_detail' car.pk %}" class="text-blue-600">V-{{ car.pk }}</a></td>
             <td class="px-6 py-4 text-gray-900">{{ car.brand }} {{ car.get_vehicle_type_display|default:car.vehicle_type }}</td>
             <td class="px-6 py-4 text-gray-900">{{ car.plate_number }}</td>
-            <td class="px-6 py-4 text-gray-900">{{ car.region.name|default:"-" }}</td>
             <td class="px-6 py-4">
               {% if car.status == 'active' %}
               <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full flex items-center w-fit gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-green-600"></span> Active</span>
@@ -90,7 +76,7 @@
             <td class="px-6 py-4 text-gray-900">-</td>
           </tr>
           {% empty %}
-          <tr><td class="px-6 py-4" colspan="7">No cars</td></tr>
+          <tr><td class="px-6 py-4" colspan="6">No cars</td></tr>
           {% endfor %}
         </tbody>
       </table>
