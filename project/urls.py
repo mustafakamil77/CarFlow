@@ -20,6 +20,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.views.generic import TemplateView, RedirectView
 from django.contrib.auth import views as auth_views
+from reports.views import VehicleQRReportView, VehicleQRSuccessView
 
 urlpatterns = [
     path('', TemplateView.as_view(template_name='reports/dashboard.html'), name='home'),
@@ -34,7 +35,8 @@ urlpatterns = [
     path('fuel/', include('fuel.urls')),
     path('reports/', include('reports.urls')),
     path('staff/', include('staff.urls')),
-    
+    path("r/success/", VehicleQRSuccessView.as_view(), name="qr_success"),
+    path("r/<str:token>/", VehicleQRReportView.as_view(), name="qr_vehicle_report"),
 ]
 
 if settings.DEBUG:

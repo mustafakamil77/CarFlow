@@ -130,6 +130,8 @@ STATICFILES_DIRS = [BASE_DIR / 'static']
 MEDIA_URL = 'media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
+QR_PUBLIC_BASE_URL = "https://car.alsajana.site"
+
 # Email (development)
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 

@@ -1,8 +1,7 @@
 from django.contrib import admin
+from django.utils.html import format_html
 from import_export.admin import ImportExportModelAdmin
-from .models import Car
-from .resources import CarResource
-
+from reports.models import VehicleInspection
 
 from .models import (
     Car,
@@ -11,18 +10,55 @@ from .models import (
     CarEventImage,
     CarImage,
 )
+from .resources import CarResource
+
+
+class VehicleInspectionInline(admin.TabularInline):
+    model = VehicleInspection
+    extra = 0
+    fields = ("created_at", "mileage", "created_via_qr", "notes", "image_car", "image_odometer")
+    readonly_fields = fields
+    ordering = ("-created_at",)
 
 
 @admin.register(Car)
 class CarAdmin(ImportExportModelAdmin):
     resource_class = CarResource
-    list_display = ("plate_number", "brand", "vehicle_type", "year", "status", "region", "created_at")
-    list_filter = ("status", "year", "brand", "region")
-    search_fields = ("plate_number", "brand", "vehicle_type", "vin")
+    list_display = ("plate_number", "brand", "vehicle_type", "year", "current_mileage", "status", "region", "qr_enabled", "created_at")
+    list_filter = ("status", "year", "brand", "region", "qr_enabled")
+    search_fields = ("plate_number", "brand", "vehicle_type", "vin", "qr_token")
     ordering = ("plate_number",)
-    readonly_fields = ("created_at",)
-    
-    
+    readonly_fields = ("created_at", "qr_token", "qr_public_url", "qr_preview")
+    inlines = [VehicleInspectionInline]
+    actions = ["regenerate_qr_tokens", "regenerate_qr_codes"]
+
+    def qr_public_url(self, obj):
+        url = obj.get_qr_url()
+        if not url:
+            return "-"
+        return format_html('<a href="{}" target="_blank" rel="noopener">{}</a>', url, url)
+
+    qr_public_url.short_description = "QR URL"
+
+    def qr_preview(self, obj):
+        if not obj.qr_code_image:
+            return "-"
+        return format_html('<img src="{}" style="max-width: 220px; height: auto;" />', obj.qr_code_image.url)
+
+    qr_preview.short_description = "QR Code"
+
+    @admin.action(description="Regenerate QR tokens")
+    def regenerate_qr_tokens(self, request, queryset):
+        for car in queryset:
+            car.qr_token = None
+            car.qr_code_image = None
+            car.save()
+
+    @admin.action(description="Regenerate QR code images")
+    def regenerate_qr_codes(self, request, queryset):
+        for car in queryset:
+            car.qr_code_image = None
+            car.save(update_fields=["qr_code_image"])
 
 @admin.register(CarDocument)
 class CarDocumentAdmin(admin.ModelAdmin):

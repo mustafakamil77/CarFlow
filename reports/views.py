@@ -1,11 +1,20 @@
-from django.views.generic import TemplateView
-from django.db.models import Sum
-from fuel.models import FuelLog
-from fleet.models import Car
 import json
+
+from django.core.cache import cache
+from django.db.models import Sum
 from django.http import HttpResponse
+from django.shortcuts import redirect, render
+from django.urls import reverse
+from django.views.generic import TemplateView
+from django.views.generic.edit import FormView
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
+
+from fleet.models import Car, CarEvent
+from fuel.models import FuelLog
+
+from .forms import VehicleInspectionForm
+from .models import VehicleInspection
 
 
 class DashboardView(TemplateView):
@@ -24,6 +33,8 @@ class DashboardView(TemplateView):
         context["chart_labels"] = json.dumps(labels)
         context["chart_liters"] = json.dumps(liters)
         context["chart_cost"] = json.dumps(cost)
+        context["inspections_total"] = VehicleInspection.objects.count()
+        context["inspections_recent"] = VehicleInspection.objects.select_related("vehicle").order_by("-created_at")[:10]
         return context
 
 
@@ -57,3 +68,62 @@ class KPIPdfView(TemplateView):
         p.showPage()
         p.save()
         return response
+
+
+class VehicleQRSuccessView(TemplateView):
+    template_name = "reports/qr_success.html"
+
+
+class VehicleQRReportView(FormView):
+    template_name = "reports/qr_vehicle_report_form.html"
+    form_class = VehicleInspectionForm
+
+    def dispatch(self, request, *args, **kwargs):
+        token = (kwargs.get("token") or "").strip()
+        if len(token) < 32:
+            return render(request, "reports/qr_invalid.html", status=404)
+
+        vehicle = Car.objects.filter(qr_token=token, qr_enabled=True).first()
+        if not vehicle:
+            return render(request, "reports/qr_invalid.html", status=404)
+
+        self.vehicle = vehicle
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["vehicle"] = self.vehicle
+        return context
+
+    def _rate_limit_key(self):
+        ip = self.request.META.get("REMOTE_ADDR", "")
+        token_prefix = (self.vehicle.qr_token or "")[:16]
+        return f"qr_submit:{ip}:{token_prefix}"
+
+    def form_valid(self, form):
+        key = self._rate_limit_key()
+        current = cache.get(key, 0)
+        if current >= 10:
+            form.add_error(None, "Too many submissions. Please wait and try again.")
+            return self.form_invalid(form)
+        cache.set(key, current + 1, timeout=60)
+
+        inspection = form.save(commit=False)
+        inspection.vehicle = self.vehicle
+        inspection.created_via_qr = True
+        inspection.save()
+
+        new_mileage = inspection.mileage or 0
+        if hasattr(self.vehicle, "current_mileage"):
+            self.vehicle.current_mileage = new_mileage
+            self.vehicle.save(update_fields=["current_mileage"])
+
+        CarEvent.objects.create(
+            car=self.vehicle,
+            event_type="inspection",
+            odometer=new_mileage,
+            notes=(inspection.notes or "QR vehicle report").strip(),
+            created_by=None,
+        )
+
+        return redirect(reverse("qr_success"))

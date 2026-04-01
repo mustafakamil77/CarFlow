@@ -1,6 +1,12 @@
 from django.db import models
 from django.conf import settings
 
+import secrets
+from io import BytesIO
+
+from django.core.files.base import ContentFile
+from django.utils.text import slugify
+
 
 class Car(models.Model):
 
@@ -41,10 +47,76 @@ class Car(models.Model):
 
     notes = models.TextField(blank=True)
 
+    current_mileage = models.PositiveIntegerField(default=0, db_index=True)
+
+    qr_token = models.CharField(max_length=128, unique=True, null=True, blank=True, db_index=True)
+    qr_enabled = models.BooleanField(default=True, db_index=True)
+    qr_code_image = models.ImageField(upload_to="qr_codes/", null=True, blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ["plate_number"]
+
+    def get_qr_url(self):
+        base = getattr(settings, "QR_PUBLIC_BASE_URL", "").rstrip("/")
+        if not base or not self.qr_token:
+            return ""
+        return f"{base}/r/{self.qr_token}/"
+
+    @staticmethod
+    def _generate_qr_token():
+        return secrets.token_urlsafe(32)
+
+    def ensure_qr_token(self):
+        if self.qr_token:
+            return
+        while True:
+            token = self._generate_qr_token()
+            if len(token) < 32:
+                continue
+            if not Car.objects.filter(qr_token=token).exists():
+                self.qr_token = token
+                return
+
+    def generate_qr_code_image(self, *, force=False):
+        if not self.qr_enabled:
+            return
+        self.ensure_qr_token()
+        url = self.get_qr_url()
+        if not url:
+            return
+        if self.qr_code_image and not force:
+            return
+
+        import qrcode
+
+        qr = qrcode.QRCode(
+            version=None,
+            error_correction=qrcode.constants.ERROR_CORRECT_M,
+            box_size=10,
+            border=4,
+        )
+        qr.add_data(url)
+        qr.make(fit=True)
+        img = qr.make_image(fill_color="black", back_color="white")
+
+        buffer = BytesIO()
+        img.save(buffer, format="PNG")
+        buffer.seek(0)
+
+        plate = slugify(self.plate_number or "vehicle") or "vehicle"
+        token_prefix = (self.qr_token or "")[:8]
+        name = f"qr_{plate}_{self.pk or 'new'}_{token_prefix}.png"
+        self.qr_code_image.save(name, ContentFile(buffer.getvalue()), save=False)
+
+    def save(self, *args, **kwargs):
+        self.ensure_qr_token()
+        super().save(*args, **kwargs)
+        if self.qr_enabled and not self.qr_code_image:
+            self.generate_qr_code_image(force=True)
+            if self.qr_code_image:
+                super().save(update_fields=["qr_code_image"])
 
     def __str__(self):
         return self.plate_number
@@ -154,7 +226,16 @@ class CarEvent(models.Model):
         ordering = ["-created_at"]
         indexes = [
             models.Index(fields=["car", "-created_at"])
+     
         ]
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+
+        if self.odometer:
+            # لا تنزل العداد (حماية من الأخطاء)
+            if self.car.current_mileage < self.odometer:
+                self.car.current_mileage = self.odometer
+                self.car.save(update_fields=["current_mileage"])
 class CarEventCondition(models.Model):
     event = models.OneToOneField(
         CarEvent,

@@ -17,6 +17,7 @@
         <h2 class="text-lg font-semibold mb-3">Identification</h2>
         <p><span class="font-medium">Plate:</span> {{ object.plate_number }}</p>
         <p><span class="font-medium">VIN:</span> {{ object.vin|default:'-' }}</p>
+        <p><span class="font-medium">Mileage:</span> {{ object.current_mileage|default:0 }}</p>
       </section>
       <section class="p-4 bg-white rounded shadow">
         <h2 class="text-lg font-semibold mb-3">Make & Vehicle Type</h2>
