@@ -20,7 +20,13 @@
       <tbody class="bg-white divide-y divide-gray-200">
         {% for item in items %}
         <tr>
-          <td class="px-6 py-3 whitespace-nowrap">{{ item.lr.employee.user.get_full_name|default:item.lr.employee.user.username }}</td>
+          <td class="px-6 py-3 whitespace-nowrap">
+            {% if item.lr.employee.user %}
+              {{ item.lr.employee.user.get_full_name|default:item.lr.employee.user.username }}
+            {% else %}
+              {{ item.lr.employee.first_name }} {{ item.lr.employee.last_name }}
+            {% endif %}
+          </td>
           <td class="px-6 py-3 whitespace-nowrap">{{ item.lr.start_date }}</td>
           <td class="px-6 py-3 whitespace-nowrap">{{ item.lr.end_date }}</td>
           <td class="px-6 py-3 whitespace-nowrap">{{ item.days }}</td>

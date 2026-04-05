@@ -13,8 +13,19 @@ class Employee(models.Model):
 
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="employee_profile"
     )
+
+    # Added fields for employees without user accounts (like drivers)
+    first_name = models.CharField(max_length=50, blank=True)
+    last_name = models.CharField(max_length=50, blank=True)
+
+    # Specific fields for drivers
+    license_number = models.CharField(max_length=50, blank=True, null=True)
+    license_expiry = models.DateField(blank=True, null=True)
 
     role = models.CharField(
         max_length=20,
@@ -33,7 +44,10 @@ class Employee(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return str(self.user)
+        if self.user:
+            return str(self.user)
+        full_name = f"{self.first_name} {self.last_name}".strip()
+        return full_name if full_name else "Unnamed Employee"
 
 # ===============================
 # Leave Balance
@@ -58,7 +72,7 @@ class LeaveBalance(models.Model):
         return self.annual_leave_days - self.used_leave_days
 
     def __str__(self):
-        return f"{self.employee.user} Leave Balance"
+        return f"{self.employee} Leave Balance"
 
 
 # ===============================
@@ -109,4 +123,4 @@ class LeaveRequest(models.Model):
         return (self.end_date - self.start_date).days + 1
 
     def __str__(self):
-        return f"{self.employee.user} Leave {self.start_date}"
+        return f"{self.employee} Leave {self.start_date}"

@@ -21,14 +21,14 @@ class LeaveRequestForm(forms.ModelForm):
 @login_required
 def staff_list(request):
     employees = Employee.objects.select_related("user").all()
-    user_ids = [e.user_id for e in employees]
+    employee_ids = [e.id for e in employees]
     assignments = (
-        DriverAssignment.objects.filter(active=True, driver_id__in=user_ids)
+        DriverAssignment.objects.filter(active=True, driver_id__in=employee_ids)
         .select_related("car", "driver")
     )
-    assigned_by_user = {a.driver_id: a.car for a in assignments}
+    assigned_by_employee = {a.driver_id: a.car for a in assignments}
     for e in employees:
-        e.assigned_car = assigned_by_user.get(e.user_id)
+        e.assigned_car = assigned_by_employee.get(e.id)
     context = {"employees": employees}
     return render(request, "staff/staff_list.html", context)
 
@@ -37,7 +37,7 @@ def staff_list(request):
 def employee_profile(request, id):
     employee = get_object_or_404(Employee.objects.select_related("user"), pk=id)
     assignment = (
-        DriverAssignment.objects.filter(active=True, driver=employee.user)
+        DriverAssignment.objects.filter(active=True, driver=employee)
         .select_related("car")
         .first()
     )

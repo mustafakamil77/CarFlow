@@ -12,4 +12,4 @@ class RegionAdmin(admin.ModelAdmin):
 class DriverAssignmentAdmin(admin.ModelAdmin):
     list_display = ("driver", "car", "region", "start_date", "end_date", "active")
     list_filter = ("active", "start_date", "region")
-    search_fields = ("driver__username", "car__plate_number")
+    search_fields = ("driver__user__username", "driver__first_name", "driver__last_name", "car__plate_number")

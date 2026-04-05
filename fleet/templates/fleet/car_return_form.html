@@ -10,7 +10,13 @@
     {% if current_assignment %}
     <div class="mb-4 text-sm text-gray-600">
       <span class="font-medium">Current Driver:</span>
-      <span class="ml-1">{{ current_assignment.driver.user }}</span>
+      <span class="ml-1">
+        {% if current_assignment.driver.user %}
+          {{ current_assignment.driver.user.get_full_name|default:current_assignment.driver.user.username }}
+        {% else %}
+          {{ current_assignment.driver.first_name }} {{ current_assignment.driver.last_name }}
+        {% endif %}
+      </span>
     </div>
     {% endif %}
     <form method="post" enctype="multipart/form-data">
@@ -20,22 +26,12 @@
           <label class="block text-sm font-semibold text-gray-700">Odometer</label>
           {{ form.end_odometer }}
         </div>
-        <div class="space-y-1">
-          <label class="block text-sm font-semibold text-gray-700">Fuel Level (0-100)</label>
-          {{ form.fuel_level }}
-        </div>
+      
         <div class="space-y-1 md:col-span-2">
           <label class="block text-sm font-semibold text-gray-700">Notes</label>
           {{ form.notes }}
         </div>
-        <div class="space-y-1 md:col-span-2">
-          <label class="block text-sm font-semibold text-gray-700">Scratches Notes</label>
-          {{ form.scratches_notes }}
-        </div>
-        <div class="space-y-1 md:col-span-2">
-          <label class="block text-sm font-semibold text-gray-700">Cleanliness Notes</label>
-          {{ form.cleanliness_notes }}
-        </div>
+        
         <div class="space-y-1">
           <label class="block text-sm font-semibold text-gray-700">Front Image</label>
           {{ form.image_front }}

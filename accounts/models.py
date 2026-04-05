@@ -1,6 +1,7 @@
 from django.db import models
 from django.conf import settings
 from fleet.models import Car
+from staff.models import Employee
 
 
 class Region(models.Model):
@@ -15,7 +16,7 @@ class Region(models.Model):
 
 
 class DriverAssignment(models.Model):
-    driver = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="driver_assignments")
+    driver = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name="driver_assignments")
     car = models.ForeignKey(Car, on_delete=models.CASCADE, related_name="driver_assignments")
     region = models.ForeignKey("accounts.Region", on_delete=models.SET_NULL, null=True, blank=True, related_name="driver_assignments")
     start_date = models.DateField()

@@ -68,20 +68,19 @@ def assign_driver_to_car(
     if driver.user_id and not driver.user.groups.filter(id=group.id).exists():
         driver.user.groups.add(group)
 
-    if driver.user_id:
-        from accounts.models import DriverAssignment
+    from accounts.models import DriverAssignment
 
-        today = timezone.localdate()
-        DriverAssignment.objects.filter(car=car, active=True).update(active=False, end_date=today)
-        DriverAssignment.objects.create(
-            driver=driver.user,
-            car=car,
-            region=car.region,
-            start_date=today,
-            end_date=None,
-            active=True,
-            notes=notes or "",
-        )
+    today = timezone.localdate()
+    DriverAssignment.objects.filter(car=car, active=True).update(active=False, end_date=today)
+    DriverAssignment.objects.create(
+        driver=driver,
+        car=car,
+        region=car.region,
+        start_date=today,
+        end_date=None,
+        active=True,
+        notes=notes or "",
+    )
 
     return assignment, event
 

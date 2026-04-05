@@ -361,9 +361,9 @@ class CarHandoverView(ManagerRequiredMixin, FormView):
                 driver=form.cleaned_data["driver"],
                 start_odometer=form.cleaned_data["start_odometer"],
                 notes=form.cleaned_data.get("notes", ""),
-                scratches_notes=form.cleaned_data.get("scratches_notes", ""),
-                cleanliness_notes=form.cleaned_data.get("cleanliness_notes", ""),
-                fuel_level=form.cleaned_data.get("fuel_level"),
+                scratches_notes="",
+                cleanliness_notes="",
+                fuel_level=None,
                 images_by_caption={
                     "front": form.cleaned_data.get("image_front"),
                     "rear": form.cleaned_data.get("image_rear"),
@@ -400,9 +400,6 @@ class CarReturnView(ManagerRequiredMixin, FormView):
                 car=self.car,
                 end_odometer=form.cleaned_data["end_odometer"],
                 notes=form.cleaned_data.get("notes", ""),
-                scratches_notes=form.cleaned_data.get("scratches_notes", ""),
-                cleanliness_notes=form.cleaned_data.get("cleanliness_notes", ""),
-                fuel_level=form.cleaned_data.get("fuel_level"),
                 images_by_caption={
                     "front": form.cleaned_data.get("image_front"),
                     "rear": form.cleaned_data.get("image_rear"),

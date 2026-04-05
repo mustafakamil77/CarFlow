@@ -40,7 +40,14 @@
       <h2 class="text-lg font-semibold mb-3">Current Driver</h2>
       {% if current_assignment %}
       <div class="text-sm text-gray-700">
-        <div><span class="font-medium">Driver:</span> {{ current_assignment.driver.user }}</div>
+        <div>
+          <span class="font-medium">Driver:</span> 
+          {% if current_assignment.driver.user %}
+            {{ current_assignment.driver.user.get_full_name|default:current_assignment.driver.user.username }}
+          {% else %}
+            {{ current_assignment.driver.first_name }} {{ current_assignment.driver.last_name }}
+          {% endif %}
+        </div>
         <div><span class="font-medium">Start:</span> {{ current_assignment.start_date|date:"Y-m-d H:i" }}</div>
         <div><span class="font-medium">Odometer:</span> {{ current_assignment.start_odometer }}</div>
       </div>
@@ -56,13 +63,6 @@
         <div><span class="font-medium">Date:</span> {{ last_handover_event.created_at|date:"Y-m-d H:i" }}</div>
         <div><span class="font-medium">Odometer:</span> {{ last_handover_event.odometer|default:"-" }}</div>
         <div class="mt-2"><span class="font-medium">Notes:</span> <span class="whitespace-pre-line">{{ last_handover_event.notes|default:"-" }}</span></div>
-        {% if last_handover_condition %}
-        <div class="mt-2">
-          <div><span class="font-medium">Fuel:</span> {{ last_handover_condition.fuel_level|default:"-" }}</div>
-          <div><span class="font-medium">Scratches:</span> <span class="whitespace-pre-line">{{ last_handover_condition.scratches_notes|default:"-" }}</span></div>
-          <div><span class="font-medium">Cleanliness:</span> <span class="whitespace-pre-line">{{ last_handover_condition.cleanliness_notes|default:"-" }}</span></div>
-        </div>
-        {% endif %}
       </div>
       <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-4">
         {% for img in last_handover_event.images.all %}
@@ -264,7 +264,13 @@
           <tbody>
             {% for a in assignment_history %}
             <tr class="border-t">
-              <td class="px-4 py-2">{{ a.driver.user }}</td>
+              <td class="px-4 py-2">
+                {% if a.driver.user %}
+                  {{ a.driver.user.get_full_name|default:a.driver.user.username }}
+                {% else %}
+                  {{ a.driver.first_name }} {{ a.driver.last_name }}
+                {% endif %}
+              </td>
               <td class="px-4 py-2">{{ a.start_date|date:"Y-m-d" }}</td>
               <td class="px-4 py-2">{{ a.end_date|date:"Y-m-d"|default:"-" }}</td>
               <td class="px-4 py-2">{{ a.start_odometer }}</td>
@@ -280,18 +286,5 @@
     </section>
 
     <hr class="my-6">
-    <section>
-      <h2 class="text-lg font-semibold mb-3">Images</h2>
-      <p><a href="{% url 'fleet:car_image_upload' object.pk %}" class="text-blue-600">Upload image</a></p>
-      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-2">
-        {% for img in object.images.all %}
-        <figure class="border rounded p-2 bg-white">
-          <img src="{{ img.image.url }}" alt="{{ img.caption }}" class="max-w-full h-auto">
-          <figcaption class="text-xs text-gray-600 mt-1">{{ img.caption }}</figcaption>
-        </figure>
-        {% empty %}
-        <p>No images</p>
-        {% endfor %}
-      </div>
-    </section>
+    
 {% endblock %}
