@@ -286,5 +286,23 @@
     </section>
 
     <hr class="my-6">
+    <section class="p-4 bg-white rounded shadow">
+      <h2 class="text-lg font-semibold mb-3">Car Photos</h2>
+      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+        {% for img in object.images.all %}
+        <figure class="border rounded p-2 bg-white">
+          <img src="{{ img.image.url }}" alt="{{ img.caption|default:'Car image' }}" class="w-full h-40 object-cover rounded">
+          <div class="mt-1 text-xs text-gray-500">
+            {% if img.position %}<span class="mr-2">{{ img.get_position_display|default:img.position }}</span>{% endif %}
+            {% if img.caption %}<span>{{ img.caption }}</span>{% endif %}
+          </div>
+        </figure>
+        {% empty %}
+        <div class="text-sm text-gray-600">No images</div>
+        {% endfor %}
+      </div>
+    </section>
+    
+    <hr class="my-6">
     
 {% endblock %}

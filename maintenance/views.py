@@ -11,6 +11,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 
 
 from django.db.models import Q
+from accounts.models import Region
 
 class MaintenanceRequestListView(LoginRequiredMixin, ListView):
     model = MaintenanceRequest
@@ -21,6 +22,7 @@ class MaintenanceRequestListView(LoginRequiredMixin, ListView):
         qs = super().get_queryset().order_by("-created_at")
         q = self.request.GET.get("q")
         status = self.request.GET.get("status")
+        region = self.request.GET.get("region")
         
         if q:
             qs = qs.filter(
@@ -30,11 +32,14 @@ class MaintenanceRequestListView(LoginRequiredMixin, ListView):
             )
         if status:
             qs = qs.filter(status=status)
+        if region:
+            qs = qs.filter(car__region_id=region)
             
         return qs
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        context["regions"] = Region.objects.all()
         requests_with_days = []
         for req in context["object_list"]:
             start_date = req.created_at.date()

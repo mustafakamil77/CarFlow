@@ -1,0 +1,28 @@
+services:
+  carflow:
+    build: .
+    container_name: carflow
+    environment:
+      DEBUG: "0"
+      SECRET_KEY: "${SECRET_KEY}"
+      ALLOWED_HOSTS: "car.alsajana.site"
+      CSRF_TRUSTED_ORIGINS: "https://car.alsajana.site"
+      QR_PUBLIC_BASE_URL: "https://car.alsajana.site"
+      SERVE_MEDIA: "1"
+      DB_ENGINE: "${DB_ENGINE:-django.db.backends.sqlite3}"
+      DB_NAME: "${DB_NAME:-/app/data/db.sqlite3}"
+      DB_USER: "${DB_USER:-}"
+      DB_PASSWORD: "${DB_PASSWORD:-}"
+      DB_HOST: "${DB_HOST:-}"
+      DB_PORT: "${DB_PORT:-}"
+    volumes:
+      - media:/app/media
+      - staticfiles:/app/staticfiles
+      - db_data:/app/data
+    restart: unless-stopped
+
+
+volumes:
+  staticfiles:
+  media:
+  db_data:

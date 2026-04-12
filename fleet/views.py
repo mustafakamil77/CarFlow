@@ -5,7 +5,7 @@ from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect
 from django.db.models import Q, Count, Sum
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from accounts.models import DriverAssignment
+from accounts.models import DriverAssignment, Region
 from .forms import CarImageForm, CarConditionForm, CarForm, CarImageFormSet, CarDocumentForm, CarEventForm, CarCostForm, CarHandoverForm, CarReturnForm, CarAccidentForm
 from django import forms as dj_forms
 from django.urls import reverse_lazy
@@ -27,6 +27,7 @@ class CarListView(LoginRequiredMixin, ListView):
         q = self.request.GET.get("q")
         status = self.request.GET.get("status")
         sort = self.request.GET.get("sort")
+        region = self.request.GET.get("region")
         if q:
             qs = qs.filter(Q(plate_number__icontains=q) | Q(brand__icontains=q) | Q(vehicle_type__icontains=q))
         if status:
@@ -34,6 +35,8 @@ class CarListView(LoginRequiredMixin, ListView):
                 qs = qs.filter(status__in=["available", "assigned"])
             else:
                 qs = qs.filter(status=status)
+        if region:
+            qs = qs.filter(region_id=region)
         if sort in {"plate_number", "brand", "vehicle_type", "year", "-year", "created_at", "-created_at"}:
             qs = qs.order_by(sort)
         if self.request.user.groups.filter(name="Driver").exists() and not (self.request.user.is_superuser or self.request.user.groups.filter(name__in=["Manager", "Fleet Manager", "Admin"]).exists()):
@@ -42,6 +45,11 @@ class CarListView(LoginRequiredMixin, ListView):
             )
             qs = qs.filter(id__in=assigned_ids)
         return qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["regions"] = Region.objects.all()
+        return context
 
 
 class CarDetailView(LoginRequiredMixin, DetailView):

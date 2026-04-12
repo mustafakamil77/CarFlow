@@ -23,6 +23,17 @@
         </div>
         <div class="relative w-full md:w-auto">
           <div class="flex flex-col">
+            <label class="text-xs font-medium text-gray-500 mb-1 ml-1" for="region-filter">Region</label>
+            <select class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 min-w-[160px] shadow-sm" id="region-filter" name="region">
+              <option value="">All Regions</option>
+              {% for r in regions %}
+                <option value="{{ r.pk }}" {% if request.GET.region == r.pk|stringformat:"s" %}selected{% endif %}>{{ r.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="relative w-full md:w-auto">
+          <div class="flex flex-col">
             <label class="text-xs font-medium text-gray-500 mb-1 ml-1" for="sort-filter">Sort</label>
             <select class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 min-w-[160px] shadow-sm" id="sort-filter" name="sort">
               <option value="-created_at" {% if request.GET.sort == '-created_at' or not request.GET.sort %}selected{% endif %}>Newest</option>
@@ -85,11 +96,11 @@
   {% if is_paginated %}
   <div class="mt-4 flex items-center space-x-2">
     {% if page_obj.has_previous %}
-      <a class="px-3 py-2 border rounded" href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.sort %}sort={{ request.GET.sort }}&{% endif %}page={{ page_obj.previous_page_number }}">Previous</a>
+      <a class="px-3 py-2 border rounded" href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.region %}region={{ request.GET.region }}&{% endif %}{% if request.GET.sort %}sort={{ request.GET.sort }}&{% endif %}page={{ page_obj.previous_page_number }}">Previous</a>
     {% endif %}
     <span>Page {{ page_obj.number }} of {{ paginator.num_pages }}</span>
     {% if page_obj.has_next %}
-      <a class="px-3 py-2 border rounded" href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.sort %}sort={{ request.GET.sort }}&{% endif %}page={{ page_obj.next_page_number }}">Next</a>
+      <a class="px-3 py-2 border rounded" href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.region %}region={{ request.GET.region }}&{% endif %}{% if request.GET.sort %}sort={{ request.GET.sort }}&{% endif %}page={{ page_obj.next_page_number }}">Next</a>
     {% endif %}
   </div>
   {% endif %}
