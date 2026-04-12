@@ -38,13 +38,17 @@ allowed_hosts_env = os.environ.get("ALLOWED_HOSTS", "")
 if allowed_hosts_env.strip():
     ALLOWED_HOSTS = [h.strip() for h in allowed_hosts_env.split(",") if h.strip()]
 else:
-    ALLOWED_HOSTS = ["127.0.0.1", "localhost"] if DEBUG else ["car.alsajana.site"]
+    ALLOWED_HOSTS = ["car.alsajana.site", "127.0.0.1", "localhost"]
 
 csrf_trusted_origins_env = os.environ.get("CSRF_TRUSTED_ORIGINS", "")
 if csrf_trusted_origins_env.strip():
     CSRF_TRUSTED_ORIGINS = [o.strip() for o in csrf_trusted_origins_env.split(",") if o.strip()]
-elif not DEBUG:
-    CSRF_TRUSTED_ORIGINS = [f"https://{h}" for h in ALLOWED_HOSTS if h and "://" not in h]
+else:
+    CSRF_TRUSTED_ORIGINS = [
+        "https://car.alsajana.site",
+        "http://127.0.0.1",
+        "http://localhost",
+    ]
 
 
 # Application definition
