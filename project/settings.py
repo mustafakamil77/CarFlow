@@ -203,7 +203,7 @@ if not DEBUG:
     USE_X_FORWARDED_HOST = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
-    SECURE_SSL_REDIRECT = _env_bool("SECURE_SSL_REDIRECT", True)
+    SECURE_SSL_REDIRECT = _env_bool("SECURE_SSL_REDIRECT", False)
 
     secure_hsts_seconds = os.environ.get("SECURE_HSTS_SECONDS", "").strip()
     SECURE_HSTS_SECONDS = int(secure_hsts_seconds) if secure_hsts_seconds.isdigit() else 0
