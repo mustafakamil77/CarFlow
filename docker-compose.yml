@@ -15,9 +15,9 @@ services:
     environment:
       DEBUG: "0"
       SECRET_KEY: "${SECRET_KEY}"
-      ALLOWED_HOSTS: "car.alsajana.site,localhost,127.0.0.1"
-      CSRF_TRUSTED_ORIGINS: "https://car.alsajana.site"
-      QR_PUBLIC_BASE_URL: "https://car.alsajana.site"
+      ALLOWED_HOSTS: "car.alsajana.site,car.alsajana.com,192.168.8.26,localhost,127.0.0.1"
+      CSRF_TRUSTED_ORIGINS: "https://car.alsajana.site,https://car.alsajana.com"
+      QR_PUBLIC_BASE_URL: "https://car.alsajana.com"
       SERVE_MEDIA: "1"
       SECURE_SSL_REDIRECT: "0"   # 👈 هذا أهم سطر
 

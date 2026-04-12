@@ -38,7 +38,7 @@ allowed_hosts_env = os.environ.get("ALLOWED_HOSTS", "")
 if allowed_hosts_env.strip():
     ALLOWED_HOSTS = [h.strip() for h in allowed_hosts_env.split(",") if h.strip()]
 else:
-    ALLOWED_HOSTS = ["car.alsajana.site", "127.0.0.1", "localhost"]
+    ALLOWED_HOSTS = ["car.alsajana.site", "car.alsajana.com", "127.0.0.1", "localhost"]
 
 csrf_trusted_origins_env = os.environ.get("CSRF_TRUSTED_ORIGINS", "")
 if csrf_trusted_origins_env.strip():
