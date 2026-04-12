@@ -2,6 +2,8 @@ services:
   carflow:
     build: .
     container_name: carflow
+    env_file:
+      - .env
 
     command: >
       sh -c "
