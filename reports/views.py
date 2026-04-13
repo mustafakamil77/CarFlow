@@ -155,8 +155,8 @@ class QRSubmitMaintenanceView(View):
             return JsonResponse({'error': 'Title must be less than 200 characters'}, status=400)
 
         images = request.FILES.getlist('images')
-        if len(images) < 2 or len(images) > 10:
-            return JsonResponse({'error': 'Please upload between 2 and 10 images'}, status=400)
+        if len(images) < 1 or len(images) > 10:
+            return JsonResponse({'error': 'Please upload between 1 and 10 images'}, status=400)
 
         for img in images:
             if img.size > 5 * 1024 * 1024:
