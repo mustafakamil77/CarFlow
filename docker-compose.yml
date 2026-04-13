@@ -33,7 +33,7 @@ services:
     volumes:
       - media:/app/media
       - staticfiles:/app/staticfiles
-      - db_data:/app/data
+      - ./db.sqlite3:/app/data/db.sqlite3
 
     ports:   # 👈 مؤقت للاختبار فقط
       - "8002:8002"
