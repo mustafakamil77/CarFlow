@@ -36,6 +36,7 @@ urlpatterns = [
     path('fuel/', include('fuel.urls')),
     path('reports/', include('reports.urls')),
     path('staff/', include('staff.urls')),
+    path('pending-requests/', include('pending_requests.urls')),
     path("r/success/", VehicleQRSuccessView.as_view(), name="qr_success"),
     path("r/<str:token>/", VehicleQRReportView.as_view(), name="qr_vehicle_report"),
     path("api/r/<str:token>/mileage/", QRSubmitMileageView.as_view(), name="api_qr_mileage"),

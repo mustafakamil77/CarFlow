@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}تعديل الطلب{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto space-y-6">
+  <section class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+    <div>
+      <h1 class="text-xl sm:text-2xl font-semibold text-slate-900">تعديل الطلب</h1>
+      <p class="text-sm text-slate-500">
+        تعديل 
+        {% if request.mileage %}
+          تقرير العداد للمركبة {{ request.car.plate_number }}
+        {% elif request.description %}
+          طلب الصيانة للمركبة {{ request.car.plate_number }}
+        {% endif %}
+      </p>
+    </div>
+  </section>
+
+  <section class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+    <div class="p-6">
+      <form method="post" enctype="multipart/form-data" class="space-y-6">
+        {% csrf_token %}
+        
+        <div class="space-y-4">
+          {% for field in form %}
+            <div>
+              <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-slate-700 mb-1">
+                {{ field.label }}
+              </label>
+              {{ field }}
+              {% if field.help_text %}
+                <p class="mt-1 text-sm text-slate-500">{{ field.help_text }}</p>
+              {% endif %}
+              {% for error in field.errors %}
+                <p class="mt-1 text-sm text-red-600">{{ error }}</p>
+              {% endfor %}
+            </div>
+          {% endfor %}
+        </div>
+
+        <div class="flex items-center gap-3 pt-4 border-t border-slate-100">
+          <button type="submit" class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors shadow-sm">
+            <i class="fa-solid fa-save"></i>
+            حفظ التغييرات
+          </button>
+          <a href="{% url 'pending_requests:request_detail' request_type=request_type pk=request.pk %}" class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
+            <i class="fa-solid fa-xmark"></i>
+            إلغاء
+          </a>
+        </div>
+      </form>
+    </div>
+  </section>
+</div>
+<style>
+  input[type="text"], input[type="number"], input[type="email"], input[type="password"], input[type="url"], input[type="date"], input[type="time"], input[type="datetime-local"], input[type="month"], input[type="week"], input[type="tel"], input[type="search"], textarea, select {
+    width: 100%;
+    border-radius: 0.5rem;
+    border-color: #e2e8f0;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    padding: 0.5rem 0.75rem;
+  }
+  input[type="text"]:focus, input[type="number"]:focus, input[type="email"]:focus, input[type="password"]:focus, input[type="url"]:focus, input[type="date"]:focus, input[type="time"]:focus, input[type="datetime-local"]:focus, input[type="month"]:focus, input[type="week"]:focus, input[type="tel"]:focus, input[type="search"]:focus, textarea:focus, select:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 1px #3b82f6;
+  }
+</style>
+{% endblock %}

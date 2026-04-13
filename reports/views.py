@@ -76,12 +76,12 @@ class VehicleQRSuccessView(TemplateView):
     template_name = "reports/qr_success.html"
 
 
-from django.core.mail import send_mail
 from django.http import JsonResponse
-from maintenance.models import MaintenanceRequest, MaintenanceImage
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.utils.decorators import method_decorator
 from django.views import View
+
+from pending_requests.models import PendingMaintenanceImage, PendingMaintenanceReport, PendingMileageReport
 
 @method_decorator(ensure_csrf_cookie, name='dispatch')
 class VehicleQRReportView(TemplateView):
@@ -115,29 +115,26 @@ class QRSubmitMileageView(View):
 
         try:
             mileage = int(request.POST.get('mileage', 0))
-            if hasattr(vehicle, 'current_mileage') and mileage <= vehicle.current_mileage:
-                return JsonResponse({'error': f'Mileage must be greater than {vehicle.current_mileage}'}, status=400)
-            
-            # Save mileage
-            inspection = VehicleInspection.objects.create(
-                vehicle=vehicle,
-                mileage=mileage,
-                notes="QR mileage report",
-                created_via_qr=True
-            )
-            
-            if hasattr(vehicle, 'current_mileage'):
-                vehicle.current_mileage = mileage
-                vehicle.save(update_fields=["current_mileage"])
-                
-            CarEvent.objects.create(
+            if mileage <= 0:
+                return JsonResponse({'error': 'Mileage must be a positive number'}, status=400)
+
+            pending = PendingMileageReport.objects.create(
                 car=vehicle,
-                event_type="inspection",
-                odometer=mileage,
-                notes="QR mileage report",
-                created_by=None,
+                mileage=mileage,
+                submitter_name=(request.POST.get("submitter_name") or "").strip(),
+                submitter_contact=(request.POST.get("submitter_contact") or "").strip(),
+                submitter_address=(request.POST.get("submitter_address") or "").strip(),
+                raw_data={
+                    "ip": request.META.get("REMOTE_ADDR", ""),
+                    "ua": request.META.get("HTTP_USER_AGENT", ""),
+                },
             )
-            return JsonResponse({'success': True, 'message': 'Mileage recorded successfully'})
+            image = request.FILES.get("image") or request.FILES.get("image_odometer")
+            if image:
+                pending.image = image
+                pending.save(update_fields=["image"])
+
+            return JsonResponse({'success': True, 'request_id': pending.id})
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)
 
@@ -168,40 +165,29 @@ class QRSubmitMaintenanceView(View):
                 return JsonResponse({'error': 'Only JPG, PNG, and WEBP images are allowed'}, status=400)
 
         try:
-            m_req = MaintenanceRequest.objects.create(
+            pending = PendingMaintenanceReport.objects.create(
                 car=vehicle,
                 title=title,
                 description=description,
-                status="new",
-                odometer=vehicle.current_mileage if hasattr(vehicle, 'current_mileage') else 0
+                status="pending",
+                submitter_name=(request.POST.get("submitter_name") or "").strip(),
+                submitter_contact=(request.POST.get("submitter_contact") or "").strip(),
+                submitter_address=(request.POST.get("submitter_address") or "").strip(),
+                raw_data={
+                    "ip": request.META.get("REMOTE_ADDR", ""),
+                    "ua": request.META.get("HTTP_USER_AGENT", ""),
+                },
             )
 
-            import os
-            from django.core.files.storage import FileSystemStorage
-            from django.utils import timezone
-            
-            for img in images:
-                # Custom upload path logic if strictly "uploads/maintenance/"
-                MaintenanceImage.objects.create(
-                    request=m_req,
-                    image=img
-                )
-
-            # Send email
-            try:
-                send_mail(
-                    'New Maintenance Request',
-                    f'A new maintenance request has been submitted for vehicle {vehicle.plate_number}.',
-                    'noreply@carflow.local',
-                    ['admin@carflow.local'],
-                    fail_silently=True,
-                )
-            except Exception:
-                pass
+            if images:
+                pending.image = images[0]
+                pending.save(update_fields=["image"])
+                for img in images:
+                    PendingMaintenanceImage.objects.create(report=pending, image=img)
 
             return JsonResponse({
-                'success': True, 
-                'request_id': m_req.id,
+                'success': True,
+                'request_id': pending.id,
                 'received_at': timezone.now().strftime("%Y-%m-%d %H:%M:%S")
             })
         except Exception as e:

@@ -16,20 +16,30 @@
         
         <div class="text-right hidden sm:block">
             <p class="text-sm font-semibold text-slate-800">
-                {{ request.user.get_full_name|default:request.user.username }}
+                {% if request.user.is_authenticated %}
+                    {{ request.user.get_full_name|default:request.user.username }}
+                {% else %}
+                    Guest
+                {% endif %}
             </p>
             <p class="text-xs text-slate-500">
-                {% if request.user.groups.first %}
+                {% if request.user.is_authenticated and request.user.groups.first %}
                     {{ request.user.groups.first.name }}
-                {% else %}
+                {% elif request.user.is_authenticated %}
                     User
+                {% else %}
+                    Guest
                 {% endif %}
             </p>
         </div>
 
         <!-- Avatar -->
         <div class="h-10 w-10 rounded-full bg-slate-300 flex items-center justify-center text-white font-semibold text-sm border-2 border-slate-100">
-            {{ request.user.username|slice:":2"|upper }}
+            {% if request.user.is_authenticated %}
+                {{ request.user.username|slice:":2"|upper }}
+            {% else %}
+                GU
+            {% endif %}
         </div>
     </button>
 

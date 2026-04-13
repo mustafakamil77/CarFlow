@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 import os
 from pathlib import Path
+import logging
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -68,6 +69,7 @@ INSTALLED_APPS = [
     'staff',
     'django_q',
     'import_export',
+    'pending_requests',
 ]
 
 MIDDLEWARE = [
@@ -77,6 +79,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'project.middleware.LoginRequiredMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -178,6 +181,8 @@ SERVE_MEDIA = _env_bool("SERVE_MEDIA", DEBUG)
 
 # Email (development)
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "webmaster@localhost")
+SITE_NAME = os.environ.get("SITE_NAME", "CarFlow")
 
 # Django Q (async tasks)
 Q_CLUSTER = {
@@ -198,12 +203,23 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LOGIN_REDIRECT_URL = 'home'
 LOGOUT_REDIRECT_URL = '/accounts/login/'
 
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {"class": "logging.StreamHandler"},
+    },
+    "loggers": {
+        "project.auth": {"handlers": ["console"], "level": "WARNING", "propagate": False},
+    },
+}
+
 if not DEBUG:
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
     USE_X_FORWARDED_HOST = True
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
-    SECURE_SSL_REDIRECT = _env_bool("SECURE_SSL_REDIRECT", False)
+    SESSION_COOKIE_SECURE = _env_bool("SESSION_COOKIE_SECURE", True)
+    CSRF_COOKIE_SECURE = _env_bool("CSRF_COOKIE_SECURE", True)
+    SECURE_SSL_REDIRECT = _env_bool("SECURE_SSL_REDIRECT", True)
 
     secure_hsts_seconds = os.environ.get("SECURE_HSTS_SECONDS", "").strip()
     SECURE_HSTS_SECONDS = int(secure_hsts_seconds) if secure_hsts_seconds.isdigit() else 0

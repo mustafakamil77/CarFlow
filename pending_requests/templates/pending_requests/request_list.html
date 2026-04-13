@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+
+{% block title %}Pending Requests{% endblock %}
+
+{% block content %}
+<section class="mb-6">
+  <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+    <div>
+      <h1 class="text-xl sm:text-2xl font-semibold text-slate-900">الطلبات المعلقة</h1>
+      <p class="text-sm text-slate-500">قائمة الطلبات التي بانتظار الموافقة</p>
+    </div>
+    <div class="text-xs text-slate-500">
+      <span class="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 border border-slate-200">
+        <span class="h-2 w-2 rounded-full bg-slate-400"></span>
+        {{ page_obj.paginator.count|default:pending_requests|length }} طلب
+      </span>
+    </div>
+  </div>
+</section>
+
+{% if messages %}
+  <div class="mb-4 space-y-2">
+    {% for message in messages %}
+      <div class="rounded-lg border px-4 py-3 text-sm
+        {% if message.tags == 'success' %}bg-green-50 border-green-200 text-green-800{% endif %}
+        {% if message.tags == 'warning' %}bg-yellow-50 border-yellow-200 text-yellow-800{% endif %}
+        {% if message.tags == 'error' %}bg-red-50 border-red-200 text-red-800{% endif %}
+        {% if message.tags == 'info' %}bg-blue-50 border-blue-200 text-blue-800{% endif %}
+      ">
+        {{ message }}
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}
+
+<section class="bg-white rounded-lg shadow border border-gray-200 overflow-hidden">
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm text-left text-slate-600">
+      <thead class="text-xs text-slate-500 font-bold bg-gray-50/50 uppercase border-b border-gray-100">
+        <tr>
+          <th class="px-6 py-4" scope="col">اسم الموظف</th>
+          <th class="px-6 py-4" scope="col">نوع الطلب</th>
+          <th class="px-6 py-4" scope="col">تاريخ الطلب</th>
+          <th class="px-6 py-4" scope="col">الحالة</th>
+          <th class="px-6 py-4" scope="col">إجراءات</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for request in pending_requests %}
+          <tr class="bg-white border-b hover:bg-gray-50 transition-colors">
+            <td class="px-6 py-4 font-medium text-slate-900">
+              {{ request.submitter_name|default:"-" }}
+              {% if request.submitter_contact %}
+                <div class="text-xs text-slate-500">{{ request.submitter_contact }}</div>
+              {% endif %}
+            </td>
+            <td class="px-6 py-4 text-slate-900">
+              {% if request.mileage %}
+                إضافة عداد
+              {% elif request.description %}
+                طلب صيانة
+              {% else %}
+                -
+              {% endif %}
+              <div class="text-xs text-slate-500">{{ request.car.plate_number }}</div>
+            </td>
+            <td class="px-6 py-4 text-slate-900 whitespace-nowrap">
+              {{ request.submitted_at|date:"Y-m-d H:i" }}
+            </td>
+            <td class="px-6 py-4">
+              {% if request.status == 'pending' %}
+                <span class="bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-0.5 rounded-full inline-flex items-center w-fit gap-1.5">
+                  <span class="w-1.5 h-1.5 rounded-full bg-yellow-600"></span> قيد الانتظار
+                </span>
+              {% elif request.status == 'approved' %}
+                <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full inline-flex items-center w-fit gap-1.5">
+                  <span class="w-1.5 h-1.5 rounded-full bg-green-600"></span> معتمد
+                </span>
+              {% elif request.status == 'rejected' %}
+                <span class="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded-full inline-flex items-center w-fit gap-1.5">
+                  <span class="w-1.5 h-1.5 rounded-full bg-red-600"></span> مرفوض
+                </span>
+              {% else %}
+                <span class="bg-slate-100 text-slate-800 text-xs font-medium px-2.5 py-0.5 rounded-full inline-flex items-center w-fit gap-1.5">
+                  <span class="w-1.5 h-1.5 rounded-full bg-slate-600"></span> {{ request.get_status_display }}
+                </span>
+              {% endif %}
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap">
+              <div class="flex items-center gap-2">
+                <a href="{% url 'pending_requests:request_detail' request_type=request.get_request_type pk=request.pk %}"
+                   class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50">
+                  <i class="fa-solid fa-eye"></i>
+                  عرض
+                </a>
+
+                {% if request.status == "pending" %}
+                  <form action="{% url 'pending_requests:accept_request' request_type=request.get_request_type pk=request.pk %}"
+                        method="post"
+                        class="inline"
+                        onsubmit="return confirm('تأكيد الموافقة النهائية؟');">
+                    {% csrf_token %}
+                    <button type="submit"
+                            class="inline-flex items-center gap-2 rounded-lg bg-green-600 px-3 py-2 text-xs font-medium text-white hover:bg-green-700">
+                      <i class="fa-solid fa-check"></i>
+                      موافقة نهائية
+                    </button>
+                  </form>
+                {% endif %}
+
+                <a href="{% url 'pending_requests:reject_request' request_type=request.get_request_type pk=request.pk %}"
+                   class="inline-flex items-center gap-2 rounded-lg bg-red-600 px-3 py-2 text-xs font-medium text-white hover:bg-red-700">
+                  <i class="fa-solid fa-xmark"></i>
+                  رفض
+                </a>
+
+                <a href="{% url 'pending_requests:edit_request' request_type=request.get_request_type pk=request.pk %}"
+                   class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50">
+                  <i class="fa-solid fa-pen"></i>
+                  تعديل
+                </a>
+
+                <form action="{% url 'pending_requests:delete_request' request_type=request.get_request_type pk=request.pk %}"
+                      method="post"
+                      class="inline"
+                      onsubmit="return confirm('تأكيد حذف الطلب نهائياً؟');">
+                  {% csrf_token %}
+                  <button type="submit"
+                          class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50">
+                    <i class="fa-solid fa-trash"></i>
+                    حذف
+                  </button>
+                </form>
+              </div>
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td class="px-6 py-8 text-center text-slate-500" colspan="5">
+              لا توجد طلبات معلّقة حالياً.
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+{% if is_paginated %}
+  <div class="mt-4 flex items-center justify-between gap-3">
+    <div class="text-sm text-slate-500">
+      صفحة {{ page_obj.number }} من {{ paginator.num_pages }}
+    </div>
+    <div class="flex items-center gap-2">
+      {% if page_obj.has_previous %}
+        <a class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+           href="?page={{ page_obj.previous_page_number }}">السابق</a>
+      {% endif %}
+      {% if page_obj.has_next %}
+        <a class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+           href="?page={{ page_obj.next_page_number }}">التالي</a>
+      {% endif %}
+    </div>
+  </div>
+{% endif %}
+{% endblock %}

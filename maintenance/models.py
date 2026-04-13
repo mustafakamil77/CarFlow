@@ -51,6 +51,19 @@ class MaintenanceRequest(models.Model):
     completion_comment = models.TextField(blank=True)
 
     completed_at = models.DateTimeField(null=True, blank=True)
+
+class MaintenanceCategory(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    description = models.TextField(blank=True)
+
+    class Meta:
+        verbose_name = "Maintenance Category"
+        verbose_name_plural = "Maintenance Categories"
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
 import os
 from django.utils import timezone
 

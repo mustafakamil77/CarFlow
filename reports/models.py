@@ -1,6 +1,13 @@
 from django.db import models
+from django.conf import settings
 
 class VehicleInspection(models.Model):
+    INSPECTION_TYPE_CHOICES = [
+        ("QR_SUBMITTED", "QR Submitted"),
+        ("MANUAL", "Manual"),
+        ("SCHEDULED", "Scheduled"),
+    ]
+
     vehicle = models.ForeignKey(
         "fleet.Car",
         on_delete=models.CASCADE,
@@ -12,6 +19,20 @@ class VehicleInspection(models.Model):
 
     mileage = models.PositiveIntegerField()
     notes = models.TextField(blank=True)
+
+    inspection_type = models.CharField(
+        max_length=20,
+        choices=INSPECTION_TYPE_CHOICES,
+        default="MANUAL",
+        db_index=True,
+    )
+
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
 
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     created_via_qr = models.BooleanField(default=True, db_index=True)

@@ -20,6 +20,8 @@ services:
       QR_PUBLIC_BASE_URL: "https://car.alsajana.com"
       SERVE_MEDIA: "1"
       SECURE_SSL_REDIRECT: "0"   # 👈 هذا أهم سطر
+      SESSION_COOKIE_SECURE: "0"
+      CSRF_COOKIE_SECURE: "0"
 
       DB_ENGINE: "${DB_ENGINE:-django.db.backends.sqlite3}"
       DB_NAME: "${DB_NAME:-/app/data/db.sqlite3}"

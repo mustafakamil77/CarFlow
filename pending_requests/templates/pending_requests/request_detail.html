@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+
+{% block title %}تفاصيل الطلب{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+  <section class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+    <div>
+      <h1 class="text-xl sm:text-2xl font-semibold text-slate-900">
+        {% if request.mileage %}
+          تفاصيل تقرير العداد
+        {% elif request.description %}
+          تفاصيل طلب الصيانة
+        {% endif %}
+      </h1>
+      <p class="text-sm text-slate-500">
+        رقم اللوحة: {{ request.car.plate_number }}
+      </p>
+    </div>
+    <div class="flex items-center gap-2">
+      <a href="{% url 'pending_requests:request_list' %}" class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
+        <i class="fa-solid fa-arrow-right"></i>
+        عودة للقائمة
+      </a>
+    </div>
+  </section>
+
+  <section class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+    <div class="border-b border-slate-200 bg-slate-50/50 px-6 py-4">
+      <h3 class="font-medium text-slate-900">معلومات الطلب</h3>
+    </div>
+    
+    <div class="p-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div class="space-y-6">
+          <div>
+            <span class="block text-sm font-medium text-slate-500 mb-1">المركبة</span>
+            <div class="text-slate-900 font-medium">{{ request.car.plate_number }}</div>
+          </div>
+          
+          <div>
+            <span class="block text-sm font-medium text-slate-500 mb-1">مقدم الطلب</span>
+            <div class="text-slate-900">{{ request.submitter_name|default:"-" }}</div>
+            {% if request.submitter_contact %}
+              <div class="text-sm text-slate-500 mt-0.5">{{ request.submitter_contact }}</div>
+            {% endif %}
+          </div>
+          
+          <div>
+            <span class="block text-sm font-medium text-slate-500 mb-1">تاريخ التقديم</span>
+            <div class="text-slate-900">{{ request.submitted_at|date:"Y-m-d H:i" }}</div>
+          </div>
+          
+          <div>
+            <span class="block text-sm font-medium text-slate-500 mb-1">الحالة</span>
+            <div class="mt-1">
+              {% if request.status == 'pending' %}
+                <span class="bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-1 rounded-full inline-flex items-center gap-1.5">
+                  <span class="w-1.5 h-1.5 rounded-full bg-yellow-600"></span> قيد الانتظار
+                </span>
+              {% elif request.status == 'approved' %}
+                <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-1 rounded-full inline-flex items-center gap-1.5">
+                  <span class="w-1.5 h-1.5 rounded-full bg-green-600"></span> معتمد
+                </span>
+              {% elif request.status == 'rejected' %}
+                <span class="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-1 rounded-full inline-flex items-center gap-1.5">
+                  <span class="w-1.5 h-1.5 rounded-full bg-red-600"></span> مرفوض
+                </span>
+              {% else %}
+                <span class="bg-slate-100 text-slate-800 text-xs font-medium px-2.5 py-1 rounded-full inline-flex items-center gap-1.5">
+                  <span class="w-1.5 h-1.5 rounded-full bg-slate-600"></span> {{ request.get_status_display }}
+                </span>
+              {% endif %}
+            </div>
+          </div>
+
+          {% if request.rejection_reason %}
+            <div class="bg-red-50 border border-red-100 rounded-lg p-4">
+              <span class="block text-sm font-medium text-red-800 mb-1">سبب الرفض</span>
+              <div class="text-red-700 text-sm">{{ request.rejection_reason }}</div>
+            </div>
+          {% endif %}
+        </div>
+
+        <div class="space-y-6">
+          {% if request.mileage %}
+            <div>
+              <span class="block text-sm font-medium text-slate-500 mb-1">قراءة العداد</span>
+              <div class="text-slate-900 font-medium text-lg">{{ request.mileage }} كم</div>
+            </div>
+            
+            {% if request.image %}
+              <div>
+                <span class="block text-sm font-medium text-slate-500 mb-2">صورة العداد</span>
+                <div class="rounded-lg border border-slate-200 overflow-hidden bg-slate-50 max-w-sm">
+                  <img src="{{ request.image.url }}" class="w-full h-auto object-cover" alt="Odometer Image">
+                </div>
+              </div>
+            {% endif %}
+
+          {% elif request.description %}
+            {% if request.title %}
+              <div>
+                <span class="block text-sm font-medium text-slate-500 mb-1">العنوان</span>
+                <div class="text-slate-900 font-medium">{{ request.title }}</div>
+              </div>
+            {% endif %}
+            
+            <div>
+              <span class="block text-sm font-medium text-slate-500 mb-1">التصنيف</span>
+              <div class="text-slate-900">{{ request.category.name|default:"غير محدد" }}</div>
+            </div>
+
+            <div>
+              <span class="block text-sm font-medium text-slate-500 mb-1">الوصف</span>
+              <div class="text-slate-900 whitespace-pre-line">{{ request.description }}</div>
+            </div>
+            
+            {% if request.image %}
+              <div>
+                <span class="block text-sm font-medium text-slate-500 mb-2">صورة مرفقة</span>
+                <div class="rounded-lg border border-slate-200 overflow-hidden bg-slate-50 max-w-sm">
+                  <img src="{{ request.image.url }}" class="w-full h-auto object-cover" alt="Maintenance Image">
+                </div>
+              </div>
+            {% endif %}
+
+            {% if request.images.exists %}
+              <div>
+                <span class="block text-sm font-medium text-slate-500 mb-2">صور إضافية</span>
+                <div class="grid grid-cols-2 gap-4">
+                  {% for img in request.images.all %}
+                    <div class="rounded-lg border border-slate-200 overflow-hidden bg-slate-50">
+                      <img src="{{ img.image.url }}" class="w-full h-auto object-cover aspect-video" alt="Maintenance Image">
+                    </div>
+                  {% endfor %}
+                </div>
+              </div>
+            {% endif %}
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    
+    <div class="border-t border-slate-200 bg-slate-50 px-6 py-4">
+      <div class="flex flex-wrap items-center gap-3">
+        {% if request.status == "pending" %}
+          <form action="{% url 'pending_requests:accept_request' request_type=request.get_request_type pk=request.pk %}" method="post" class="inline" onsubmit="return confirm('تأكيد الموافقة النهائية؟');">
+              {% csrf_token %}
+              <button type="submit" class="inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 transition-colors shadow-sm">
+                <i class="fa-solid fa-check"></i>
+                موافقة نهائية
+              </button>
+          </form>
+        {% endif %}
+
+        {% if request.status == "pending" %}
+          <a href="{% url 'pending_requests:reject_request' request_type=request.get_request_type pk=request.pk %}" class="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 transition-colors shadow-sm">
+            <i class="fa-solid fa-xmark"></i>
+            رفض
+          </a>
+        {% endif %}
+
+        <div class="flex-grow"></div>
+
+        <a href="{% url 'pending_requests:edit_request' request_type=request.get_request_type pk=request.pk %}" class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
+          <i class="fa-solid fa-pen"></i>
+          تعديل
+        </a>
+
+        <form action="{% url 'pending_requests:delete_request' request_type=request.get_request_type pk=request.pk %}" method="post" class="inline" onsubmit="return confirm('هل أنت متأكد من حذف هذا الطلب نهائياً؟');">
+            {% csrf_token %}
+            <button type="submit" class="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 text-red-700 px-4 py-2 text-sm font-medium hover:bg-red-100 transition-colors">
+              <i class="fa-solid fa-trash"></i>
+              حذف
+            </button>
+        </form>
+      </div>
+    </div>
+  </section>
+</div>
+{% endblock %}
