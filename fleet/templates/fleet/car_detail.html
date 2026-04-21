@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load humanize %}
 {% block content %}
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
       <h1 class="text-2xl break-words">{{ object.plate_number }} {{ object.brand }} {{ object.vehicle_type }}</h1>
@@ -17,7 +18,7 @@
         <h2 class="text-lg font-semibold mb-3">Identification</h2>
         <p><span class="font-medium">Plate:</span> {{ object.plate_number }}</p>
         <p><span class="font-medium">VIN:</span> {{ object.vin|default:'-' }}</p>
-        <p><span class="font-medium">Mileage:</span> {{ object.current_mileage|default:0 }}</p>
+        <p><span class="font-medium">Mileage:</span> {{ object.current_mileage|default:0|intcomma}}</p>
       </section>
       <section class="p-4 bg-white rounded shadow">
         <h2 class="text-lg font-semibold mb-3">Make & Vehicle Type</h2>
@@ -98,7 +99,7 @@
           {% endif %}
         </div>
         <div><span class="font-medium">Start:</span> {{ current_assignment.start_date|date:"Y-m-d H:i" }}</div>
-        <div><span class="font-medium">Odometer:</span> {{ current_assignment.start_odometer }}</div>
+        <div><span class="font-medium">Odometer:</span> {{ current_assignment.start_odometer|intcomma}}</div>
       </div>
       {% else %}
       <div class="text-sm text-gray-600">No current driver</div>
@@ -110,7 +111,7 @@
       {% if last_handover_event %}
       <div class="text-sm text-gray-700">
         <div><span class="font-medium">Date:</span> {{ last_handover_event.created_at|date:"Y-m-d H:i" }}</div>
-        <div><span class="font-medium">Odometer:</span> {{ last_handover_event.odometer|default:"-" }}</div>
+        <div><span class="font-medium">Odometer:</span> {{ last_handover_event.odometer|intcomma}}</div>
         <div class="mt-2"><span class="font-medium">Notes:</span> <span class="whitespace-pre-line">{{ last_handover_event.notes|default:"-" }}</span></div>
       </div>
       <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-4">
@@ -172,7 +173,7 @@
       <ul class="divide-y">
         {% for item in accidents_items %}
         <li class="py-2">
-          <div class="text-sm"><span class="font-medium">{{ item.event.created_at|date:"Y-m-d H:i" }}</span> — Odometer: {{ item.event.odometer|default:'-' }}</div>
+          <div class="text-sm"><span class="font-medium">{{ item.event.created_at|date:"Y-m-d H:i" }}</span> — Odometer: {{ item.event.odometer|intcomma}}</div>
           <div class="text-xs text-gray-600">{{ item.event.notes|default:'-' }}</div>
           {% if item.liability_percent != None %}
           <div class="text-xs text-gray-600">Liability: {{ item.liability_percent }}%</div>
@@ -322,8 +323,8 @@
               </td>
               <td class="px-4 py-2">{{ a.start_date|date:"Y-m-d" }}</td>
               <td class="px-4 py-2">{{ a.end_date|date:"Y-m-d"|default:"-" }}</td>
-              <td class="px-4 py-2">{{ a.start_odometer }}</td>
-              <td class="px-4 py-2">{{ a.end_odometer|default:"-" }}</td>
+              <td class="px-4 py-2">{{ a.start_odometer|intcomma}}</td>
+              <td class="px-4 py-2">{{ a.end_odometer|intcomma }}</td>
               <td class="px-4 py-2">{{ a.notes|default:"-" }}</td>
             </tr>
             {% empty %}
