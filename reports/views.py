@@ -129,12 +129,24 @@ class QRSubmitMileageView(View):
                     "ua": request.META.get("HTTP_USER_AGENT", ""),
                 },
             )
-            image = request.FILES.get("image") or request.FILES.get("image_odometer")
-            if image:
-                pending.image = image
-                pending.save(update_fields=["image"])
+            image = request.FILES.get("odometerImage")
+            if not image:
+                return JsonResponse({'error': 'Odometer image is required'}, status=400)
+            if image.size > 100 * 1024:
+                return JsonResponse({'error': 'Odometer image must be <= 100KB'}, status=400)
+            if image.content_type not in ['image/jpeg', 'image/png', 'image/webp']:
+                return JsonResponse({'error': 'Only JPG, PNG, and WEBP images are allowed'}, status=400)
+            pending.image = image
+            pending.save(update_fields=["image"])
 
-            return JsonResponse({'success': True, 'request_id': pending.id})
+            return JsonResponse(
+                {
+                    'success': True,
+                    'request_id': pending.id,
+                    'image_url': pending.image.url if pending.image else '',
+                    'received_at': timezone.now().strftime("%Y-%m-%d %H:%M:%S"),
+                }
+            )
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)
 
@@ -145,29 +157,28 @@ class QRSubmitMaintenanceView(View):
             return JsonResponse({'error': 'Invalid token'}, status=404)
 
         description = request.POST.get('description', '').strip()
-        if len(description) < 5 or len(description) > 500:
-            return JsonResponse({'error': 'Description must be between 5 and 500 characters'}, status=400)
+        if len(description) < 20 or len(description) > 1000:
+            return JsonResponse({'error': 'Description must be between 20 and 1000 characters'}, status=400)
             
-        title = request.POST.get('title', '').strip()
-        if not title:
-            title = f"QR Maintenance Request - {vehicle.plate_number}"
-        elif len(title) > 200:
-            return JsonResponse({'error': 'Title must be less than 200 characters'}, status=400)
-
         images = request.FILES.getlist('images')
         if len(images) < 1 or len(images) > 10:
             return JsonResponse({'error': 'Please upload between 1 and 10 images'}, status=400)
 
+        total_size = 0
         for img in images:
-            if img.size > 5 * 1024 * 1024:
-                return JsonResponse({'error': 'Each image must be less than 5MB'}, status=400)
-            if img.content_type not in ['image/jpeg', 'image/png', 'image/webp']:
-                return JsonResponse({'error': 'Only JPG, PNG, and WEBP images are allowed'}, status=400)
+            total_size += int(img.size or 0)
+            if img.size > 100 * 1024:
+                return JsonResponse({'error': 'Each image must be <= 100KB'}, status=400)
+            if img.content_type not in ['image/jpeg', 'image/png']:
+                return JsonResponse({'error': 'Only JPG and PNG images are allowed'}, status=400)
+
+        if total_size > 3 * 1024 * 1024:
+            return JsonResponse({'error': 'Total images size must be <= 3MB'}, status=400)
 
         try:
             pending = PendingMaintenanceReport.objects.create(
                 car=vehicle,
-                title=title,
+                title="",
                 description=description,
                 status="pending",
                 submitter_name=(request.POST.get("submitter_name") or "").strip(),
@@ -178,6 +189,8 @@ class QRSubmitMaintenanceView(View):
                     "ua": request.META.get("HTTP_USER_AGENT", ""),
                 },
             )
+            pending.title = f"طلب صيانة {pending.id}"
+            pending.save(update_fields=["title"])
 
             if images:
                 pending.image = images[0]

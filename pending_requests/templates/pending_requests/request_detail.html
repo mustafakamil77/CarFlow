@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load humanize %}
 
 {% block title %}تفاصيل الطلب{% endblock %}
 
@@ -86,14 +87,21 @@
           {% if request.mileage %}
             <div>
               <span class="block text-sm font-medium text-slate-500 mb-1">قراءة العداد</span>
-              <div class="text-slate-900 font-medium text-lg">{{ request.mileage }} كم</div>
+              <div class="text-slate-900 font-medium text-lg">{{ request.mileage |intcomma }} كم</div>
             </div>
             
             {% if request.image %}
               <div>
                 <span class="block text-sm font-medium text-slate-500 mb-2">صورة العداد</span>
-                <div class="rounded-lg border border-slate-200 overflow-hidden bg-slate-50 max-w-sm">
-                  <img src="{{ request.image.url }}" class="w-full h-auto object-cover" alt="Odometer Image">
+                <a href="{{ request.image.url }}" target="_blank" rel="noopener" class="block rounded-lg border border-slate-200 overflow-hidden bg-slate-50 max-w-sm hover:shadow-sm transition-shadow">
+                  <img src="{{ request.image.url }}" class="w-full h-auto object-cover" alt="صورة العداد">
+                </a>
+              </div>
+            {% else %}
+              <div>
+                <span class="block text-sm font-medium text-slate-500 mb-2">صورة العداد</span>
+                <div class="rounded-lg border border-slate-200 bg-slate-50 max-w-sm p-4 text-sm text-slate-600">
+                  لا توجد صورة مرفقة لهذا الطلب.
                 </div>
               </div>
             {% endif %}

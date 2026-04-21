@@ -68,7 +68,13 @@
           {% for car in cars %}
           <tr class="bg-white border-b hover:bg-gray-50 transition-colors">
             <td class="px-6 py-3">
-              <div class="h-12 w-20 overflow-hidden rounded-md border border-gray-200 bg-gray-100"></div>
+              <div class="h-12 w-20 sm:h-14 sm:w-24 overflow-hidden rounded-md border border-gray-200 bg-gray-100 flex items-center justify-center">
+                {% if car.front_image %}
+                  <img src="{{ car.front_image.image.url }}" alt="صورة السيارة الأمامية - {{ car.plate_number }}" class="h-full w-full object-cover" loading="lazy" decoding="async" onerror="this.remove();">
+                {% else %}
+                  <img src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" alt="" class="h-full w-full object-cover opacity-0" aria-hidden="true">
+                {% endif %}
+              </div>
             </td>
             <td class="px-6 py-4 font-medium text-gray-900"><a href="{% url 'fleet:car_detail' car.pk %}" class="text-blue-600">V-{{ car.pk }}</a></td>
             <td class="px-6 py-4 text-gray-900">{{ car.brand }} {{ car.get_vehicle_type_display|default:car.vehicle_type }}</td>

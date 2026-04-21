@@ -144,6 +144,25 @@ plate_number,date,liters,cost,odometer
 - لوحة معلومات تجمع إجمالي الوقود والتكلفة لكل مركبة مع Chart.js.
 - تصدير PDF بسيط لملخصات الوقود عبر ReportLab.
 
+## QR Endpoints
+- **عرض نموذج QR للمركبة**
+  - `GET /r/<token>/`
+  - **200**: يعرض نموذج إدخال العداد/طلب الصيانة.
+  - **404**: رابط غير صالح أو QR معطل.
+- **إرسال قراءة العداد عبر QR**
+  - `POST /api/r/<token>/mileage/` (multipart/form-data)
+  - حقول مطلوبة: `mileage` (رقم)، `odometerImage` (صورة JPEG/PNG/WEBP ≤ 100KB)
+  - **200**: `{"success": true, "request_id": <id>, "image_url": "<url>", "received_at": "YYYY-MM-DD HH:MM:SS"}`
+  - **400**: تحقق/حجم/نوع غير صحيح.
+  - **404**: توكن غير صالح.
+- **إرسال طلب صيانة عبر QR**
+  - `POST /api/r/<token>/maintenance/` (multipart/form-data)
+  - حقول مطلوبة: `description` (20–1000 حرف)، `images` (1–10 ملفات JPEG/PNG، كل ملف ≤ 100KB)
+  - العنوان يتم توليده تلقائياً على السيرفر بصيغة: `طلب صيانة <request_id>` ولا يمكن للمستخدم تعديله.
+  - **200**: `{"success": true, "request_id": <id>, "received_at": "YYYY-MM-DD HH:MM:SS"}`
+  - **400**: تحقق/عدد صور/نوع/حجم غير صحيح.
+  - **404**: توكن غير صالح.
+
 ## الواجهات (Tailwind)
 - قالب أساسي `src/templates/base.html` مع شريط تنقل ورسائل Toast.
 - جميع الصفحات الأساسية تمتد من القالب وتستخدم عناصر Tailwind.

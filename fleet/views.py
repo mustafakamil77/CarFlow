@@ -23,7 +23,7 @@ class CarListView(LoginRequiredMixin, ListView):
     def get_queryset(self):
         qs = Car.objects.exclude(status="inactive").annotate(
             maintenance_count=Count("maintenance_requests")
-        )
+        ).prefetch_related("images")
         q = self.request.GET.get("q")
         status = self.request.GET.get("status")
         sort = self.request.GET.get("sort")
@@ -49,6 +49,8 @@ class CarListView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["regions"] = Region.objects.all()
+        for car in context["cars"]:
+            car.front_image = next((img for img in car.images.all() if img.position == "front"), None)
         return context
 
 

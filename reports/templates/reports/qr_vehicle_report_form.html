@@ -48,8 +48,8 @@
     <!-- Header -->
     <div class="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200 mb-4">
       <div class="text-sm font-medium text-gray-600" data-i18n="vehicle">المركبة</div>
-      <div class="mt-1 text-xl font-bold text-gray-900">{{ vehicle.plate_number }}</div>
-      <div class="mt-1 text-sm text-gray-500">{{ vehicle.brand }} - {{ vehicle.get_vehicle_type_display }}</div>
+      <div class="mt-1 text-xl font-bold text-gray-900" data-i18n="vehicle_report">تقرير المركبة</div>
+      <div class="mt-1 text-sm text-gray-500" data-i18n="vehicle_report_sub">يرجى إدخال البيانات المطلوبة أدناه</div>
     </div>
 
     <!-- Tab Selection -->
@@ -69,33 +69,29 @@
       <!-- Mileage Form -->
       <form id="mileageForm" class="space-y-4" onsubmit="submitMileage(event)">
         <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
-        
-        <div>
-          <label class="block text-sm font-semibold text-gray-800" data-i18n="plate_number">رقم اللوحة</label>
-          <input type="text" readonly value="{{ vehicle.plate_number }}" class="mt-1 block w-full rounded-lg border-gray-300 bg-gray-50 text-gray-500 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-        </div>
-
-        <div>
-          <label class="block text-sm font-semibold text-gray-800" data-i18n="vin">رقم الهيكل (VIN)</label>
-          <input type="text" readonly value="{{ vehicle.vin|default:'N/A' }}" class="mt-1 block w-full rounded-lg border-gray-300 bg-gray-50 text-gray-500 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-        </div>
-
-        <div>
-          <label class="block text-sm font-semibold text-gray-800" data-i18n="vehicle_type">نوع السيارة</label>
-          <select disabled class="mt-1 block w-full rounded-lg border-gray-300 bg-gray-50 text-gray-500 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-            <option value="{{ vehicle.vehicle_type }}" selected>{{ vehicle.get_vehicle_type_display }}</option>
-          </select>
-        </div>
-
-        <div>
-          <label class="block text-sm font-semibold text-gray-800" data-i18n="datetime">التاريخ والوقت</label>
-          <input type="text" id="datetimeInput" readonly class="mt-1 block w-full rounded-lg border-gray-300 bg-gray-50 text-gray-500 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-        </div>
 
         <div>
           <label class="block text-sm font-semibold text-gray-800" data-i18n="current_mileage">القراءة الحالية للعداد (كم)</label>
           <input type="number" id="mileageInput" name="mileage" required min="{{ vehicle.current_mileage|add:'1' }}" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
           <p class="mt-1 text-xs text-gray-500" id="mileageHelpText" data-i18n="mileage_help">آخر قراءة مسجلة هي {{ vehicle.current_mileage }}. الرجاء إدخال قيمة أعلى.</p>
+        </div>
+
+        <div>
+          <div class="flex items-end justify-between gap-3">
+            <label class="block text-sm font-semibold text-gray-800" data-i18n="odometer_photo">صورة العداد</label>
+            <button type="button" id="captureOdometerBtn" class="rounded-lg bg-gray-100 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-200 transition-colors" data-i18n="capture_photo">التقاط صورة</button>
+          </div>
+          <input type="file" id="odometerImageInput" accept="image/*" capture="environment" class="hidden">
+          <p class="mt-1 text-xs text-gray-500" data-i18n="odometer_help">سيتم ضغط الصورة تلقائياً لتكون أقل من 100KB.</p>
+          <div id="odometerPreview" class="mt-3 hidden">
+            <div class="flex items-center gap-3">
+              <img id="odometerPreviewImg" alt="" class="h-16 w-16 rounded-lg border border-gray-200 bg-gray-50 object-cover">
+              <div class="text-xs text-gray-600">
+                <div id="odometerPreviewMeta" class="font-mono"></div>
+                <div id="odometerPreviewHint" class="text-gray-500" data-i18n="odometer_hint">تحقق من وضوح الأرقام قبل الإرسال.</div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <button type="submit" class="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-200 transition-colors" data-i18n="submit_btn">إرسال</button>
@@ -104,28 +100,32 @@
       <!-- Maintenance Form -->
       <form id="maintenanceForm" class="hidden space-y-4" onsubmit="submitMaintenance(event)">
         <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
-        
-        <div>
-          <label class="block text-sm font-semibold text-gray-800" data-i18n="issue_title">عنوان طلب الصيانة</label>
-          <input type="text" name="title" required maxlength="200" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="...">
-        </div>
 
         <div>
           <label class="block text-sm font-semibold text-gray-800" data-i18n="upload_images">رفع صور العطل (1 إلى 10 صور)</label>
-          <input type="file" id="imagesInput" name="images" multiple accept="image/jpeg, image/png, image/webp" class="mt-1 block w-full text-sm text-gray-700 file:mr-4 file:rounded-lg file:border-0 file:bg-blue-600 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-blue-700">
-          <p class="mt-1 text-xs text-gray-500" data-i18n="images_help">الحد الأقصى 5 ميجا لكل صورة</p>
+          <input type="file" id="imagesInput" name="images" multiple accept="image/jpeg, image/png" capture="environment" class="mt-1 block w-full text-sm text-gray-700 file:mr-4 file:rounded-lg file:border-0 file:bg-blue-600 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-blue-700">
+          <p class="mt-1 text-xs text-gray-500" data-i18n="images_help">سيتم ضغط كل صورة إلى أقل من 100KB، وبحد إجمالي 3MB.</p>
+          <div id="maintenanceProgress" class="hidden mt-3 rounded-lg border border-gray-200 bg-gray-50 p-3">
+            <div class="flex items-center justify-between gap-3">
+              <div id="maintenanceProgressText" class="text-xs font-medium text-gray-700">0%</div>
+              <div id="maintenanceProgressMeta" class="text-xs text-gray-500 font-mono"></div>
+            </div>
+            <div class="mt-2 h-2 w-full rounded bg-gray-200 overflow-hidden">
+              <div id="maintenanceProgressBar" class="h-2 bg-blue-600 w-0"></div>
+            </div>
+          </div>
           <div id="imagePreviewContainer" class="flex flex-wrap gap-2 mt-3"></div>
         </div>
 
         <div>
           <div class="flex justify-between items-end">
             <label class="block text-sm font-semibold text-gray-800" data-i18n="issue_details">تفاصيل العطل</label>
-            <span id="charCount" class="text-xs text-gray-500 font-mono">0/500</span>
+            <span id="charCount" class="text-xs text-gray-500 font-mono">0/1000</span>
           </div>
-          <textarea id="descriptionInput" name="description" rows="4" required minlength="5" maxlength="500" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="..."></textarea>
+          <textarea id="descriptionInput" name="description" rows="5" required minlength="20" maxlength="1000" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="..."></textarea>
         </div>
 
-        <button type="submit" class="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-200 transition-colors" data-i18n="submit_request">إرسال الطلب</button>
+        <button id="maintenanceSubmitBtn" type="submit" class="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-200 transition-colors disabled:opacity-60 disabled:cursor-not-allowed" data-i18n="submit_request">إرسال الطلب</button>
       </form>
 
       <!-- Success Message -->
@@ -135,6 +135,27 @@
         </svg>
         <h3 class="text-xl font-bold text-gray-900 mb-2" id="successTitle">تم بنجاح</h3>
         <p class="text-sm text-gray-600 mb-4" id="successText">تمت العملية بنجاح.</p>
+        <div id="successOdometerWrap" class="hidden w-full max-w-sm mx-auto mb-4">
+          <div class="rounded-xl border border-gray-200 bg-gray-50 p-3 text-left">
+            <div class="text-xs font-semibold text-gray-700 mb-2" data-i18n="odometer_photo">صورة العداد</div>
+            <div class="flex items-center gap-3">
+              <img id="successOdometerImg" alt="" class="h-20 w-20 rounded-lg border border-gray-200 bg-white object-cover">
+              <div class="min-w-0 flex-1">
+                <div id="successOdometerMeta" class="text-xs font-mono text-gray-600"></div>
+                <div id="successOdometerStatus" class="mt-1 text-xs text-gray-500"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div id="mileageLogWrap" class="hidden w-full max-w-sm mx-auto mb-4 text-left">
+          <div class="rounded-xl border border-gray-200 bg-white p-3">
+            <div class="flex items-center justify-between gap-3">
+              <div class="text-xs font-semibold text-gray-700" data-i18n="log_title">سجل العملية</div>
+              <button type="button" id="toggleLogBtn" class="text-xs font-semibold text-blue-600 hover:underline" data-i18n="log_toggle">إظهار/إخفاء</button>
+            </div>
+            <div id="mileageLog" class="mt-2 hidden max-h-40 overflow-auto text-[11px] font-mono text-gray-700 space-y-1"></div>
+          </div>
+        </div>
         <button onclick="resetForms()" class="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200" data-i18n="back">العودة</button>
       </div>
 
@@ -150,18 +171,26 @@
     const translations = {
       ar: {
         vehicle: "المركبة",
+        vehicle_report: "تقرير المركبة",
+        vehicle_report_sub: "يرجى إدخال البيانات المطلوبة أدناه",
         record_mileage: "تسجيل عداد السيارة",
         submit_maintenance: "رفع طلب صيانة",
-        plate_number: "رقم اللوحة",
-        vin: "رقم الهيكل (VIN)",
-        vehicle_type: "نوع السيارة",
-        datetime: "التاريخ والوقت",
         current_mileage: "القراءة الحالية للعداد (كم)",
         mileage_help: "آخر قراءة مسجلة هي {{ vehicle.current_mileage }}. الرجاء إدخال قيمة أعلى.",
+        odometer_photo: "صورة العداد",
+        capture_photo: "التقاط صورة",
+        odometer_help: "سيتم ضغط الصورة تلقائياً لتكون أقل من 100KB.",
+        odometer_hint: "تحقق من وضوح الأرقام قبل الإرسال.",
+        log_title: "سجل العملية",
+        log_toggle: "إظهار/إخفاء",
+        log_ok_local: "تم عرض الصورة محلياً",
+        log_ok_remote: "تم تأكيد الصورة من الخادم",
+        log_err_remote: "تعذر تحميل الصورة من الخادم",
+        log_err_network: "خطأ شبكة أثناء الإرسال",
+        log_err_image: "خطأ في معالجة الصورة",
         submit_btn: "إرسال",
         upload_images: "رفع صور العطل (1 إلى 10 صور)",
-        images_help: "الحد الأقصى 5 ميجا لكل صورة",
-        issue_title: "عنوان طلب الصيانة",
+        images_help: "سيتم ضغط كل صورة إلى أقل من 100KB، وبحد إجمالي 3MB.",
         issue_details: "تفاصيل العطل",
         submit_request: "إرسال الطلب",
         powered_by: "مشغل بواسطة CarFlow",
@@ -172,23 +201,37 @@
         success_maint_text: "رقم الطلب: #REQ\nوقت الاستلام: TIME",
         back: "العودة",
         err_images_count: "الرجاء رفع بين 1 و 10 صور",
-        err_images_size: "إحدى الصور تتجاوز 5MB",
+        err_images_type: "يسمح فقط بصور JPEG أو PNG",
+        err_images_total: "الحجم الإجمالي للصور يجب ألا يتجاوز 3MB",
+        err_images_compress: "تعذر ضغط إحدى الصور إلى أقل من 100KB",
+        err_description_len: "تفاصيل العطل يجب أن تكون بين 20 و 1000 حرف",
+        err_odometer_required: "الرجاء إرفاق صورة واضحة للعداد.",
+        err_odometer_invalid: "ملف الصورة غير صالح.",
+        err_odometer_too_large: "لم ننجح في ضغط الصورة إلى أقل من 100KB. الرجاء التقاط صورة أوضح وبإضاءة أفضل أو اقترب أكثر من العداد.",
         err_generic: "حدث خطأ غير متوقع. الرجاء المحاولة مجدداً."
       },
       en: {
         vehicle: "Vehicle",
+        vehicle_report: "Vehicle Report",
+        vehicle_report_sub: "Please enter the required information below",
         record_mileage: "Record Mileage",
         submit_maintenance: "Submit Maintenance",
-        plate_number: "Plate Number",
-        vin: "VIN",
-        vehicle_type: "Vehicle Type",
-        datetime: "Date and Time",
         current_mileage: "Current Mileage (km)",
         mileage_help: "Last recorded mileage is {{ vehicle.current_mileage }}. Please enter a higher value.",
+        odometer_photo: "Odometer Photo",
+        capture_photo: "Capture Photo",
+        odometer_help: "The image will be compressed automatically to be under 100KB.",
+        odometer_hint: "Make sure the digits are readable before submitting.",
+        log_title: "Operation Log",
+        log_toggle: "Show/Hide",
+        log_ok_local: "Displayed local image",
+        log_ok_remote: "Verified server image",
+        log_err_remote: "Failed to load server image",
+        log_err_network: "Network error during submit",
+        log_err_image: "Image processing error",
         submit_btn: "Submit",
         upload_images: "Upload Issue Images (1 to 10 images)",
-        images_help: "Max size 5MB per image",
-        issue_title: "Maintenance Request Title",
+        images_help: "Each image will be compressed under 100KB, total up to 3MB.",
         issue_details: "Issue Details",
         submit_request: "Submit Request",
         powered_by: "Powered by CarFlow",
@@ -199,7 +242,13 @@
         success_maint_text: "Request No: #REQ\nReceived at: TIME",
         back: "Go Back",
         err_images_count: "Please upload between 1 and 10 images",
-        err_images_size: "One of the images exceeds 5MB",
+        err_images_type: "Only JPEG or PNG images are allowed",
+        err_images_total: "Total images size must be <= 3MB",
+        err_images_compress: "Couldn't compress one of the images under 100KB",
+        err_description_len: "Issue details must be between 20 and 1000 characters",
+        err_odometer_required: "Please attach a clear odometer photo.",
+        err_odometer_invalid: "Invalid image file.",
+        err_odometer_too_large: "We couldn't compress the image under 100KB. Please retake the photo with better lighting or move closer.",
         err_generic: "An unexpected error occurred. Please try again."
       }
     };
@@ -225,20 +274,265 @@
       currentLang = currentLang === 'ar' ? 'en' : 'ar';
       localStorage.setItem('appLang', currentLang);
       applyTranslations();
-      updateDateTime();
     });
 
     applyTranslations();
 
-    // Set Datetime
-    function updateDateTime() {
-      const dtInput = document.getElementById('datetimeInput');
-      if (dtInput) {
-        dtInput.value = new Date().toLocaleString(currentLang === 'ar' ? 'ar-SA' : 'en-US');
+    let compressedOdometerFile = null;
+    let odometerPreviewUrl = null;
+    let mileageSubmitStartedAt = 0;
+    let mileageLogItems = [];
+    let compressedMaintenanceFiles = [];
+    let maintenanceBusy = false;
+
+    function _cleanupOdometerPreview() {
+      if (odometerPreviewUrl) {
+        URL.revokeObjectURL(odometerPreviewUrl);
+        odometerPreviewUrl = null;
       }
     }
-    updateDateTime();
-    setInterval(updateDateTime, 60000);
+
+    function _setMaintenanceBusy(busy) {
+      maintenanceBusy = busy;
+      const btn = document.getElementById("maintenanceSubmitBtn");
+      if (btn) {
+        btn.disabled = busy;
+      }
+      const input = document.getElementById("imagesInput");
+      if (input) {
+        input.disabled = busy;
+      }
+    }
+
+    function _formatMs(ms) {
+      return `${Math.round(ms)}ms`;
+    }
+
+    function _pushMileageLog(level, message, extra = {}) {
+      const item = {
+        at: new Date().toISOString(),
+        level,
+        message,
+        extra,
+      };
+      mileageLogItems.push(item);
+      try {
+        const elapsed = mileageSubmitStartedAt ? performance.now() - mileageSubmitStartedAt : null;
+        const tag = elapsed !== null ? `[+${_formatMs(elapsed)}]` : "";
+        console.log(`[mileage] ${tag} ${level.toUpperCase()}: ${message}`, extra);
+      } catch (_e) {}
+
+      const logEl = document.getElementById("mileageLog");
+      const wrap = document.getElementById("mileageLogWrap");
+      if (logEl && wrap) {
+        wrap.classList.remove("hidden");
+        const line = document.createElement("div");
+        line.textContent = `${item.at} [${level}] ${message}`;
+        logEl.appendChild(line);
+        logEl.scrollTop = logEl.scrollHeight;
+      }
+    }
+
+    document.getElementById("toggleLogBtn").addEventListener("click", () => {
+      const logEl = document.getElementById("mileageLog");
+      if (logEl) {
+        logEl.classList.toggle("hidden");
+      }
+    });
+
+    async function compressOdometerImage(file) {
+      /*
+        خوارزمية الضغط (Client-side):
+        - فك الصورة إلى ImageBitmap ثم إعادة رسمها على Canvas.
+        - تجربة WEBP ثم JPEG.
+        - تقليل أكبر بعد (max edge) تدريجياً مع تقليل الجودة حتى يصبح الحجم <= 100KB.
+        - الهدف: أقل حجم ممكن مع الحفاظ على وضوح أرقام العداد.
+      */
+      const MAX_BYTES = 100 * 1024;
+      if (!file || !file.type || !file.type.startsWith("image/")) {
+        throw new Error("invalid_image");
+      }
+
+      const bitmap = await createImageBitmap(file);
+      const originalW = bitmap.width;
+      const originalH = bitmap.height;
+
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d", { alpha: false });
+      if (!ctx) {
+        throw new Error("no_canvas");
+      }
+
+      const candidates = [
+        { type: "image/webp", ext: "webp" },
+        { type: "image/jpeg", ext: "jpg" },
+      ];
+
+      let best = null;
+      const maxEdges = [1600, 1400, 1200, 1000, 850, 700, 600, 512, 420, 360, 320];
+      const qualities = [0.86, 0.82, 0.78, 0.72, 0.66, 0.6, 0.54, 0.48, 0.42, 0.36];
+
+      for (const cand of candidates) {
+        for (const maxEdge of maxEdges) {
+          const scale = Math.min(1, maxEdge / Math.max(originalW, originalH));
+          const w = Math.max(1, Math.round(originalW * scale));
+          const h = Math.max(1, Math.round(originalH * scale));
+
+          canvas.width = w;
+          canvas.height = h;
+          ctx.clearRect(0, 0, w, h);
+          ctx.drawImage(bitmap, 0, 0, w, h);
+
+          for (const q of qualities) {
+            const blob = await new Promise((resolve) => canvas.toBlob(resolve, cand.type, q));
+            if (!blob) {
+              continue;
+            }
+
+            if (!best || blob.size < best.size) {
+              best = { blob, type: cand.type, ext: cand.ext, size: blob.size };
+            }
+            if (blob.size <= MAX_BYTES) {
+              return new File([blob], `odometer.${cand.ext}`, { type: cand.type, lastModified: Date.now() });
+            }
+          }
+        }
+      }
+
+      if (best && best.size <= MAX_BYTES) {
+        return new File([best.blob], `odometer.${best.ext}`, { type: best.type, lastModified: Date.now() });
+      }
+      throw new Error("too_large");
+    }
+
+    async function compressMaintenanceImage(file) {
+      const MAX_BYTES = 100 * 1024;
+      if (!file || !file.type || !file.type.startsWith("image/")) {
+        throw new Error("invalid_image");
+      }
+      if (!["image/jpeg", "image/png"].includes(file.type)) {
+        throw new Error("invalid_type");
+      }
+
+      const bitmap = await createImageBitmap(file);
+      const originalW = bitmap.width;
+      const originalH = bitmap.height;
+
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d", { alpha: false });
+      if (!ctx) {
+        throw new Error("no_canvas");
+      }
+
+      const maxEdges = [1600, 1400, 1200, 1000, 850, 700, 600, 512, 420, 360, 320];
+      const qualities = [0.86, 0.82, 0.78, 0.72, 0.66, 0.6, 0.54, 0.48, 0.42, 0.36];
+
+      let best = null;
+      for (const maxEdge of maxEdges) {
+        const scale = Math.min(1, maxEdge / Math.max(originalW, originalH));
+        const w = Math.max(1, Math.round(originalW * scale));
+        const h = Math.max(1, Math.round(originalH * scale));
+
+        canvas.width = w;
+        canvas.height = h;
+        ctx.clearRect(0, 0, w, h);
+        ctx.drawImage(bitmap, 0, 0, w, h);
+
+        for (const q of qualities) {
+          const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", q));
+          if (!blob) {
+            continue;
+          }
+          if (!best || blob.size < best.size) {
+            best = { blob, size: blob.size };
+          }
+          if (blob.size <= MAX_BYTES) {
+            return new File([blob], `maintenance_${Date.now()}.jpg`, { type: "image/jpeg", lastModified: Date.now() });
+          }
+        }
+      }
+
+      if (best && best.size <= MAX_BYTES) {
+        return new File([best.blob], `maintenance_${Date.now()}.jpg`, { type: "image/jpeg", lastModified: Date.now() });
+      }
+      throw new Error("too_large");
+    }
+
+    document.getElementById("captureOdometerBtn").addEventListener("click", () => {
+      document.getElementById("odometerImageInput").click();
+    });
+
+    document.getElementById("odometerImageInput").addEventListener("change", async function () {
+      const file = this.files && this.files[0] ? this.files[0] : null;
+      compressedOdometerFile = null;
+      _cleanupOdometerPreview();
+      document.getElementById("odometerPreview").classList.add("hidden");
+
+      if (!file) {
+        return;
+      }
+      try {
+        const compressed = await compressOdometerImage(file);
+        compressedOdometerFile = compressed;
+        odometerPreviewUrl = URL.createObjectURL(compressed);
+        document.getElementById("odometerPreviewImg").src = odometerPreviewUrl;
+        document.getElementById("odometerPreviewImg").alt = currentLang === "ar" ? "معاينة صورة العداد" : "Odometer preview";
+        document.getElementById("odometerPreviewMeta").textContent = `${Math.round(compressed.size / 1024)}KB • ${compressed.type}`;
+        document.getElementById("odometerPreview").classList.remove("hidden");
+      } catch (e) {
+        _pushMileageLog("error", translations[currentLang].log_err_image, { error: String(e && e.message ? e.message : e) });
+        const msg = e && e.message === "too_large" ? translations[currentLang].err_odometer_too_large : translations[currentLang].err_odometer_invalid;
+        alert(msg);
+        this.value = "";
+      }
+    });
+
+    window.addEventListener("odometer:completed", (ev) => {
+      const detail = (ev && ev.detail) || {};
+      const localFile = detail.localFile || null;
+      const imageUrl = detail.imageUrl || "";
+
+      const wrap = document.getElementById("successOdometerWrap");
+      const img = document.getElementById("successOdometerImg");
+      const meta = document.getElementById("successOdometerMeta");
+      const status = document.getElementById("successOdometerStatus");
+
+      if (!wrap || !img || !meta || !status) {
+        return;
+      }
+
+      wrap.classList.remove("hidden");
+      status.textContent = "";
+
+      if (localFile) {
+        const localUrl = URL.createObjectURL(localFile);
+        img.src = localUrl;
+        img.alt = currentLang === "ar" ? "صورة العداد المرسلة" : "Submitted odometer image";
+        meta.textContent = `${Math.round(localFile.size / 1024)}KB • ${localFile.type}`;
+        _pushMileageLog("info", translations[currentLang].log_ok_local, { bytes: localFile.size });
+        requestAnimationFrame(() => {
+          if (mileageSubmitStartedAt) {
+            _pushMileageLog("info", "rendered", { ttfp_ms: Math.round(performance.now() - mileageSubmitStartedAt) });
+          }
+        });
+      }
+
+      if (!imageUrl) {
+        return;
+      }
+
+      const probe = new Image();
+      probe.onload = () => {
+        img.src = imageUrl;
+        status.textContent = translations[currentLang].log_ok_remote;
+        _pushMileageLog("info", translations[currentLang].log_ok_remote, { url: imageUrl });
+      };
+      probe.onerror = () => {
+        status.textContent = translations[currentLang].log_err_remote;
+        _pushMileageLog("error", translations[currentLang].log_err_remote, { url: imageUrl });
+      };
+      probe.src = imageUrl;
+    });
 
     // Tabs logic
     function switchTab(tab) {
@@ -260,49 +554,151 @@
       document.getElementById('mileageForm').reset();
       document.getElementById('maintenanceForm').reset();
       document.getElementById('imagePreviewContainer').innerHTML = '';
-      document.getElementById('charCount').textContent = '0/500';
+      document.getElementById('charCount').textContent = '0/1000';
+      _cleanupOdometerPreview();
+      compressedOdometerFile = null;
+      document.getElementById("odometerPreview").classList.add("hidden");
+      document.getElementById("successOdometerWrap").classList.add("hidden");
+      document.getElementById("mileageLogWrap").classList.add("hidden");
+      const logEl = document.getElementById("mileageLog");
+      if (logEl) {
+        logEl.innerHTML = "";
+        logEl.classList.add("hidden");
+      }
+      compressedMaintenanceFiles = [];
+      const progress = document.getElementById("maintenanceProgress");
+      if (progress) {
+        progress.classList.add("hidden");
+      }
+      _setMaintenanceBusy(false);
       switchTab('mileage');
     }
 
     // Character counter
     document.getElementById('descriptionInput').addEventListener('input', function() {
-      document.getElementById('charCount').textContent = `${this.value.length}/500`;
+      document.getElementById('charCount').textContent = `${this.value.length}/1000`;
     });
 
-    // Image preview & validation
-    document.getElementById('imagesInput').addEventListener('change', function() {
+    document.getElementById('imagesInput').addEventListener('change', async function() {
+      if (maintenanceBusy) {
+        return;
+      }
       const container = document.getElementById('imagePreviewContainer');
+      const progress = document.getElementById("maintenanceProgress");
+      const progressText = document.getElementById("maintenanceProgressText");
+      const progressMeta = document.getElementById("maintenanceProgressMeta");
+      const progressBar = document.getElementById("maintenanceProgressBar");
+
       container.innerHTML = '';
-      const files = Array.from(this.files);
-      
-      if (files.length > 10) {
+      compressedMaintenanceFiles = [];
+
+      const files = Array.from(this.files || []);
+      if (files.length < 1 || files.length > 10) {
         alert(translations[currentLang].err_images_count);
         this.value = '';
         return;
       }
 
-      files.forEach(file => {
-        if (file.size > 5 * 1024 * 1024) {
-          alert(translations[currentLang].err_images_size);
+      for (const f of files) {
+        if (!["image/jpeg", "image/png"].includes(f.type)) {
+          alert(translations[currentLang].err_images_type);
           this.value = '';
-          container.innerHTML = '';
           return;
         }
-        const reader = new FileReader();
-        reader.onload = (e) => {
+      }
+
+      if (progress) {
+        progress.classList.remove("hidden");
+      }
+      if (progressBar) {
+        progressBar.style.width = "0%";
+      }
+      if (progressText) {
+        progressText.textContent = "0%";
+      }
+      if (progressMeta) {
+        progressMeta.textContent = "";
+      }
+
+      _setMaintenanceBusy(true);
+      try {
+        let totalBytes = 0;
+        for (let i = 0; i < files.length; i++) {
+          const f = files[i];
+          if (progressMeta) {
+            progressMeta.textContent = `${i + 1}/${files.length}`;
+          }
+
+          let compressed;
+          try {
+            compressed = await compressMaintenanceImage(f);
+          } catch (_e) {
+            alert(translations[currentLang].err_images_compress);
+            this.value = '';
+            container.innerHTML = '';
+            if (progress) {
+              progress.classList.add("hidden");
+            }
+            return;
+          }
+
+          totalBytes += compressed.size;
+          if (totalBytes > 3 * 1024 * 1024) {
+            alert(translations[currentLang].err_images_total);
+            this.value = '';
+            container.innerHTML = '';
+            if (progress) {
+              progress.classList.add("hidden");
+            }
+            return;
+          }
+
+          compressedMaintenanceFiles.push(compressed);
+
+          const url = URL.createObjectURL(compressed);
           const img = document.createElement('img');
-          img.src = e.target.result;
+          img.src = url;
+          img.alt = currentLang === "ar" ? "صورة العطل" : "Issue image";
+          img.loading = "lazy";
+          img.decoding = "async";
+          img.onerror = () => img.remove();
           container.appendChild(img);
-        };
-        reader.readAsDataURL(file);
-      });
+
+          const pct = Math.round(((i + 1) / files.length) * 100);
+          if (progressBar) {
+            progressBar.style.width = `${pct}%`;
+          }
+          if (progressText) {
+            progressText.textContent = `${pct}%`;
+          }
+        }
+      } finally {
+        _setMaintenanceBusy(false);
+      }
     });
 
     async function submitMileage(e) {
       e.preventDefault();
       document.getElementById('loadingOverlay').classList.remove('hidden');
+      mileageSubmitStartedAt = performance.now();
+      mileageLogItems = [];
+      const logEl = document.getElementById("mileageLog");
+      const logWrap = document.getElementById("mileageLogWrap");
+      if (logEl) {
+        logEl.innerHTML = "";
+        logEl.classList.add("hidden");
+      }
+      if (logWrap) {
+        logWrap.classList.remove("hidden");
+      }
       
       const formData = new FormData(e.target);
+      if (!compressedOdometerFile) {
+        document.getElementById('loadingOverlay').classList.add('hidden');
+        alert(translations[currentLang].err_odometer_required);
+        return;
+      }
+      formData.append("odometerImage", compressedOdometerFile);
       try {
         const res = await fetch(`/api/r/${token}/mileage/`, {
           method: 'POST',
@@ -319,11 +715,22 @@
           document.getElementById('successText').textContent = translations[currentLang].success_mileage_text;
           document.getElementById('successMessage').classList.remove('hidden');
           document.getElementById('successMessage').classList.add('flex');
+          window.dispatchEvent(
+            new CustomEvent("odometer:completed", {
+              detail: {
+                requestId: data.request_id,
+                imageUrl: data.image_url,
+                receivedAt: data.received_at,
+                localFile: compressedOdometerFile,
+              },
+            })
+          );
         } else {
           alert(data.error || translations[currentLang].err_generic);
         }
       } catch (err) {
         document.getElementById('loadingOverlay').classList.add('hidden');
+        _pushMileageLog("error", translations[currentLang].log_err_network, { error: String(err) });
         alert(translations[currentLang].err_generic);
       }
     }
@@ -331,15 +738,34 @@
     async function submitMaintenance(e) {
       e.preventDefault();
       
-      const files = document.getElementById('imagesInput').files;
-      if (files.length < 2) {
+      if (maintenanceBusy) {
+        return;
+      }
+
+      const description = (document.getElementById("descriptionInput").value || "").trim();
+      if (description.length < 20 || description.length > 1000) {
+        alert(translations[currentLang].err_description_len);
+        return;
+      }
+
+      if (compressedMaintenanceFiles.length < 1 || compressedMaintenanceFiles.length > 10) {
         alert(translations[currentLang].err_images_count);
+        return;
+      }
+      const totalBytes = compressedMaintenanceFiles.reduce((s, f) => s + (f.size || 0), 0);
+      if (totalBytes > 3 * 1024 * 1024) {
+        alert(translations[currentLang].err_images_total);
         return;
       }
 
       document.getElementById('loadingOverlay').classList.remove('hidden');
       
-      const formData = new FormData(e.target);
+      const formData = new FormData();
+      formData.append("csrfmiddlewaretoken", csrfToken);
+      formData.append("description", description);
+      for (const f of compressedMaintenanceFiles) {
+        formData.append("images", f);
+      }
       try {
         const res = await fetch(`/api/r/${token}/maintenance/`, {
           method: 'POST',
