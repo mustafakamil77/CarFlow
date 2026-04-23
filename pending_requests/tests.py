@@ -90,7 +90,8 @@ class PendingRequestTests(TestCase):
         self.client.login(username="staffuser", password="password")
         response = self.client.get(reverse("pending_requests:request_detail", args=["mileage", self.pending_mileage_report.pk]))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, str(self.pending_mileage_report.mileage))
+        content = response.content.decode("utf-8").replace(",", "")
+        self.assertIn(str(self.pending_mileage_report.mileage), content)
         self.assertTemplateUsed(response, "pending_requests/request_detail.html")
 
         response = self.client.get(reverse("pending_requests:request_detail", args=["maintenance", self.pending_maintenance_report.pk]))

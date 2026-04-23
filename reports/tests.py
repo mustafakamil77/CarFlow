@@ -3,9 +3,11 @@ from io import BytesIO
 import math
 
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 
+from accounts.models import Region
 from fleet.models import Car, CarEvent
 
 from .models import VehicleInspection
@@ -182,6 +184,23 @@ class VehicleQRReportTests(TestCase):
         qr_response = self.client.get(reverse("qr_vehicle_report", kwargs={"token": car.qr_token}))
         self.assertEqual(qr_response.status_code, 200)
 
+    def test_dashboard_analytics_api_requires_login(self):
+        response = self.client.get(reverse("reports:analytics_api"))
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/accounts/login/", response["Location"])
+
+    def test_dashboard_analytics_api_returns_payload_when_logged_in(self):
+        User = get_user_model()
+        user = User.objects.create_user(username="dash", password="x")
+        self.client.force_login(user)
+        response = self.client.get(reverse("reports:analytics_api"))
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertIn("kpis", payload)
+        self.assertIn("charts", payload)
+        self.assertIn("activity", payload)
+        self.assertIn("alerts", payload)
+
     def test_qr_vehicle_report_form_hides_vehicle_fields(self):
         car = Car.objects.create(
             plate_number="TEST-QR-HIDE",
@@ -228,6 +247,73 @@ class VehicleQRReportTests(TestCase):
         big = SimpleUploadedFile("big.jpg", b"x" * (110 * 1024), content_type="image/jpeg")
         response = self.client.post(url, data={"mileage": 12345, "odometerImage": big})
         self.assertEqual(response.status_code, 400)
+
+    def test_vehicles_qr_pdf_by_region(self):
+        User = get_user_model()
+        user = User.objects.create_user(username="pdf", password="x")
+        self.client.force_login(user)
+
+        region = Region.objects.create(code="R1", name="Region One")
+        cars = []
+        for i in range(13):
+            cars.append(
+                Car.objects.create(
+                    plate_number=f"PDF-{i:02d}",
+                    brand="Test",
+                    vehicle_type="Sedan",
+                    year=2025,
+                    vin="",
+                    status="available",
+                    qr_enabled=True,
+                    region=region,
+                )
+            )
+
+        url = reverse("reports:vehicles_qr_pdf") + f"?region={region.pk}"
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "application/pdf")
+        content = response.content
+        self.assertTrue(content.startswith(b"%PDF"))
+        self.assertIn(b"Vehicle QR Codes - R1 - Region One", content)
+        self.assertIn(b"Page 1", content)
+        self.assertIn(b"Page 2", content)
+        self.assertIn(f"V-{cars[0].pk}".encode("utf-8"), content)
+
+    def test_vehicles_export_csv_and_xlsx(self):
+        User = get_user_model()
+        user = User.objects.create_user(username="exp", password="x")
+        self.client.force_login(user)
+
+        region = Region.objects.create(code="R2", name="Region Two")
+        car = Car.objects.create(
+            plate_number="CSV-01",
+            brand="Test",
+            vehicle_type="Sedan",
+            year=2025,
+            vin="",
+            status="available",
+            qr_enabled=True,
+            region=region,
+        )
+
+        csv_url = reverse("reports:vehicles_export") + f"?format=csv&region={region.pk}"
+        csv_resp = self.client.get(csv_url)
+        self.assertEqual(csv_resp.status_code, 200)
+        self.assertIn("text/csv", csv_resp["Content-Type"])
+        self.assertIn(b"Vehicle ID", csv_resp.content)
+        self.assertIn(f"V-{car.pk}".encode("utf-8"), csv_resp.content)
+
+        xlsx_url = reverse("reports:vehicles_export") + f"?format=xlsx&region={region.pk}"
+        xlsx_resp = self.client.get(xlsx_url)
+        self.assertEqual(xlsx_resp.status_code, 200)
+        self.assertIn("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", xlsx_resp["Content-Type"])
+        self.assertTrue(xlsx_resp.content.startswith(b"PK"))
+
+        pdf_url = reverse("reports:vehicles_export") + f"?format=pdf&region={region.pk}"
+        pdf_resp = self.client.get(pdf_url)
+        self.assertEqual(pdf_resp.status_code, 302)
+        self.assertIn(reverse("reports:vehicles_qr_pdf"), pdf_resp["Location"])
 
     def test_reference_compression_4k_under_100kb_with_psnr(self):
         def psnr(a, b):
