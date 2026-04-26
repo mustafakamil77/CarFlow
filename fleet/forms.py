@@ -146,9 +146,97 @@ class CarHandoverForm(forms.Form):
     )
     start_odometer = forms.IntegerField(widget=forms.NumberInput(attrs={"class": "border rounded p-2 w-full", "min": "0", "step": "1"}))
     notes = forms.CharField(required=False, widget=forms.Textarea(attrs={"class": "border rounded p-2 w-full", "rows": 4}))
-    image_front = forms.ImageField(required=False, widget=forms.ClearableFileInput(attrs={"class": "block w-full text-sm border rounded p-2"}))
-    image_rear = forms.ImageField(required=False, widget=forms.ClearableFileInput(attrs={"class": "block w-full text-sm border rounded p-2"}))
-    image_interior = forms.ImageField(required=False, widget=forms.ClearableFileInput(attrs={"class": "block w-full text-sm border rounded p-2"}))
+    image_front = forms.ImageField(
+        required=False,
+        widget=forms.ClearableFileInput(
+            attrs={
+                "class": "block w-full text-sm border rounded p-2",
+                "accept": "image/jpeg,image/png",
+            }
+        ),
+    )
+    image_rear = forms.ImageField(
+        required=False,
+        widget=forms.ClearableFileInput(
+            attrs={
+                "class": "block w-full text-sm border rounded p-2",
+                "accept": "image/jpeg,image/png",
+            }
+        ),
+    )
+    image_left = forms.ImageField(
+        required=False,
+        widget=forms.ClearableFileInput(
+            attrs={
+                "class": "block w-full text-sm border rounded p-2",
+                "accept": "image/jpeg,image/png",
+            }
+        ),
+    )
+    image_right = forms.ImageField(
+        required=False,
+        widget=forms.ClearableFileInput(
+            attrs={
+                "class": "block w-full text-sm border rounded p-2",
+                "accept": "image/jpeg,image/png",
+            }
+        ),
+    )
+    image_interior = forms.ImageField(
+        required=False,
+        widget=forms.ClearableFileInput(
+            attrs={
+                "class": "block w-full text-sm border rounded p-2",
+                "accept": "image/jpeg,image/png",
+            }
+        ),
+    )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        max_bytes = 150 * 1024
+        allowed_types = {"image/jpeg", "image/png"}
+        for field_name in ("image_front", "image_rear", "image_left", "image_right", "image_interior"):
+            f = cleaned_data.get(field_name)
+            if not f:
+                continue
+            content_type = getattr(f, "content_type", None)
+            if content_type and content_type not in allowed_types:
+                self.add_error(field_name, "Only JPEG and PNG images are allowed.")
+                continue
+            if getattr(f, "size", 0) > max_bytes:
+                self.add_error(field_name, "Image size must be 150KB or less.")
+        return cleaned_data
+
+
+class CarHandoverEventEditForm(forms.ModelForm):
+    driver = forms.ModelChoiceField(
+        queryset=Employee.objects.select_related("user").all(),
+        widget=forms.Select(attrs={"class": "border rounded p-2 w-full"}),
+    )
+
+    class Meta:
+        model = CarEvent
+        fields = ["odometer", "notes"]
+        widgets = {
+            "odometer": forms.NumberInput(attrs={"class": "border rounded p-2 w-full", "min": "0", "step": "1"}),
+            "notes": forms.Textarea(attrs={"class": "border rounded p-2 w-full", "rows": 4}),
+        }
+
+    def __init__(self, *args, assignment=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.assignment = assignment
+        if assignment is not None:
+            self.fields["driver"].initial = assignment.driver_id
+        self.fields["odometer"].required = False
+
+    def clean_odometer(self):
+        odometer = self.cleaned_data.get("odometer")
+        if odometer is None:
+            return odometer
+        if odometer < 0:
+            raise forms.ValidationError("Odometer must be 0 or greater.")
+        return odometer
 
 
 class CarReturnForm(forms.Form):

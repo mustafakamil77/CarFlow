@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block content %}
+<style>
+  @media print {
+    .no-print { display: none !important; }
+    body { background: white !important; }
+    .print-container { padding: 0 !important; }
+    .print-card { box-shadow: none !important; border: 0 !important; border-radius: 0 !important; padding: 0 !important; }
+    a[href]:after { content: "" !important; }
+  }
+</style>
+<div class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 print-container">
+  <section class="max-w-5xl mx-auto bg-white rounded-lg shadow-sm border border-gray-200 p-6 sm:p-8 print-card">
+    <div class="no-print flex items-center justify-between gap-3 mb-4">
+      <div class="text-sm text-gray-600">عرض الصفحة في شكل تقرير</div>
+      <div class="flex items-center gap-2">
+        <button type="button" id="printBtn" class="rounded-md bg-gray-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-black">طباعة</button>
+        <button type="button" id="closeBtn" class="rounded-md bg-white px-4 py-2 text-sm font-semibold text-gray-700 border border-gray-300 shadow-sm hover:bg-gray-50">إغلاق</button>
+      </div>
+    </div>
+
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div>
+        <h1 class="text-xl font-bold text-gray-900">تفاصيل التسليم</h1>
+        <div class="text-sm text-gray-600 mt-1">{{ car.plate_number }} — {{ car.brand }} {{ car.vehicle_type }} ({{ car.year }})</div>
+      </div>
+      <div class="no-print flex flex-wrap items-center gap-2">
+        <a href="{% url 'fleet:car_detail' car.pk %}" class="rounded-md bg-white px-4 py-2 text-sm font-semibold text-gray-700 border border-gray-300 shadow-sm hover:bg-gray-50">رجوع</a>
+        <a href="{% url 'fleet:handover_edit' car.pk event.pk %}" class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700">تعديل</a>
+        <form method="post" action="{% url 'fleet:handover_delete' car.pk event.pk %}" onsubmit="return confirm('هل أنت متأكد من حذف سجل التسليم؟');">
+          {% csrf_token %}
+          <button type="submit" class="rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-700">حذف</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+      <div class="lg:col-span-2">
+        <section class="rounded-lg border border-gray-200 bg-white p-5">
+          <h2 class="text-lg font-semibold text-gray-900 mb-4">بيانات التسليم</h2>
+          <dl class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+            <div class="rounded-md bg-gray-50 border border-gray-100 p-4">
+              <dt class="text-gray-500">تاريخ التسليم</dt>
+              <dd class="font-semibold text-gray-900 mt-1">{{ event.created_at|date:"Y-m-d H:i" }}</dd>
+            </div>
+            <div class="rounded-md bg-gray-50 border border-gray-100 p-4">
+              <dt class="text-gray-500">العداد</dt>
+              <dd class="font-semibold text-gray-900 mt-1">{{ event.odometer|default:"-"|intcomma }}</dd>
+            </div>
+            <div class="rounded-md bg-gray-50 border border-gray-100 p-4">
+              <dt class="text-gray-500">حالة السيارة</dt>
+              <dd class="font-semibold text-gray-900 mt-1">{{ car.status }}</dd>
+            </div>
+            <div class="rounded-md bg-gray-50 border border-gray-100 p-4">
+              <dt class="text-gray-500">السائق</dt>
+              <dd class="font-semibold text-gray-900 mt-1">
+                {% if assignment %}
+                  {% if assignment.driver.user %}
+                    {{ assignment.driver.user.get_full_name|default:assignment.driver.user.username }}
+                  {% else %}
+                    {{ assignment.driver.first_name }} {{ assignment.driver.last_name }}
+                  {% endif %}
+                {% else %}
+                  -
+                {% endif %}
+              </dd>
+            </div>
+            <div class="rounded-md bg-gray-50 border border-gray-100 p-4">
+              <dt class="text-gray-500">رقم هوية السائق</dt>
+              <dd class="font-semibold text-gray-900 mt-1">
+                {% if assignment %}
+                  {{ assignment.driver.license_number|default:assignment.driver.id }}
+                {% else %}
+                  -
+                {% endif %}
+              </dd>
+            </div>
+          </dl>
+
+          <div class="mt-5">
+            <div class="text-sm font-semibold text-gray-900 mb-2">الملاحظات</div>
+            <div class="rounded-md border border-gray-200 bg-white p-4 text-sm text-gray-700 whitespace-pre-line">{{ event.notes|default:"-" }}</div>
+          </div>
+        </section>
+
+        <section class="rounded-lg border border-gray-200 bg-white p-5 mt-6">
+          <h2 class="text-lg font-semibold text-gray-900 mb-4">معرض الصور وقت التسليم</h2>
+          {% if images %}
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              {% for img in images %}
+              <figure class="border rounded p-2 bg-white">
+                <a href="{{ img.image.url }}" target="_blank" rel="noopener">
+                  <img src="{{ img.image.url }}" alt="{{ img.caption|default:'Handover image' }}" class="w-full h-40 object-cover rounded">
+                </a>
+                <div class="mt-1 text-xs text-gray-500">
+                  {% if img.caption %}{{ img.caption }}{% else %}-{% endif %}
+                </div>
+              </figure>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="text-sm text-gray-600">لا توجد صور لهذا التسليم</div>
+          {% endif %}
+        </section>
+      </div>
+
+      
+    </div>
+  </section>
+</div>
+<script>
+  (function () {
+    const printBtn = document.getElementById("printBtn");
+    const closeBtn = document.getElementById("closeBtn");
+
+    if (printBtn) {
+      printBtn.addEventListener("click", function () {
+        window.print();
+      });
+    }
+
+    if (closeBtn) {
+      closeBtn.addEventListener("click", function () {
+        if (window.opener && !window.opener.closed) {
+          window.close();
+          return;
+        }
+        history.back();
+      });
+    }
+  })();
+</script>
+{% endblock %}

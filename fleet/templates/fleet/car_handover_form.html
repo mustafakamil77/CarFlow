@@ -22,17 +22,60 @@
           <label class="block text-sm font-semibold text-gray-700">Notes</label>
           {{ form.notes }}
         </div>
-        <div class="space-y-1">
+        <div class="space-y-2">
           <label class="block text-sm font-semibold text-gray-700">Front Image</label>
           {{ form.image_front }}
+          <p class="text-xs text-gray-500">Allowed: JPEG/PNG. Will be compressed to max 150KB.</p>
+          {% if form.image_front.errors %}
+          <p class="text-sm text-red-600">{{ form.image_front.errors|striptags }}</p>
+          {% endif %}
+          <p id="image_front_error" class="hidden text-sm text-red-600"></p>
+          <img id="image_front_preview" class="hidden h-32 w-full rounded border border-gray-200 object-contain bg-gray-50" alt="Front Image preview" />
+          <p id="image_front_meta" class="hidden text-xs text-gray-500"></p>
         </div>
-        <div class="space-y-1">
+        <div class="space-y-2">
           <label class="block text-sm font-semibold text-gray-700">Rear Image</label>
           {{ form.image_rear }}
+          <p class="text-xs text-gray-500">Allowed: JPEG/PNG. Will be compressed to max 150KB.</p>
+          {% if form.image_rear.errors %}
+          <p class="text-sm text-red-600">{{ form.image_rear.errors|striptags }}</p>
+          {% endif %}
+          <p id="image_rear_error" class="hidden text-sm text-red-600"></p>
+          <img id="image_rear_preview" class="hidden h-32 w-full rounded border border-gray-200 object-contain bg-gray-50" alt="Rear Image preview" />
+          <p id="image_rear_meta" class="hidden text-xs text-gray-500"></p>
         </div>
-        <div class="space-y-1 md:col-span-2">
+        <div class="space-y-2">
+          <label class="block text-sm font-semibold text-gray-700">صورة الجانب الأيسر</label>
+          {{ form.image_left }}
+          <p class="text-xs text-gray-500">Allowed: JPEG/PNG. Will be compressed to max 150KB.</p>
+          {% if form.image_left.errors %}
+          <p class="text-sm text-red-600">{{ form.image_left.errors|striptags }}</p>
+          {% endif %}
+          <p id="image_left_error" class="hidden text-sm text-red-600"></p>
+          <img id="image_left_preview" class="hidden h-32 w-full rounded border border-gray-200 object-contain bg-gray-50" alt="Left Side Image preview" />
+          <p id="image_left_meta" class="hidden text-xs text-gray-500"></p>
+        </div>
+        <div class="space-y-2">
+          <label class="block text-sm font-semibold text-gray-700">صورة الجانب الأيمن</label>
+          {{ form.image_right }}
+          <p class="text-xs text-gray-500">Allowed: JPEG/PNG. Will be compressed to max 150KB.</p>
+          {% if form.image_right.errors %}
+          <p class="text-sm text-red-600">{{ form.image_right.errors|striptags }}</p>
+          {% endif %}
+          <p id="image_right_error" class="hidden text-sm text-red-600"></p>
+          <img id="image_right_preview" class="hidden h-32 w-full rounded border border-gray-200 object-contain bg-gray-50" alt="Right Side Image preview" />
+          <p id="image_right_meta" class="hidden text-xs text-gray-500"></p>
+        </div>
+        <div class="space-y-2 md:col-span-2">
           <label class="block text-sm font-semibold text-gray-700">Interior Image</label>
           {{ form.image_interior }}
+          <p class="text-xs text-gray-500">Allowed: JPEG/PNG. Will be compressed to max 150KB.</p>
+          {% if form.image_interior.errors %}
+          <p class="text-sm text-red-600">{{ form.image_interior.errors|striptags }}</p>
+          {% endif %}
+          <p id="image_interior_error" class="hidden text-sm text-red-600"></p>
+          <img id="image_interior_preview" class="hidden h-40 w-full rounded border border-gray-200 object-contain bg-gray-50" alt="Interior Image preview" />
+          <p id="image_interior_meta" class="hidden text-xs text-gray-500"></p>
         </div>
       </div>
       {% if form.non_field_errors %}
@@ -45,4 +88,279 @@
     </form>
   </section>
 </div>
+<script>
+  // Client-side compression & validation for handover images:
+  // - Accept only JPEG/PNG
+  // - Compress to JPEG under 150KB
+  // - Show preview and clear error messages per field
+  (function () {
+    const MAX_BYTES = 150 * 1024;
+    const ALLOWED_TYPES = new Set(["image/jpeg", "image/png"]);
+    const FIELDS = ["image_front", "image_rear", "image_left", "image_right", "image_interior"];
+    const state = new Map();
+
+    function byId(id) {
+      return document.getElementById(id);
+    }
+
+    function setVisible(el, visible) {
+      if (!el) return;
+      el.classList.toggle("hidden", !visible);
+    }
+
+    function setText(el, text) {
+      if (!el) return;
+      el.textContent = text || "";
+    }
+
+    function clearError(field) {
+      const el = byId(field + "_error");
+      setText(el, "");
+      setVisible(el, false);
+    }
+
+    function showError(field, message) {
+      const el = byId(field + "_error");
+      setText(el, message);
+      setVisible(el, true);
+    }
+
+    function setMeta(field, message) {
+      const el = byId(field + "_meta");
+      setText(el, message);
+      setVisible(el, Boolean(message));
+    }
+
+    function revokePreviewUrl(field) {
+      const prev = state.get(field);
+      if (prev && prev.previewUrl) {
+        URL.revokeObjectURL(prev.previewUrl);
+      }
+    }
+
+    function setPreview(field, file) {
+      const img = byId(field + "_preview");
+      if (!img) return;
+      revokePreviewUrl(field);
+      const url = URL.createObjectURL(file);
+      img.src = url;
+      setVisible(img, true);
+      state.set(field, { ...(state.get(field) || {}), previewUrl: url });
+    }
+
+    function clearPreview(field) {
+      const img = byId(field + "_preview");
+      revokePreviewUrl(field);
+      if (img) img.removeAttribute("src");
+      setVisible(img, false);
+      setMeta(field, "");
+    }
+
+    function bytesToKb(bytes) {
+      return Math.round((bytes / 1024) * 10) / 10;
+    }
+
+    function canvasToBlob(canvas, type, quality) {
+      return new Promise((resolve, reject) => {
+        if (canvas.toBlob) {
+          canvas.toBlob(
+            (blob) => (blob ? resolve(blob) : reject(new Error("toBlob returned null"))),
+            type,
+            quality
+          );
+          return;
+        }
+        try {
+          const dataUrl = canvas.toDataURL(type, quality);
+          const parts = dataUrl.split(",");
+          const byteString = atob(parts[1]);
+          const arrayBuffer = new ArrayBuffer(byteString.length);
+          const intArray = new Uint8Array(arrayBuffer);
+          for (let i = 0; i < byteString.length; i++) intArray[i] = byteString.charCodeAt(i);
+          resolve(new Blob([arrayBuffer], { type }));
+        } catch (e) {
+          reject(e);
+        }
+      });
+    }
+
+    function loadImageBitmap(file) {
+      if ("createImageBitmap" in window) {
+        return createImageBitmap(file);
+      }
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        const url = URL.createObjectURL(file);
+        img.onload = () => {
+          URL.revokeObjectURL(url);
+          resolve(img);
+        };
+        img.onerror = () => {
+          URL.revokeObjectURL(url);
+          reject(new Error("Image load failed"));
+        };
+        img.src = url;
+      });
+    }
+
+    function drawToCanvas(source, targetMaxDim) {
+      const srcW = source.width;
+      const srcH = source.height;
+      const scale = Math.min(1, targetMaxDim / Math.max(srcW, srcH));
+      const w = Math.max(1, Math.round(srcW * scale));
+      const h = Math.max(1, Math.round(srcH * scale));
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d", { alpha: false });
+      ctx.drawImage(source, 0, 0, w, h);
+      return canvas;
+    }
+
+    function downscaleCanvas(canvas, factor) {
+      const w = Math.max(1, Math.round(canvas.width * factor));
+      const h = Math.max(1, Math.round(canvas.height * factor));
+      const next = document.createElement("canvas");
+      next.width = w;
+      next.height = h;
+      const ctx = next.getContext("2d", { alpha: false });
+      ctx.drawImage(canvas, 0, 0, w, h);
+      return next;
+    }
+
+    async function compressUnderLimit(file) {
+      const originalBitmap = await loadImageBitmap(file);
+      let canvas = drawToCanvas(originalBitmap, 1600);
+      if (originalBitmap && typeof originalBitmap.close === "function") {
+        originalBitmap.close();
+      }
+
+      let quality = 0.86;
+      let blob = await canvasToBlob(canvas, "image/jpeg", quality);
+
+      for (let i = 0; i < 12 && blob.size > MAX_BYTES; i++) {
+        quality = Math.max(0.4, quality - 0.06);
+        blob = await canvasToBlob(canvas, "image/jpeg", quality);
+      }
+
+      for (let i = 0; i < 8 && blob.size > MAX_BYTES && Math.max(canvas.width, canvas.height) > 640; i++) {
+        canvas = downscaleCanvas(canvas, 0.85);
+        quality = 0.84;
+        blob = await canvasToBlob(canvas, "image/jpeg", quality);
+        for (let j = 0; j < 10 && blob.size > MAX_BYTES; j++) {
+          quality = Math.max(0.4, quality - 0.06);
+          blob = await canvasToBlob(canvas, "image/jpeg", quality);
+        }
+      }
+
+      return { blob, width: canvas.width, height: canvas.height, quality };
+    }
+
+    function replaceInputFile(input, file) {
+      if (!("DataTransfer" in window)) {
+        throw new Error("DataTransfer not supported");
+      }
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      input.files = dt.files;
+    }
+
+    async function handleFileChange(field) {
+      const input = byId("id_" + field);
+      if (!input) return;
+
+      clearError(field);
+      const file = input.files && input.files[0];
+      if (!file) {
+        clearPreview(field);
+        return;
+      }
+
+      if (!ALLOWED_TYPES.has(file.type)) {
+        input.value = "";
+        clearPreview(field);
+        showError(field, "صيغة غير مدعومة. الرجاء اختيار صورة JPEG أو PNG فقط.");
+        return;
+      }
+
+      state.set(field, { ...(state.get(field) || {}), pending: true });
+      setMeta(field, "جاري ضغط الصورة...");
+
+      try {
+        if (file.size <= MAX_BYTES) {
+          setPreview(field, file);
+          setMeta(field, "الحجم الحالي: " + bytesToKb(file.size) + "KB");
+          state.set(field, { ...(state.get(field) || {}), pending: false });
+          return;
+        }
+
+        const { blob, width, height } = await compressUnderLimit(file);
+
+        if (blob.size > MAX_BYTES) {
+          input.value = "";
+          clearPreview(field);
+          showError(field, "تعذر ضغط الصورة إلى أقل من 150KB. الرجاء اختيار صورة أصغر أو أقل دقة.");
+          state.set(field, { ...(state.get(field) || {}), pending: false });
+          return;
+        }
+
+        const safeBaseName = (file.name || field).replace(/\.[^/.]+$/, "");
+        const compressedFile = new File([blob], safeBaseName + ".jpg", { type: "image/jpeg" });
+        replaceInputFile(input, compressedFile);
+        setPreview(field, compressedFile);
+        setMeta(field, "بعد الضغط: " + bytesToKb(compressedFile.size) + "KB (" + width + "×" + height + ")");
+        state.set(field, { ...(state.get(field) || {}), pending: false });
+      } catch (e) {
+        input.value = "";
+        clearPreview(field);
+        showError(field, "حدث خطأ أثناء ضغط الصورة. الرجاء المحاولة مرة أخرى أو استخدام متصفح حديث.");
+        state.set(field, { ...(state.get(field) || {}), pending: false });
+      }
+    }
+
+    function attach() {
+      const form = document.querySelector('form[enctype="multipart/form-data"]');
+      if (!form) return;
+
+      for (const field of FIELDS) {
+        const input = byId("id_" + field);
+        if (!input) continue;
+        input.addEventListener("change", () => handleFileChange(field));
+      }
+
+      form.addEventListener("submit", (e) => {
+        for (const field of FIELDS) {
+          const st = state.get(field);
+          if (st && st.pending) {
+            e.preventDefault();
+            showError(field, "يرجى الانتظار حتى يكتمل ضغط الصورة قبل الإرسال.");
+            return;
+          }
+
+          const input = byId("id_" + field);
+          const file = input && input.files && input.files[0];
+          if (!file) continue;
+
+          if (!ALLOWED_TYPES.has(file.type)) {
+            e.preventDefault();
+            showError(field, "صيغة غير مدعومة. الرجاء اختيار صورة JPEG أو PNG فقط.");
+            return;
+          }
+
+          if (file.size > MAX_BYTES) {
+            e.preventDefault();
+            showError(field, "حجم الصورة يتجاوز 150KB. الرجاء اختيار صورة أخرى أو إعادة تحديدها لضغطها.");
+            return;
+          }
+        }
+      });
+    }
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", attach);
+    } else {
+      attach();
+    }
+  })();
+</script>
 {% endblock %}

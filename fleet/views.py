@@ -6,12 +6,26 @@ from django.shortcuts import get_object_or_404, redirect
 from django.db.models import Q, Count, Sum
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from accounts.models import DriverAssignment, Region
-from .forms import CarImageForm, CarConditionForm, CarForm, CarImageFormSet, CarDocumentForm, CarEventForm, CarCostForm, CarHandoverForm, CarReturnForm, CarAccidentForm
+from .forms import (
+    CarImageForm,
+    CarConditionForm,
+    CarForm,
+    CarImageFormSet,
+    CarDocumentForm,
+    CarEventForm,
+    CarCostForm,
+    CarHandoverForm,
+    CarReturnForm,
+    CarAccidentForm,
+    CarHandoverEventEditForm,
+)
 from django import forms as dj_forms
-from django.urls import reverse_lazy
+from django.urls import reverse_lazy, reverse
 from django.utils import timezone
-from datetime import date
+from datetime import date, timedelta
 from .services import assign_driver_to_car, return_car, record_accident
+from django.http import Http404, HttpResponse
+from django.core.cache import cache
 
 
 class CarListView(LoginRequiredMixin, ListView):
@@ -92,6 +106,26 @@ class CarDetailView(LoginRequiredMixin, DetailView):
         context["assignment_history"] = list(
             car.assignments.select_related("driver__user").order_by("-start_date")[:10]
         )
+        handover_events = list(
+            car.events.filter(event_type="handover").order_by("-created_at")[:50]
+        )
+        handover_rows = []
+        for a in context["assignment_history"]:
+            matched = None
+            best_delta = None
+            for ev in handover_events:
+                if ev.odometer is None or ev.created_at is None:
+                    continue
+                if a.start_odometer != ev.odometer:
+                    continue
+                delta = abs((ev.created_at - a.start_date).total_seconds())
+                if delta > 120:
+                    continue
+                if best_delta is None or delta < best_delta:
+                    matched = ev
+                    best_delta = delta
+            handover_rows.append({"assignment": a, "event": matched})
+        context["handover_rows"] = handover_rows
         last_handover_event = car.events.filter(event_type="handover").prefetch_related("images").first()
         context["last_handover_event"] = last_handover_event
         if last_handover_event:
@@ -135,6 +169,278 @@ class CarDetailView(LoginRequiredMixin, DetailView):
             for item in month_costs.values("category").annotate(total=Sum("amount")).order_by("category")
         ]
         return context
+
+
+class ManagerRequiredMixin(UserPassesTestMixin):
+    def test_func(self):
+        return (
+            self.request.user.is_authenticated
+            and (
+                self.request.user.is_superuser
+                or self.request.user.groups.filter(name__in=["Manager", "Fleet Manager", "Admin"]).exists()
+            )
+        )
+
+
+def _build_handover_pdf_bytes(*, car, event, assignment, kind):
+    from io import BytesIO
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.units import mm
+    from reportlab.pdfgen import canvas
+
+    buffer = BytesIO()
+    c = canvas.Canvas(buffer, pagesize=A4)
+    width, height = A4
+
+    c.setFont("Helvetica-Bold", 14)
+    title = "Handover Report" if kind == "report" else "Driver Voucher"
+    c.drawString(20 * mm, height - 20 * mm, title)
+
+    c.setFont("Helvetica", 10)
+    c.drawString(20 * mm, height - 28 * mm, f"Car: {car.plate_number} — {car.brand} {car.vehicle_type} ({car.year})")
+    c.drawString(20 * mm, height - 34 * mm, f"VIN: {car.vin or '-'}")
+    c.drawString(20 * mm, height - 40 * mm, f"Status: {car.status}")
+
+    if assignment:
+        driver_label = ""
+        if assignment.driver.user:
+            driver_label = assignment.driver.user.get_full_name() or assignment.driver.user.username
+        else:
+            driver_label = f"{assignment.driver.first_name} {assignment.driver.last_name}".strip() or str(assignment.driver)
+        c.drawString(20 * mm, height - 48 * mm, f"Driver: {driver_label}")
+        c.drawString(20 * mm, height - 54 * mm, f"License: {assignment.driver.license_number or '-'}")
+        c.drawString(20 * mm, height - 60 * mm, f"Start: {timezone.localtime(assignment.start_date).strftime('%Y-%m-%d %H:%M')}")
+        end_str = timezone.localtime(assignment.end_date).strftime("%Y-%m-%d %H:%M") if assignment.end_date else "-"
+        c.drawString(20 * mm, height - 66 * mm, f"End: {end_str}")
+
+    c.drawString(20 * mm, height - 74 * mm, f"Handover Date: {timezone.localtime(event.created_at).strftime('%Y-%m-%d %H:%M')}")
+    c.drawString(20 * mm, height - 80 * mm, f"Odometer: {event.odometer or '-'}")
+
+    c.setFont("Helvetica-Bold", 11)
+    c.drawString(20 * mm, height - 92 * mm, "Notes")
+    c.setFont("Helvetica", 10)
+    notes = (event.notes or "-").strip() or "-"
+    text = c.beginText(20 * mm, height - 100 * mm)
+    text.setLeading(14)
+    for line in notes.splitlines()[:12]:
+        text.textLine(line)
+    c.drawText(text)
+
+    y = height - 140 * mm
+    c.setFont("Helvetica-Bold", 11)
+    c.drawString(20 * mm, y, "Car Condition")
+    y -= 8 * mm
+    c.setFont("Helvetica", 10)
+    try:
+        cond = event.condition
+    except Exception:
+        cond = None
+    if cond:
+        c.drawString(20 * mm, y, f"Fuel Level: {cond.fuel_level if cond.fuel_level is not None else '-'}")
+        y -= 6 * mm
+        c.drawString(20 * mm, y, f"Scratches: {(cond.scratches_notes or '-')[:80]}")
+        y -= 6 * mm
+        c.drawString(20 * mm, y, f"Cleanliness: {(cond.cleanliness_notes or '-')[:80]}")
+        y -= 6 * mm
+    else:
+        c.drawString(20 * mm, y, "-")
+        y -= 6 * mm
+
+    c.setFont("Helvetica-Bold", 11)
+    c.drawString(20 * mm, y - 6 * mm, "Signatures")
+    c.setFont("Helvetica", 10)
+    c.drawString(20 * mm, y - 14 * mm, "Driver Signature: _______________________")
+    c.drawString(20 * mm, y - 24 * mm, "Responsible Signature: ___________________")
+    c.drawString(20 * mm, y - 34 * mm, "Company Stamp: __________________________")
+
+    if kind == "voucher":
+        c.setFont("Helvetica-Bold", 11)
+        c.drawString(20 * mm, y - 48 * mm, "Terms & Conditions")
+        c.setFont("Helvetica", 9)
+        terms = [
+            "1) The driver is responsible for the vehicle during the assignment period.",
+            "2) The vehicle must be used only for authorized work purposes.",
+            "3) Any accident or damage must be reported immediately.",
+            "4) The driver must keep all documents inside the vehicle.",
+        ]
+        t = c.beginText(20 * mm, y - 56 * mm)
+        t.setLeading(12)
+        for line in terms:
+            t.textLine(line)
+        c.drawText(t)
+
+    c.showPage()
+    c.save()
+    return buffer.getvalue()
+
+
+class CarHandoverEventDetailView(ManagerRequiredMixin, TemplateView):
+    template_name = "fleet/handover_detail.html"
+
+    def get_template_names(self):
+        if str(self.request.GET.get("print", "")).strip().lower() in {"1", "true", "yes"}:
+            return ["fleet/handover_print.html"]
+        return [self.template_name]
+
+    def dispatch(self, request, *args, **kwargs):
+        self.car = get_object_or_404(Car, pk=kwargs["car_pk"])
+        self.event = get_object_or_404(CarEvent, pk=kwargs["event_pk"], car=self.car, event_type="handover")
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        assignment = (
+            self.car.assignments.select_related("driver__user")
+            .filter(start_odometer=self.event.odometer, start_date__gte=self.event.created_at - timedelta(minutes=2), start_date__lte=self.event.created_at + timedelta(minutes=2))
+            .order_by("-start_date")
+            .first()
+        )
+        ctx["car"] = self.car
+        ctx["event"] = self.event
+        ctx["assignment"] = assignment
+        ctx["documents"] = list(self.car.documents.order_by("-created_at"))
+        ctx["images"] = list(self.event.images.all().order_by("created_at"))
+        return ctx
+
+
+class CarHandoverEventEditView(ManagerRequiredMixin, FormView):
+    template_name = "fleet/handover_edit_form.html"
+    form_class = CarHandoverEventEditForm
+
+    def dispatch(self, request, *args, **kwargs):
+        self.car = get_object_or_404(Car, pk=kwargs["car_pk"])
+        self.event = get_object_or_404(CarEvent, pk=kwargs["event_pk"], car=self.car, event_type="handover")
+        self.assignment = (
+            self.car.assignments.select_related("driver__user")
+            .filter(start_odometer=self.event.odometer, start_date__gte=self.event.created_at - timedelta(minutes=2), start_date__lte=self.event.created_at + timedelta(minutes=2))
+            .order_by("-start_date")
+            .first()
+        )
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["instance"] = self.event
+        kwargs["assignment"] = self.assignment
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["car"] = self.car
+        ctx["event"] = self.event
+        return ctx
+
+    def form_valid(self, form):
+        self.event = form.save()
+        if self.assignment:
+            new_driver = form.cleaned_data.get("driver")
+            if new_driver and new_driver != self.assignment.driver:
+                self.assignment.driver = new_driver
+            new_odometer = form.cleaned_data.get("odometer")
+            if new_odometer is not None:
+                self.assignment.start_odometer = new_odometer
+            self.assignment.notes = form.cleaned_data.get("notes") or ""
+            self.assignment.save(update_fields=["driver", "start_odometer", "notes"])
+
+        cache.delete(f"fleet:handover:report:{self.event.pk}")
+        cache.delete(f"fleet:handover:voucher:{self.event.pk}")
+        messages.success(self.request, "Handover updated successfully.")
+        return redirect("fleet:handover_detail", car_pk=self.car.pk, event_pk=self.event.pk)
+
+
+class CarHandoverEventDeleteView(ManagerRequiredMixin, TemplateView):
+    template_name = "fleet/handover_delete_confirm.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        self.car = get_object_or_404(Car, pk=kwargs["car_pk"])
+        self.event = get_object_or_404(CarEvent, pk=kwargs["event_pk"], car=self.car, event_type="handover")
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["car"] = self.car
+        ctx["event"] = self.event
+        return ctx
+
+    def post(self, request, *args, **kwargs):
+        cache.delete(f"fleet:handover:report:{self.event.pk}")
+        cache.delete(f"fleet:handover:voucher:{self.event.pk}")
+        self.event.delete()
+        messages.success(request, "Handover deleted successfully.")
+        return redirect("fleet:car_detail", pk=self.car.pk)
+
+
+class CarHandoverEventPDFView(ManagerRequiredMixin, TemplateView):
+    def dispatch(self, request, *args, **kwargs):
+        self.car = get_object_or_404(Car, pk=kwargs["car_pk"])
+        self.event = get_object_or_404(CarEvent, pk=kwargs["event_pk"], car=self.car, event_type="handover")
+        self.assignment = (
+            self.car.assignments.select_related("driver__user")
+            .filter(start_odometer=self.event.odometer, start_date__gte=self.event.created_at - timedelta(minutes=2), start_date__lte=self.event.created_at + timedelta(minutes=2))
+            .order_by("-start_date")
+            .first()
+        )
+        return super().dispatch(request, *args, **kwargs)
+
+    def get(self, request, *args, **kwargs):
+        key = f"fleet:handover:report:{self.event.pk}"
+        pdf_bytes = cache.get(key)
+        if not pdf_bytes:
+            pdf_bytes = _build_handover_pdf_bytes(car=self.car, event=self.event, assignment=self.assignment, kind="report")
+            cache.set(key, pdf_bytes, timeout=60 * 60)
+        resp = HttpResponse(pdf_bytes, content_type="application/pdf")
+        resp["Content-Disposition"] = f'inline; filename="handover_{self.car.pk}_{self.event.pk}.pdf"'
+        return resp
+
+
+class CarHandoverVoucherPDFView(ManagerRequiredMixin, TemplateView):
+    def dispatch(self, request, *args, **kwargs):
+        self.car = get_object_or_404(Car, pk=kwargs["car_pk"])
+        self.event = get_object_or_404(CarEvent, pk=kwargs["event_pk"], car=self.car, event_type="handover")
+        self.assignment = (
+            self.car.assignments.select_related("driver__user")
+            .filter(start_odometer=self.event.odometer, start_date__gte=self.event.created_at - timedelta(minutes=2), start_date__lte=self.event.created_at + timedelta(minutes=2))
+            .order_by("-start_date")
+            .first()
+        )
+        return super().dispatch(request, *args, **kwargs)
+
+    def get(self, request, *args, **kwargs):
+        key = f"fleet:handover:voucher:{self.event.pk}"
+        pdf_bytes = cache.get(key)
+        if not pdf_bytes:
+            pdf_bytes = _build_handover_pdf_bytes(car=self.car, event=self.event, assignment=self.assignment, kind="voucher")
+            cache.set(key, pdf_bytes, timeout=60 * 60)
+        resp = HttpResponse(pdf_bytes, content_type="application/pdf")
+        resp["Content-Disposition"] = f'inline; filename="voucher_{self.car.pk}_{self.event.pk}.pdf"'
+        return resp
+
+
+class CarHandoverPrintView(ManagerRequiredMixin, TemplateView):
+    template_name = "fleet/handover_print.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        self.car = get_object_or_404(Car, pk=kwargs["car_pk"])
+        self.event = get_object_or_404(CarEvent, pk=kwargs["event_pk"], car=self.car, event_type="handover")
+        self.assignment = (
+            self.car.assignments.select_related("driver__user")
+            .filter(
+                start_odometer=self.event.odometer,
+                start_date__gte=self.event.created_at - timedelta(minutes=2),
+                start_date__lte=self.event.created_at + timedelta(minutes=2),
+            )
+            .order_by("-start_date")
+            .first()
+        )
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["car"] = self.car
+        ctx["event"] = self.event
+        ctx["assignment"] = self.assignment
+        ctx["images"] = list(self.event.images.all().order_by("created_at"))
+        return ctx
 
 
 class CarMapView(LoginRequiredMixin, TemplateView):
@@ -186,17 +492,6 @@ class CarConditionCreateView(LoginRequiredMixin, FormView):
             instance.car = self.car
             instance.save()
         return redirect("fleet:car_detail", pk=self.car.pk)
-
-
-class ManagerRequiredMixin(UserPassesTestMixin):
-    def test_func(self):
-        return (
-            self.request.user.is_authenticated
-            and (
-                self.request.user.is_superuser
-                or self.request.user.groups.filter(name__in=["Manager", "Fleet Manager", "Admin"]).exists()
-            )
-        )
 
 
 class CarCreateView(ManagerRequiredMixin, CreateView):
@@ -377,6 +672,8 @@ class CarHandoverView(ManagerRequiredMixin, FormView):
                 images_by_caption={
                     "front": form.cleaned_data.get("image_front"),
                     "rear": form.cleaned_data.get("image_rear"),
+                    "left": form.cleaned_data.get("image_left"),
+                    "right": form.cleaned_data.get("image_right"),
                     "interior": form.cleaned_data.get("image_interior"),
                 },
                 created_by=self.request.user,

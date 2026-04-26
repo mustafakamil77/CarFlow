@@ -114,16 +114,6 @@
         <div><span class="font-medium">Odometer:</span> {{ last_handover_event.odometer|intcomma}}</div>
         <div class="mt-2"><span class="font-medium">Notes:</span> <span class="whitespace-pre-line">{{ last_handover_event.notes|default:"-" }}</span></div>
       </div>
-      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-4">
-        {% for img in last_handover_event.images.all %}
-        <figure class="border rounded p-2 bg-white">
-          <img src="{{ img.image.url }}" alt="{{ img.caption }}" class="max-w-full h-auto">
-          {% if img.caption %}<figcaption class="text-xs text-gray-600 mt-1">{{ img.caption }}</figcaption>{% endif %}
-        </figure>
-        {% empty %}
-        <p class="text-sm text-gray-600">No images</p>
-        {% endfor %}
-      </div>
       {% else %}
       <div class="text-sm text-gray-600">No handover events</div>
       {% endif %}
@@ -304,31 +294,62 @@
           <thead class="bg-gray-50">
             <tr>
               <th class="px-4 py-2">Driver</th>
-              <th class="px-4 py-2">Start</th>
-              <th class="px-4 py-2">End</th>
-              <th class="px-4 py-2">Start Odo</th>
-              <th class="px-4 py-2">End Odo</th>
+              <th class="px-4 py-2">Handover Date</th>
+              <th class="px-4 py-2">Odometer</th>
               <th class="px-4 py-2">Notes</th>
+              <th class="px-4 py-2">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {% for a in assignment_history %}
+            {% for row in handover_rows %}
             <tr class="border-t">
               <td class="px-4 py-2">
-                {% if a.driver.user %}
-                  {{ a.driver.user.get_full_name|default:a.driver.user.username }}
+                {% if row.assignment.driver.user %}
+                  {{ row.assignment.driver.user.get_full_name|default:row.assignment.driver.user.username }}
                 {% else %}
-                  {{ a.driver.first_name }} {{ a.driver.last_name }}
+                  {{ row.assignment.driver.first_name }} {{ row.assignment.driver.last_name }}
                 {% endif %}
               </td>
-              <td class="px-4 py-2">{{ a.start_date|date:"Y-m-d" }}</td>
-              <td class="px-4 py-2">{{ a.end_date|date:"Y-m-d"|default:"-" }}</td>
-              <td class="px-4 py-2">{{ a.start_odometer|intcomma}}</td>
-              <td class="px-4 py-2">{{ a.end_odometer|intcomma }}</td>
-              <td class="px-4 py-2">{{ a.notes|default:"-" }}</td>
+              <td class="px-4 py-2">
+                {% if row.event %}
+                  {{ row.event.created_at|date:"Y-m-d H:i" }}
+                {% else %}
+                  {{ row.assignment.start_date|date:"Y-m-d H:i" }}
+                {% endif %}
+              </td>
+              <td class="px-4 py-2">
+                {% if row.event and row.event.odometer != None %}
+                  {{ row.event.odometer|intcomma }}
+                {% else %}
+                  {{ row.assignment.start_odometer|intcomma }}
+                {% endif %}
+              </td>
+              <td class="px-4 py-2">
+                {% if row.event %}
+                  {{ row.event.notes|default:"-" }}
+                {% else %}
+                  {{ row.assignment.notes|default:"-" }}
+                {% endif %}
+              </td>
+              <td class="px-4 py-2">
+                {% if row.event %}
+                  <div class="flex flex-wrap gap-2">
+                    <a href="{% url 'fleet:handover_detail' object.pk row.event.pk %}" class="px-3 py-1.5 bg-white border border-gray-300 rounded text-xs text-gray-700 hover:bg-gray-50">View</a>
+                    <a href="{% url 'fleet:handover_detail' object.pk row.event.pk %}?print=1" target="_blank" rel="noopener" class="px-3 py-1.5 bg-emerald-600 rounded text-xs text-white hover:bg-emerald-700">Print</a>
+                    <a href="{% url 'fleet:handover_edit' object.pk row.event.pk %}" class="px-3 py-1.5 bg-indigo-600 rounded text-xs text-white hover:bg-indigo-700">Edit</a>
+                    <form method="post" action="{% url 'fleet:handover_delete' object.pk row.event.pk %}" onsubmit="return confirm('هل أنت متأكد من حذف سجل التسليم؟');">
+                      {% csrf_token %}
+                      <button type="submit" class="px-3 py-1.5 bg-red-600 rounded text-xs text-white hover:bg-red-700">Delete</button>
+                    </form>
+                   
+                  </div>
+                {% else %}
+                  <span class="text-xs text-gray-400">-</span>
+                {% endif %}
+              </td>
             </tr>
             {% empty %}
-            <tr><td class="px-4 py-2" colspan="6">No assignments</td></tr>
+            <tr><td class="px-4 py-2" colspan="5">No handover records</td></tr>
             {% endfor %}
           </tbody>
         </table>

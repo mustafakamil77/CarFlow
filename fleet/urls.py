@@ -14,6 +14,12 @@ from .views import (
     CarHandoverView,
     CarReturnView,
     CarAccidentCreateView,
+    CarHandoverEventDetailView,
+    CarHandoverEventEditView,
+    CarHandoverEventDeleteView,
+    CarHandoverEventPDFView,
+    CarHandoverVoucherPDFView,
+    CarHandoverPrintView,
 )
 
 app_name = "fleet"
@@ -34,4 +40,10 @@ urlpatterns = [
     path("cars/<int:pk>/handover/", CarHandoverView.as_view(), name="car_handover"),
     path("cars/<int:pk>/return/", CarReturnView.as_view(), name="car_return"),
     path("cars/<int:pk>/accidents/new/", CarAccidentCreateView.as_view(), name="car_accident_create"),
+    path("cars/<int:car_pk>/handovers/<int:event_pk>/", CarHandoverEventDetailView.as_view(), name="handover_detail"),
+    path("cars/<int:car_pk>/handovers/<int:event_pk>/edit/", CarHandoverEventEditView.as_view(), name="handover_edit"),
+    path("cars/<int:car_pk>/handovers/<int:event_pk>/delete/", CarHandoverEventDeleteView.as_view(), name="handover_delete"),
+    path("cars/<int:car_pk>/handovers/<int:event_pk>/pdf/", CarHandoverEventPDFView.as_view(), name="handover_pdf"),
+    path("cars/<int:car_pk>/handovers/<int:event_pk>/voucher-pdf/", CarHandoverVoucherPDFView.as_view(), name="handover_voucher_pdf"),
+    path("cars/<int:car_pk>/handovers/<int:event_pk>/print/", CarHandoverPrintView.as_view(), name="handover_print"),
 ]

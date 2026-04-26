@@ -1,0 +1,414 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>تقرير تسليم وتفويض</title>
+    <style>
+      :root {
+        --primary: #0ea5e9;
+        --secondary: #ef4444;
+        --ink: #111827;
+        --muted: #6b7280;
+        --border: #e5e7eb;
+        --bg: #f9fafb;
+      }
+
+      html, body {
+        margin: 0;
+        padding: 0;
+        color: var(--ink);
+        background: var(--bg);
+        font-family: Tahoma, Arial, "Segoe UI", sans-serif;
+        font-size: 15px;
+        line-height: 1.6;
+      }
+
+      .toolbar {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background: rgba(249, 250, 251, 0.95);
+        backdrop-filter: blur(8px);
+        border-bottom: 1px solid var(--border);
+      }
+
+      .toolbar-inner {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 10px 14px;
+        display: flex;
+        justify-content: flex-start;
+      }
+
+      .toolbar-actions {
+        margin-inline-start: auto;
+        display: flex;
+        gap: 10px;
+      }
+
+      .btn {
+        appearance: none;
+        border: 1px solid transparent;
+        border-radius: 10px;
+        padding: 10px 14px;
+        font-weight: 700;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        text-decoration: none;
+        user-select: none;
+        font-size: 14px;
+      }
+
+      .btn-primary {
+        background: var(--primary);
+        color: white;
+      }
+
+      .btn-secondary {
+        background: white;
+        color: var(--secondary);
+        border-color: #fecaca;
+      }
+
+      .icon {
+        width: 18px;
+        height: 18px;
+        display: inline-block;
+      }
+
+      .page {
+        max-width: 900px;
+        margin: 16px auto;
+        padding: 0 14px 24px;
+      }
+
+      .sheet {
+        background: white;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+        padding: 18px;
+      }
+
+      .header {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+        align-items: start;
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 14px;
+        margin-bottom: 14px;
+      }
+
+      .title {
+        font-size: 20px;
+        font-weight: 800;
+        margin: 0;
+      }
+
+      .subtitle {
+        color: var(--muted);
+        font-size: 14px;
+        margin-top: 4px;
+      }
+
+      .meta {
+        text-align: left;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .meta strong { color: var(--ink); }
+
+      .section-title {
+        font-size: 16px;
+        font-weight: 800;
+        margin: 18px 0 10px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+        font-size: 15px;
+      }
+
+      th, td {
+        border: 1px solid var(--border);
+        padding: 10px 12px;
+        vertical-align: top;
+        word-wrap: break-word;
+      }
+
+      th {
+        background: #f3f4f6;
+        font-weight: 800;
+      }
+
+      .muted { color: var(--muted); }
+      .notes {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 12px;
+        background: #fcfcfd;
+        white-space: pre-line;
+        min-height: 64px;
+      }
+
+      .signatures {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+        margin-top: 18px;
+      }
+
+      .sig-box {
+        border: 1px dashed #cbd5e1;
+        border-radius: 12px;
+        padding: 12px;
+        min-height: 92px;
+      }
+
+      .sig-label {
+        font-weight: 800;
+        margin-bottom: 8px;
+      }
+
+      .sig-line {
+        margin-top: 22px;
+        border-top: 1px solid #9ca3af;
+      }
+
+      .images {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+        margin-top: 10px;
+      }
+
+      .img-card {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+      }
+
+      .img-card img {
+        width: 100%;
+        height: 140px;
+        object-fit: cover;
+        display: block;
+      }
+
+      .img-cap {
+        padding: 8px 10px;
+        font-size: 13px;
+        color: var(--muted);
+      }
+
+      @page {
+        size: A4;
+        margin: 8mm;
+      }
+
+      @media print {
+        * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        body { background: white; }
+        .toolbar { display: none !important; }
+        .page { margin: 0; padding: 0; max-width: none; }
+        html, body { font-size: 13px; line-height: 1.35; }
+        .sheet { border: 0; border-radius: 0; box-shadow: none; padding: 0; }
+        .header { gap: 10px; padding-bottom: 10px; margin-bottom: 10px; }
+        .title { font-size: 16px; }
+        .subtitle { font-size: 12px; margin-top: 2px; }
+        .meta { font-size: 12px; }
+        .section-title { font-size: 14px; margin: 10px 0 6px; }
+        table { font-size: 13px; }
+        th, td { padding: 6px 8px; }
+        .notes { padding: 8px; min-height: 0; max-height: 42mm; overflow: hidden; }
+        .images { grid-template-columns: repeat(4, 1fr); gap: 6px; }
+        .img-card img { height: 90px; }
+        .signatures { gap: 10px; margin-top: 12px; }
+        .sig-box { padding: 10px; min-height: 64px; }
+        .sig-line { margin-top: 16px; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="toolbar">
+      <div class="toolbar-inner">
+        <div class="toolbar-actions">
+          <button type="button" class="btn btn-primary" id="printBtn">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M7 8V3h10v5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M7 17H5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M7 14h10v7H7v-7Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            طباعة
+          </button>
+          <button type="button" class="btn btn-secondary" id="closeBtn">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M18 6 6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            إغلاق
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="page">
+      <div class="sheet">
+        <div class="header">
+          <div>
+            <h1 class="title">تقرير تسليم وطلب تفويض</h1>
+            <div class="subtitle"></div>
+          </div>
+          <div class="meta">
+            <div><strong>رقم المركبة:</strong> {{ car.plate_number }}</div>
+            <div><strong>التاريخ/الوقت:</strong> {{ event.created_at|date:"Y-m-d H:i" }}</div>
+            <div><strong>رقم التقرير:</strong> {{ car.pk }}-{{ event.pk }}</div>
+          </div>
+        </div>
+
+        <div class="section-title">بيانات التسليم</div>
+        <table>
+          <tbody>
+            <tr>
+              <th style="width: 30%;">السائق</th>
+              <td>
+                {% if assignment %}
+                  {% if assignment.driver.user %}
+                    {{ assignment.driver.user.get_full_name|default:assignment.driver.user.username }}
+                  {% else %}
+                    {{ assignment.driver.first_name }} {{ assignment.driver.last_name }}
+                  {% endif %}
+                {% else %}
+                  -
+                {% endif %}
+              </td>
+              <th style="width: 20%;">رقم المركبة</th>
+              <td>{{ car.plate_number }}</td>
+            </tr>
+            <tr>
+              <th>رقم هوية السائق</th>
+              <td>
+                {% if assignment %}
+                  {{ assignment.driver.license_number|default:assignment.driver.id }}
+                {% else %}
+                  -
+                {% endif %}
+              </td>
+              <th>العداد</th>
+              <td>{{ event.odometer|default:"-" }}</td>
+            </tr>
+            <tr>
+              <th>الموديل</th>
+              <td>{{ car.brand }} {{ car.vehicle_type }} ({{ car.year }})</td>
+              <th>الرقم التسلسلي</th>
+              <td>{{ car.vin|default:"-" }}</td>
+            </tr>
+            <tr>
+              <th>بداية الاستخدام</th>
+              <td>
+                {% if assignment %}
+                  {{ assignment.start_date|date:"Y-m-d H:i" }}
+                {% else %}
+                  -
+                {% endif %}
+              </td>
+              <th>نهاية الاستخدام</th>
+              <td>
+                {% if assignment and assignment.end_date %}
+                  {{ assignment.end_date|date:"Y-m-d H:i" }}
+                {% else %}
+                  -
+                {% endif %}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="section-title">الملاحظات</div>
+        <div class="notes">{{ event.notes|default:"-" }}</div>
+
+        <div class="section-title">طلب التفويض</div>
+        <table>
+          <tbody>
+            <tr>
+              <th style="width: 30%;">سبب/غرض التفويض</th>
+              <td class="muted">حسب متطلبات العمل المعتمدة</td>
+              <th style="width: 20%;">مدة التفويض</th>
+              <td>
+                {% if assignment %}
+                  من {{ assignment.start_date|date:"Y-m-d" }} إلى {{ assignment.end_date|date:"Y-m-d"|default:"-" }}
+                {% else %}
+                  -
+                {% endif %}
+              </td>
+            </tr>
+            <tr>
+              <th>التعهدات والشروط</th>
+              <td colspan="3" class="muted">
+                يلتزم السائق باستخدام المركبة للأغراض المصرح بها فقط، والمحافظة عليها وإبلاغ الإدارة فوراً عن أي حادث أو ضرر.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="section-title">صور وقت التسليم</div>
+        {% if images %}
+          <div class="images">
+            {% for img in images %}
+              <div class="img-card">
+                <img src="{{ img.image.url }}" alt="{{ img.caption|default:'handover image' }}" />
+                <div class="img-cap">
+                  {% if img.caption %}{{ img.caption }}{% else %}-{% endif %}
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="muted">لا توجد صور لهذا التسليم</div>
+        {% endif %}
+
+        <div class="signatures">
+          <div class="sig-box">
+            <div class="sig-label"> السائق</div>
+            <div class="sig-line"></div>
+            <div class="muted" style="margin-top: 10px;"></div>
+          </div>
+          <div class="sig-box">
+            <div class="sig-label"> المسؤول</div>
+            <div class="sig-line"></div>
+            <div class="muted" style="margin-top: 10px;">{{ user.get_username|upper }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      (function () {
+        const printBtn = document.getElementById("printBtn");
+        const closeBtn = document.getElementById("closeBtn");
+
+        if (printBtn) {
+          printBtn.addEventListener("click", function () {
+            window.print();
+          });
+        }
+
+        if (closeBtn) {
+          closeBtn.addEventListener("click", function () {
+            if (window.opener && !window.opener.closed) {
+              window.close();
+              return;
+            }
+            history.back();
+          });
+        }
+      })();
+    </script>
+  </body>
+</html>
