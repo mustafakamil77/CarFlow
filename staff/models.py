@@ -35,6 +35,8 @@ class Employee(models.Model):
 
     phone = models.CharField(max_length=20, blank=True)
 
+    bio = models.TextField(blank=True, default="")
+
     photo = models.ImageField(
         upload_to="employee_photos/",
         null=True,

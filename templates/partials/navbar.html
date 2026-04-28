@@ -1,18 +1,18 @@
-<header class="h-16 flex items-center justify-between px-4 sm:px-6 lg:px-8 bg-white shadow-sm z-10">
-<div class="flex items-center gap-3">
-<button id="sidebarToggle" class="md:hidden inline-flex items-center justify-center h-10 w-10 rounded-md border border-slate-200 text-slate-700 hover:bg-slate-50">
+<header class="h-16 flex items-center justify-between gap-3 px-3 sm:px-6 lg:px-8 bg-white shadow-sm z-10">
+<div class="flex items-center gap-2 sm:gap-3 min-w-0">
+<button id="sidebarToggle" class="md:hidden tap-target inline-flex items-center justify-center h-11 w-11 rounded-md border border-slate-200 text-slate-700 hover:bg-slate-50" aria-label="Open menu" aria-controls="sidebar" aria-expanded="false">
 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
 </button>
-<h1 class="text-base sm:text-xl font-semibold text-slate-800 truncate max-w-[60vw] md:max-w-none">Professional Fleet Management Dashboard</h1>
+<h1 class="text-sm sm:text-xl font-semibold text-slate-800 truncate max-w-[60vw] sm:max-w-[70vw] md:max-w-none">Professional Fleet Management Dashboard</h1>
 </div>
-<div class="flex items-center space-x-4">
-<button class="text-slate-500 hover:text-slate-700 focus:outline-none">
-<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+<div class="flex items-center gap-2 sm:gap-4">
+<button type="button" class="tap-target inline-flex items-center justify-center h-11 w-11 rounded-md text-slate-500 hover:text-slate-700 hover:bg-slate-50 focus:outline-none" aria-label="Notifications">
+<svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
 </button>
-<div class="flex items-center gap-3 border-l border-slate-200 pl-4 relative">
+<div class="flex items-center gap-3 border-l border-slate-200 pl-3 sm:pl-4 relative">
     
     <!-- زر المستخدم -->
-    <button id="user-menu-btn" class="flex items-center gap-3 focus:outline-none">
+    <button id="user-menu-btn" type="button" class="tap-target flex items-center gap-3 focus:outline-none rounded-md hover:bg-slate-50 px-2 py-1">
         
         <div class="text-right hidden sm:block">
             <p class="text-sm font-semibold text-slate-800">
@@ -34,8 +34,10 @@
         </div>
 
         <!-- Avatar -->
-        <div class="h-10 w-10 rounded-full bg-slate-300 flex items-center justify-center text-white font-semibold text-sm border-2 border-slate-100">
-            {% if request.user.is_authenticated %}
+        <div class="h-10 w-10 rounded-full bg-slate-300 flex items-center justify-center text-white font-semibold text-sm border-2 border-slate-100 overflow-hidden">
+            {% if request.user.is_authenticated and employee_profile and employee_profile.photo %}
+                <img src="{{ employee_profile.photo.url }}" alt="{{ request.user.get_full_name|default:request.user.username }}" class="h-full w-full object-cover">
+            {% elif request.user.is_authenticated %}
                 {{ request.user.username|slice:":2"|upper }}
             {% else %}
                 GU
@@ -45,7 +47,7 @@
 
     <!-- Dropdown -->
     <div id="user-dropdown" class="hidden absolute right-0 top-12 w-48 bg-white rounded-lg shadow-lg border border-slate-200">
-        <a href="#" class="block px-4 py-2 text-sm hover:bg-slate-100">Profile</a>
+        <a href="{% url 'accounts:profile' %}" class="block px-4 py-2 text-sm hover:bg-slate-100">Profile</a>
         <form method="post" action="{% url 'logout' %}">
     {% csrf_token %}
     <button type="submit" 

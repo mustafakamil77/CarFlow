@@ -1,61 +1,66 @@
 <aside id="sidebar" class="w-64 flex-shrink-0 bg-sidebar text-white flex flex-col transition-all duration-300 border-r border-slate-700 md:relative fixed inset-y-0 left-0 z-40 transform -translate-x-full md:translate-x-0">
-<div class="h-16 flex items-center px-6 border-b border-slate-700"><div class="flex items-center text-white">
-<i class="fas fa-car-side text-2xl mr-3"></i>
-<span class="text-[20px] font-bold tracking-wide text-white">CarFlow</span>
-</div></div>
-<nav class="flex-1 overflow-y-auto py-4">
+<div class="h-16 flex items-center justify-between px-4 md:px-6 border-b border-slate-700">
+<div class="flex items-center text-white">
+<i class="fas fa-car-side text-xl md:text-2xl mr-3"></i>
+<span class="text-lg md:text-[20px] font-bold tracking-wide text-white">CarFlow</span>
+</div>
+<button id="sidebarClose" type="button" class="md:hidden tap-target inline-flex items-center justify-center h-10 w-10 rounded-md border border-slate-700 text-slate-200 hover:bg-slate-800" aria-label="Close menu">
+<svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+</button>
+</div>
+<nav class="flex-1 overflow-y-auto py-3 md:py-4">
 <ul class="space-y-1">
 <li>
-<a class="flex items-center px-6 py-[12px] bg-white/10 rounded-lg mx-2 text-white transition-colors" href="{% url 'home' %}">
-<i class="fas fa-th-large w-5 mr-3 text-center"></i>
-<span class="font-medium">Dashboard</span>
+<a class="tap-target flex items-center gap-3 px-4 md:px-6 py-3 bg-white/10 rounded-lg mx-2 text-white transition-colors text-sm md:text-base" href="{% url 'home' %}">
+<i class="fas fa-th-large w-5 text-center text-base"></i>
+<span class="font-medium truncate">Dashboard</span>
 </a>
 </li>
 <li>
-<a class="flex items-center px-6 py-[12px] text-slate-300 hover:bg-slate-800 hover:text-white transition-colors" href="{% url 'fleet:car_list' %}">
-<i class="fas fa-truck w-5 mr-3 text-center"></i>
-<span class="font-medium">Fleet</span>
+<a class="tap-target flex items-center gap-3 px-4 md:px-6 py-3 text-slate-300 hover:bg-slate-800 hover:text-white transition-colors rounded-lg mx-2 text-sm md:text-base" href="{% url 'fleet:car_list' %}">
+<i class="fas fa-truck w-5 text-center text-base"></i>
+<span class="font-medium truncate">Fleet</span>
 </a>
 </li>
 <li>
-<a class="flex items-center px-6 py-[12px] text-slate-300 hover:bg-slate-800 hover:text-white transition-colors" href="{% url 'fuel:dashboard' %}">
-<i class="fas fa-gas-pump w-5 mr-3 text-center"></i>
-<span class="font-medium">Fuel</span>
+<a class="tap-target flex items-center gap-3 px-4 md:px-6 py-3 text-slate-300 hover:bg-slate-800 hover:text-white transition-colors rounded-lg mx-2 text-sm md:text-base" href="{% url 'fuel:dashboard' %}">
+<i class="fas fa-gas-pump w-5 text-center text-base"></i>
+<span class="font-medium truncate">Fuel</span>
 </a>
 </li>
 <li>
-<a class="flex items-center px-6 py-[12px] text-slate-300 hover:bg-slate-800 hover:text-white transition-colors" href="{% url 'maintenance:request_list' %}">
-<i class="fas fa-tools w-5 mr-3 text-center"></i>
-<span class="font-medium">Maintenance</span>
+<a class="tap-target flex items-center gap-3 px-4 md:px-6 py-3 text-slate-300 hover:bg-slate-800 hover:text-white transition-colors rounded-lg mx-2 text-sm md:text-base" href="{% url 'maintenance:request_list' %}">
+<i class="fas fa-tools w-5 text-center text-base"></i>
+<span class="font-medium truncate">Maintenance</span>
 </a>
 </li>
 <li>
-<a class="flex items-center px-6 py-[12px] text-slate-300 hover:bg-slate-800 hover:text-white transition-colors" href="{% url 'reports:dashboard' %}">
-<i class="fas fa-chart-bar w-5 mr-3 text-center"></i>
-<span class="font-medium">Reports</span>
+<a class="tap-target flex items-center gap-3 px-4 md:px-6 py-3 text-slate-300 hover:bg-slate-800 hover:text-white transition-colors rounded-lg mx-2 text-sm md:text-base" href="{% url 'reports:dashboard' %}">
+<i class="fas fa-chart-bar w-5 text-center text-base"></i>
+<span class="font-medium truncate">Reports</span>
 </a>
 </li>
 <li>
-<a class="flex items-center px-6 py-[12px] text-slate-300 hover:bg-slate-800 hover:text-white transition-colors" href="{% url 'staff:list' %}">
-<i class="fas fa-user-friends w-5 mr-3 text-center"></i>
-<span class="font-medium">Staff</span>
+<a class="tap-target flex items-center gap-3 px-4 md:px-6 py-3 text-slate-300 hover:bg-slate-800 hover:text-white transition-colors rounded-lg mx-2 text-sm md:text-base" href="{% url 'staff:list' %}">
+<i class="fas fa-user-friends w-5 text-center text-base"></i>
+<span class="font-medium truncate">Staff</span>
 </a>
 </li>
 <li>
-<a class="flex items-center px-6 py-[12px] text-slate-300 hover:bg-slate-800 hover:text-white transition-colors" href="{% url 'pending_requests:request_list' %}">
-<i class="fas fa-hourglass-half w-5 mr-3 text-center"></i>
-<span class="font-medium">Pending Requests</span>
+<a class="tap-target flex items-center gap-3 px-4 md:px-6 py-3 text-slate-300 hover:bg-slate-800 hover:text-white transition-colors rounded-lg mx-2 text-sm md:text-base" href="{% url 'pending_requests:request_list' %}">
+<i class="fas fa-hourglass-half w-5 text-center text-base"></i>
+<span class="font-medium truncate">Pending Requests</span>
 </a>
 </li>
 <li>
-<a class="flex items-center px-6 py-[12px] text-slate-300 hover:bg-slate-800 hover:text-white transition-colors" href="{% url 'accounts:settings' %}">
-<i class="fas fa-cog w-5 mr-3 text-center"></i>
-<span class="font-medium">Settings</span>
+<a class="tap-target flex items-center gap-3 px-4 md:px-6 py-3 text-slate-300 hover:bg-slate-800 hover:text-white transition-colors rounded-lg mx-2 text-sm md:text-base" href="{% url 'accounts:settings' %}">
+<i class="fas fa-cog w-5 text-center text-base"></i>
+<span class="font-medium truncate">Settings</span>
 </a>
 </li>
 </ul>
 </nav>
-<div class="p-6 border-t border-slate-700">
+<div class="p-4 md:p-6 border-t border-slate-700">
 <p class="text-xs text-slate-400">© 2023 CarFlow Inc.</p>
 </div>
 </aside>

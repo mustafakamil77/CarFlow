@@ -3,6 +3,11 @@
   - These rules fix mobile breakpoints without changing desktop layout.
 */
 
+.tap-target {
+  min-width: 44px;
+  min-height: 44px;
+}
+
 @media (max-width: 767px) {
   #sidebar {
     width: min(18rem, 85vw);

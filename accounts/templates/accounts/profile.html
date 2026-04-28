@@ -1,0 +1,295 @@
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+<div class="max-w-5xl mx-auto space-y-6">
+  <section class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+    <div class="min-w-0">
+      <h1 class="text-xl sm:text-3xl font-bold text-gray-900">Profile</h1>
+      <p class="mt-1 text-sm text-gray-600">Update your personal information and photo</p>
+    </div>
+    <a href="{% url 'home' %}" class="tap-target inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-800 hover:bg-gray-50">Back</a>
+  </section>
+
+  <div id="profileToast" class="hidden rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition-opacity duration-200">
+    <div id="profileToastText" class="text-sm font-semibold"></div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <section class="lg:col-span-2 rounded-xl border border-gray-200 bg-white shadow-sm">
+      <div class="p-5 border-b border-gray-100">
+        <h2 class="text-lg font-semibold text-gray-900">Personal Information</h2>
+      </div>
+      <form id="profileForm" class="p-5 space-y-4">
+        {% csrf_token %}
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-semibold text-gray-700">First name</label>
+            <input id="firstName" type="text" class="mt-1 w-full rounded-lg border-gray-200 text-sm" value="{{ request.user.first_name }}" />
+            <p id="firstNameErr" class="hidden mt-1 text-sm text-red-600"></p>
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-700">Last name</label>
+            <input id="lastName" type="text" class="mt-1 w-full rounded-lg border-gray-200 text-sm" value="{{ request.user.last_name }}" />
+            <p id="lastNameErr" class="hidden mt-1 text-sm text-red-600"></p>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-semibold text-gray-700">Email</label>
+            <input id="email" type="email" class="mt-1 w-full rounded-lg border-gray-200 text-sm" value="{{ request.user.email }}" />
+            <p id="emailErr" class="hidden mt-1 text-sm text-red-600"></p>
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-700">Phone</label>
+            <input id="phone" type="tel" class="mt-1 w-full rounded-lg border-gray-200 text-sm" value="{{ employee.phone }}" />
+            <p id="phoneErr" class="hidden mt-1 text-sm text-red-600"></p>
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700">Bio</label>
+          <textarea id="bio" rows="5" class="mt-1 w-full rounded-lg border-gray-200 text-sm">{{ employee.bio }}</textarea>
+          <div class="mt-1 flex items-center justify-between">
+            <p id="bioErr" class="hidden text-sm text-red-600"></p>
+            <p class="text-xs text-gray-500">Max 1000 characters</p>
+          </div>
+        </div>
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-3 pt-2">
+          <button id="profileSaveBtn" type="submit" class="tap-target inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">
+            <span id="profileSaveIcon" class="inline-flex">
+              <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M19 21H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h11l5 5v9a2 2 0 0 1-2 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M17 21v-8H7v8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M7 3v4h8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </span>
+            <span id="profileSaveText">Save changes</span>
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <section class="rounded-xl border border-gray-200 bg-white shadow-sm">
+      <div class="p-5 border-b border-gray-100">
+        <h2 class="text-lg font-semibold text-gray-900">Photo</h2>
+      </div>
+      <div class="p-5 space-y-4">
+        <div class="flex items-center gap-4">
+          <div class="h-16 w-16 rounded-full overflow-hidden bg-gray-100 border border-gray-200 flex items-center justify-center">
+            {% if employee.photo %}
+              <img id="photoPreview" src="{{ employee.photo.url }}" alt="Profile photo" class="h-full w-full object-cover" />
+            {% else %}
+              <div id="photoPreview" class="text-sm font-semibold text-gray-600">{{ request.user.username|slice:":2"|upper }}</div>
+            {% endif %}
+          </div>
+          <div class="min-w-0">
+            <div class="text-sm font-semibold text-gray-900 truncate">{{ request.user.get_full_name|default:request.user.username }}</div>
+            <div class="text-xs text-gray-500 truncate">{{ request.user.email|default:"-" }}</div>
+          </div>
+        </div>
+
+        <form id="photoForm" class="space-y-3" enctype="multipart/form-data">
+          {% csrf_token %}
+          <div>
+            <label class="block text-sm font-semibold text-gray-700">Upload new photo</label>
+            <input id="photoInput" name="photo" type="file" accept="image/jpeg,image/png" class="mt-1 block w-full text-sm border border-gray-200 rounded-lg p-2" />
+            <p class="mt-1 text-xs text-gray-500">Allowed: JPEG/PNG. Max 2MB.</p>
+            <p id="photoErr" class="hidden mt-1 text-sm text-red-600"></p>
+          </div>
+          <button id="photoSaveBtn" type="submit" class="tap-target inline-flex w-full items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-800 hover:bg-gray-50">
+            <span id="photoSpinner" class="hidden">
+              <svg class="w-5 h-5 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" opacity="0.25"></circle>
+                <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" stroke-width="3" stroke-linecap="round"></path>
+              </svg>
+            </span>
+            <span id="photoSaveText">Update photo</span>
+          </button>
+        </form>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script>
+  (function () {
+    function getCookie(name) {
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) return parts.pop().split(';').shift();
+      return '';
+    }
+
+    const toast = document.getElementById('profileToast');
+    const toastText = document.getElementById('profileToastText');
+    let toastTimer = null;
+
+    function showToast(message, kind) {
+      if (!toast || !toastText) return;
+      toast.classList.remove('hidden');
+      toast.classList.remove('border-green-200', 'border-red-200', 'bg-green-50', 'bg-red-50');
+      toastText.classList.remove('text-green-800', 'text-red-800');
+      if (kind === 'success') {
+        toast.classList.add('border-green-200', 'bg-green-50');
+        toastText.classList.add('text-green-800');
+      } else {
+        toast.classList.add('border-red-200', 'bg-red-50');
+        toastText.classList.add('text-red-800');
+      }
+      toastText.textContent = message;
+      toast.style.opacity = '1';
+      if (toastTimer) window.clearTimeout(toastTimer);
+      toastTimer = window.setTimeout(() => {
+        toast.style.opacity = '0';
+        window.setTimeout(() => toast.classList.add('hidden'), 220);
+      }, 2600);
+    }
+
+    function setErr(id, message) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.textContent = message || '';
+      el.classList.toggle('hidden', !message);
+    }
+
+    function clearErrors() {
+      setErr('firstNameErr', '');
+      setErr('lastNameErr', '');
+      setErr('emailErr', '');
+      setErr('phoneErr', '');
+      setErr('bioErr', '');
+      setErr('photoErr', '');
+    }
+
+    const profileForm = document.getElementById('profileForm');
+    const saveBtn = document.getElementById('profileSaveBtn');
+    const saveText = document.getElementById('profileSaveText');
+
+    if (profileForm) {
+      profileForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        clearErrors();
+        if (saveBtn) saveBtn.disabled = true;
+        if (saveText) saveText.textContent = 'Saving...';
+
+        try {
+          const resp = await fetch("{% url 'accounts:profile_update_api' %}", {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': getCookie('csrftoken'),
+            },
+            body: JSON.stringify({
+              first_name: document.getElementById('firstName')?.value || '',
+              last_name: document.getElementById('lastName')?.value || '',
+              email: document.getElementById('email')?.value || '',
+              phone: document.getElementById('phone')?.value || '',
+              bio: document.getElementById('bio')?.value || '',
+            })
+          });
+
+          const data = await resp.json().catch(() => ({}));
+          if (!resp.ok) {
+            const errs = data.errors || {};
+            if (errs.first_name) setErr('firstNameErr', errs.first_name.join(' '));
+            if (errs.last_name) setErr('lastNameErr', errs.last_name.join(' '));
+            if (errs.email) setErr('emailErr', errs.email.join(' '));
+            if (errs.phone) setErr('phoneErr', errs.phone.join(' '));
+            if (errs.bio) setErr('bioErr', errs.bio.join(' '));
+            showToast(data.message || 'Failed to update profile.', 'error');
+            return;
+          }
+          showToast(data.message || 'Profile updated.', 'success');
+        } catch (err) {
+          showToast('Network error. Please try again.', 'error');
+        } finally {
+          if (saveBtn) saveBtn.disabled = false;
+          if (saveText) saveText.textContent = 'Save changes';
+        }
+      });
+    }
+
+    const photoInput = document.getElementById('photoInput');
+    const photoForm = document.getElementById('photoForm');
+    const photoSpinner = document.getElementById('photoSpinner');
+    const photoSaveText = document.getElementById('photoSaveText');
+    const photoSaveBtn = document.getElementById('photoSaveBtn');
+
+    function setPhotoPreview(file) {
+      const preview = document.getElementById('photoPreview');
+      if (!preview) return;
+      const url = URL.createObjectURL(file);
+      if (preview.tagName && preview.tagName.toLowerCase() === 'img') {
+        preview.src = url;
+        return;
+      }
+      const img = document.createElement('img');
+      img.className = 'h-full w-full object-cover';
+      img.alt = 'Profile photo';
+      img.src = url;
+      preview.replaceWith(img);
+      img.id = 'photoPreview';
+    }
+
+    if (photoInput) {
+      photoInput.addEventListener('change', () => {
+        clearErrors();
+        const f = photoInput.files && photoInput.files[0];
+        if (!f) return;
+        if (!['image/jpeg', 'image/png'].includes(f.type)) {
+          photoInput.value = '';
+          setErr('photoErr', 'Only JPEG/PNG are allowed.');
+          return;
+        }
+        if (f.size > 2 * 1024 * 1024) {
+          photoInput.value = '';
+          setErr('photoErr', 'Image must be 2MB or less.');
+          return;
+        }
+        setPhotoPreview(f);
+      });
+    }
+
+    if (photoForm) {
+      photoForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        clearErrors();
+        const f = photoInput && photoInput.files && photoInput.files[0];
+        if (!f) {
+          setErr('photoErr', 'Please choose an image first.');
+          return;
+        }
+        if (photoSaveBtn) photoSaveBtn.disabled = true;
+        if (photoSpinner) photoSpinner.classList.remove('hidden');
+        if (photoSaveText) photoSaveText.textContent = 'Uploading...';
+
+        try {
+          const fd = new FormData();
+          fd.append('photo', f);
+          const resp = await fetch("{% url 'accounts:profile_photo_api' %}", {
+            method: 'POST',
+            headers: { 'X-CSRFToken': getCookie('csrftoken') },
+            body: fd,
+          });
+          const data = await resp.json().catch(() => ({}));
+          if (!resp.ok) {
+            if (data.errors && data.errors.photo) {
+              setErr('photoErr', data.errors.photo.join(' '));
+            } else {
+              setErr('photoErr', data.message || 'Failed to update photo.');
+            }
+            showToast(data.message || 'Failed to update photo.', 'error');
+            return;
+          }
+          showToast(data.message || 'Photo updated.', 'success');
+        } catch (err) {
+          showToast('Network error. Please try again.', 'error');
+        } finally {
+          if (photoSaveBtn) photoSaveBtn.disabled = false;
+          if (photoSpinner) photoSpinner.classList.add('hidden');
+          if (photoSaveText) photoSaveText.textContent = 'Update photo';
+        }
+      });
+    }
+  })();
+</script>
+{% endblock %}
