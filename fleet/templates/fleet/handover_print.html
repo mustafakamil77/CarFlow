@@ -197,15 +197,18 @@
 
       .img-card img {
         width: 100%;
-        height: 140px;
-        object-fit: cover;
+        height: 200px;
+        object-fit: contain;
         display: block;
+        background: #ffffff;
       }
 
       .img-cap {
         padding: 8px 10px;
         font-size: 13px;
         color: var(--muted);
+        white-space: normal;
+        word-break: break-word;
       }
 
       @page {
@@ -228,8 +231,9 @@
         table { font-size: 13px; }
         th, td { padding: 6px 8px; }
         .notes { padding: 8px; min-height: 0; max-height: 42mm; overflow: hidden; }
-        .images { grid-template-columns: repeat(4, 1fr); gap: 6px; }
-        .img-card img { height: 90px; }
+        .images { grid-template-columns: repeat(3, 1fr); gap: 6px; }
+        .img-card img { height: 130px; object-fit: contain; }
+        .img-cap { font-size: 11px; padding: 6px 8px; }
         .signatures { gap: 10px; margin-top: 12px; }
         .sig-box { padding: 10px; min-height: 64px; }
         .sig-line { margin-top: 16px; }
@@ -295,13 +299,31 @@
               <th>رقم هوية السائق</th>
               <td>
                 {% if assignment %}
-                  {{ assignment.driver.license_number|default:assignment.driver.id }}
+                  {{ driver_license_number }}
                 {% else %}
                   -
                 {% endif %}
               </td>
               <th>العداد</th>
               <td>{{ event.odometer|default:"-" }}</td>
+            </tr>
+            <tr>
+              <th>رقم هاتف السائق</th>
+              <td>
+                {% if assignment %}
+                  {{ driver_phone }}
+                {% else %}
+                  -
+                {% endif %}
+              </td>
+              <th>تاريخ ميلاد السائق</th>
+              <td>
+                {% if assignment and driver_birth_date %}
+                  {{ driver_birth_date|date:"Y-m-d" }}
+                {% else %}
+                  -
+                {% endif %}
+              </td>
             </tr>
             <tr>
               <th>الموديل</th>
@@ -318,14 +340,7 @@
                   -
                 {% endif %}
               </td>
-              <th>نهاية الاستخدام</th>
-              <td>
-                {% if assignment and assignment.end_date %}
-                  {{ assignment.end_date|date:"Y-m-d H:i" }}
-                {% else %}
-                  -
-                {% endif %}
-              </td>
+              <th colspan="2"></th>
             </tr>
           </tbody>
         </table>
@@ -364,7 +379,7 @@
               <div class="img-card">
                 <img src="{{ img.image.url }}" alt="{{ img.caption|default:'handover image' }}" />
                 <div class="img-cap">
-                  {% if img.caption %}{{ img.caption }}{% else %}-{% endif %}
+                  {% if img.caption and "front" not in img.caption|lower %}{{ img.caption }}{% else %}-{% endif %}
                 </div>
               </div>
             {% endfor %}

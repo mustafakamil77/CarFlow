@@ -3,7 +3,7 @@ from django.contrib.auth.models import Group
 from django.test import TestCase
 from django.urls import reverse
 
-from staff.models import Employee
+from staff.models import Employee, EmployeeLicense
 
 from .models import Car, CarEvent
 from .services import assign_driver_to_car
@@ -18,7 +18,8 @@ class HandoverHistoryActionsTests(TestCase):
 
         self.normal_user = User.objects.create_user(username="normal", password="password")
 
-        self.driver = Employee.objects.create(first_name="Ali", last_name="Driver", license_number="LIC-123", role="driver")
+        self.driver = Employee.objects.create(first_name="Ali", last_name="Driver", role="driver")
+        EmployeeLicense.objects.create(employee=self.driver, license_number="LIC-123")
 
         self.car = Car.objects.create(
             plate_number="ABC-123",

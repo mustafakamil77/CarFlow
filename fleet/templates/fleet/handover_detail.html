@@ -70,7 +70,7 @@
               <dt class="text-gray-500">رقم هوية السائق</dt>
               <dd class="font-semibold text-gray-900 mt-1">
                 {% if assignment %}
-                  {{ assignment.driver.license_number|default:assignment.driver.id }}
+                  {{ driver_license_number }}
                 {% else %}
                   -
                 {% endif %}

@@ -8,6 +8,7 @@ from django import forms as dj_forms
 from django.utils import timezone
 from django.urls import reverse_lazy
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.utils.http import url_has_allowed_host_and_scheme
 
 
 from django.db.models import Q
@@ -144,6 +145,12 @@ class MaintenanceRequestUpdateView(MaintenanceStaffRequiredMixin, UpdateView):
     form_class = MaintenanceRequestEditForm
     template_name = "maintenance/request_edit.html"
 
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["images"] = self.object.images.all().order_by("-created_at")
+        ctx["image_form"] = MaintenanceImageForm()
+        return ctx
+
     def get_success_url(self):
         return reverse_lazy("maintenance:request_detail", kwargs={"pk": self.object.pk})
 
@@ -275,11 +282,15 @@ class MaintenanceImageDeleteView(MaintenanceStaffRequiredMixin, TemplateView):
         ctx = super().get_context_data(**kwargs)
         ctx["image"] = self.image
         ctx["object"] = self.image.request
+        ctx["next"] = self.request.GET.get("next", "")
         return ctx
 
     def post(self, request, *args, **kwargs):
         req_pk = self.image.request_id
         self.image.delete()
+        next_url = request.GET.get("next", "")
+        if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
+            return redirect(next_url)
         return redirect("maintenance:request_detail", pk=req_pk)
 
 
@@ -295,4 +306,7 @@ class MaintenanceImageUploadView(MaintenanceStaffRequiredMixin, FormView):
         instance = form.save(commit=False)
         instance.request = self.request_obj
         instance.save()
+        next_url = self.request.GET.get("next", "")
+        if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={self.request.get_host()}):
+            return redirect(next_url)
         return redirect("maintenance:request_detail", pk=self.request_obj.pk)

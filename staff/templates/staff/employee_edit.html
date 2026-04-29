@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="flex-1 overflow-y-auto p-8">
+  <section class="max-w-2xl mx-auto bg-white rounded-lg shadow-sm border border-gray-100 p-8">
+    <div class="flex items-center justify-between gap-3 mb-6">
+      <h1 class="text-xl font-bold text-gray-900">Edit Driver</h1>
+      <a href="{% url 'staff:profile' employee.id %}" class="rounded-md bg-white px-4 py-2 text-sm font-semibold text-gray-700 border border-gray-300 shadow-sm hover:bg-gray-50">Back</a>
+    </div>
+
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="space-y-1">
+          <label class="block text-sm font-semibold text-gray-700">First name</label>
+          {{ form.first_name }}
+          {% if form.first_name.errors %}<div class="text-sm text-red-600">{{ form.first_name.errors }}</div>{% endif %}
+        </div>
+        <div class="space-y-1">
+          <label class="block text-sm font-semibold text-gray-700">Last name</label>
+          {{ form.last_name }}
+          {% if form.last_name.errors %}<div class="text-sm text-red-600">{{ form.last_name.errors }}</div>{% endif %}
+        </div>
+        <div class="space-y-1">
+          <label class="block text-sm font-semibold text-gray-700">Phone</label>
+          {{ form.phone }}
+          {% if form.phone.errors %}<div class="text-sm text-red-600">{{ form.phone.errors }}</div>{% endif %}
+        </div>
+        <div class="space-y-1">
+          <label class="block text-sm font-semibold text-gray-700">Date of Birth</label>
+          {{ form.date_of_birth }}
+          {% if form.date_of_birth.errors %}<div class="text-sm text-red-600">{{ form.date_of_birth.errors }}</div>{% endif %}
+        </div>
+        <div class="space-y-1">
+          <label class="block text-sm font-semibold text-gray-700">ID</label>
+          {{ license_form.license_number }}
+          {% if license_form.license_number.errors %}<div class="text-sm text-red-600">{{ license_form.license_number.errors }}</div>{% endif %}
+        </div>
+        <div class="space-y-1">
+          <label class="block text-sm font-semibold text-gray-700">License Type</label>
+          {{ license_form.license_type }}
+          {% if license_form.license_type.errors %}<div class="text-sm text-red-600">{{ license_form.license_type.errors }}</div>{% endif %}
+        </div>
+        <div class="space-y-1">
+          <label class="block text-sm font-semibold text-gray-700">License Expiry</label>
+          {{ license_form.license_expiry }}
+          {% if license_form.license_expiry.errors %}<div class="text-sm text-red-600">{{ license_form.license_expiry.errors }}</div>{% endif %}
+        </div>
+        <div class="space-y-1">
+          <label class="block text-sm font-semibold text-gray-700">Role</label>
+          {{ form.role }}
+          {% if form.role.errors %}<div class="text-sm text-red-600">{{ form.role.errors }}</div>{% endif %}
+        </div>
+        <div class="space-y-1 md:col-span-2">
+          <label class="block text-sm font-semibold text-gray-700">Bio</label>
+          {{ form.bio }}
+          {% if form.bio.errors %}<div class="text-sm text-red-600">{{ form.bio.errors }}</div>{% endif %}
+        </div>
+        <div class="space-y-1 md:col-span-2">
+          <label class="block text-sm font-semibold text-gray-700">Photo</label>
+          {{ form.photo }}
+          {% if employee.photo %}
+            <div class="mt-2 border border-gray-200 rounded-lg overflow-hidden bg-white">
+              <img src="{{ employee.photo.url }}" alt="" class="w-full h-48 object-cover">
+            </div>
+          {% endif %}
+          {% if form.photo.errors %}<div class="text-sm text-red-600">{{ form.photo.errors }}</div>{% endif %}
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end gap-3 pt-6">
+        <a href="{% url 'staff:profile' employee.id %}" class="rounded-md bg-white px-5 py-2.5 text-sm font-semibold text-gray-700 border border-gray-300 shadow-sm hover:bg-gray-50">Cancel</a>
+        <button type="submit" class="rounded-md bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700">Save</button>
+      </div>
+    </form>
+  </section>
+</div>
+{% endblock %}

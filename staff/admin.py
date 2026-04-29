@@ -8,7 +8,7 @@ from import_export.forms import SelectableFieldsExportForm
 from import_export.widgets import DateWidget, ForeignKeyWidget
 from import_export.results import RowResult
 
-from .models import Employee, LeaveRequest, LeaveBalance
+from .models import Employee, EmployeeLicense, LeaveRequest, LeaveBalance
 
 
 User = get_user_model()
@@ -20,11 +20,6 @@ class EmployeeResource(resources.ModelResource):
         column_name="user_username",
         attribute="user",
         widget=ForeignKeyWidget(User, "username"),
-    )
-    license_expiry = fields.Field(
-        column_name="license_expiry",
-        attribute="license_expiry",
-        widget=DateWidget(format="%Y-%m-%d"),
     )
     created_at = fields.Field(column_name="created_at", attribute="created_at", readonly=True)
 
@@ -38,7 +33,7 @@ class EmployeeResource(resources.ModelResource):
 
     class Meta:
         model = Employee
-        import_id_fields = ("license_number",)
+        import_id_fields = ("id",)
         fields = (
             "id",
             "user_username",
@@ -46,8 +41,6 @@ class EmployeeResource(resources.ModelResource):
             "first_name",
             "last_name",
             "phone",
-            "license_number",
-            "license_expiry",
             "created_at",
         )
         skip_unchanged = True
@@ -128,8 +121,8 @@ class EmployeeAdmin(ImportExportModelAdmin):
         "user",
         "role",
         "phone",
-        "license_number",
-        "license_expiry",
+        "get_license_number",
+        "get_license_expiry",
         "created_at",
     )
     list_filter = ("role",)
@@ -140,7 +133,7 @@ class EmployeeAdmin(ImportExportModelAdmin):
         "first_name",
         "last_name",
         "phone",
-        "license_number",
+        "license__license_number",
     )
 
     def get_full_name(self, obj):
@@ -148,6 +141,16 @@ class EmployeeAdmin(ImportExportModelAdmin):
             return obj.user.get_full_name() or obj.user.username
         return f"{obj.first_name} {obj.last_name}".strip()
     get_full_name.short_description = "Name"
+
+    def get_license_number(self, obj):
+        lic = EmployeeLicense.objects.filter(employee=obj).first()
+        return (lic.license_number if lic else "") or "-"
+    get_license_number.short_description = "License Number"
+
+    def get_license_expiry(self, obj):
+        lic = EmployeeLicense.objects.filter(employee=obj).first()
+        return lic.license_expiry if lic else None
+    get_license_expiry.short_description = "License Expiry"
 
     def has_import_permission(self, request):
         return request.user.is_superuser

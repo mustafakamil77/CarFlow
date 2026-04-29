@@ -187,6 +187,7 @@ def _build_handover_pdf_bytes(*, car, event, assignment, kind):
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.units import mm
     from reportlab.pdfgen import canvas
+    from staff.models import EmployeeLicense
 
     buffer = BytesIO()
     c = canvas.Canvas(buffer, pagesize=A4)
@@ -207,8 +208,10 @@ def _build_handover_pdf_bytes(*, car, event, assignment, kind):
             driver_label = assignment.driver.user.get_full_name() or assignment.driver.user.username
         else:
             driver_label = f"{assignment.driver.first_name} {assignment.driver.last_name}".strip() or str(assignment.driver)
+        license_obj = EmployeeLicense.objects.filter(employee=assignment.driver).first()
+        license_number = (license_obj.license_number if license_obj else "") or "-"
         c.drawString(20 * mm, height - 48 * mm, f"Driver: {driver_label}")
-        c.drawString(20 * mm, height - 54 * mm, f"License: {assignment.driver.license_number or '-'}")
+        c.drawString(20 * mm, height - 54 * mm, f"License: {license_number}")
         c.drawString(20 * mm, height - 60 * mm, f"Start: {timezone.localtime(assignment.start_date).strftime('%Y-%m-%d %H:%M')}")
         end_str = timezone.localtime(assignment.end_date).strftime("%Y-%m-%d %H:%M") if assignment.end_date else "-"
         c.drawString(20 * mm, height - 66 * mm, f"End: {end_str}")
@@ -289,15 +292,27 @@ class CarHandoverEventDetailView(ManagerRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
+        from staff.models import EmployeeLicense
         assignment = (
             self.car.assignments.select_related("driver__user")
             .filter(start_odometer=self.event.odometer, start_date__gte=self.event.created_at - timedelta(minutes=2), start_date__lte=self.event.created_at + timedelta(minutes=2))
             .order_by("-start_date")
             .first()
         )
+        driver_license_number = "-"
+        driver_phone = "-"
+        driver_birth_date = "-"
+        if assignment:
+            license_obj = EmployeeLicense.objects.filter(employee=assignment.driver).first()
+            driver_license_number = (license_obj.license_number if license_obj else "") or "-"
+            driver_phone = (assignment.driver.phone or "").strip() or "-"
+            driver_birth_date = assignment.driver.date_of_birth
         ctx["car"] = self.car
         ctx["event"] = self.event
         ctx["assignment"] = assignment
+        ctx["driver_license_number"] = driver_license_number
+        ctx["driver_phone"] = driver_phone
+        ctx["driver_birth_date"] = driver_birth_date
         ctx["documents"] = list(self.car.documents.order_by("-created_at"))
         ctx["images"] = list(self.event.images.all().order_by("created_at"))
         return ctx
@@ -436,9 +451,21 @@ class CarHandoverPrintView(ManagerRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
+        from staff.models import EmployeeLicense
+        driver_license_number = "-"
+        driver_phone = "-"
+        driver_birth_date = "-"
+        if self.assignment:
+            license_obj = EmployeeLicense.objects.filter(employee=self.assignment.driver).first()
+            driver_license_number = (license_obj.license_number if license_obj else "") or "-"
+            driver_phone = (self.assignment.driver.phone or "").strip() or "-"
+            driver_birth_date = self.assignment.driver.date_of_birth
         ctx["car"] = self.car
         ctx["event"] = self.event
         ctx["assignment"] = self.assignment
+        ctx["driver_license_number"] = driver_license_number
+        ctx["driver_phone"] = driver_phone
+        ctx["driver_birth_date"] = driver_birth_date
         ctx["images"] = list(self.event.images.all().order_by("created_at"))
         return ctx
 
