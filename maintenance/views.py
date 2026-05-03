@@ -84,9 +84,21 @@ class MaintenanceRequestReportView(MaintenanceStaffRequiredMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx["days_in_maintenance"] = (
-            timezone.now().date() - self.object.created_at.date()
-        ).days
+        req = self.object
+        start_date = req.created_at.date()
+        end_date = req.completed_at.date() if req.status == "completed" and req.completed_at else timezone.localdate()
+        ctx["days_in_maintenance"] = (end_date - start_date).days + 1
+
+        from accounts.models import DriverAssignment
+
+        assignment = (
+            DriverAssignment.objects.filter(car=req.car, active=True)
+            .select_related("driver__user", "driver__department", "region", "car__region", "car__department")
+            .order_by("-start_date")
+            .first()
+        )
+        ctx["driver_assignment"] = assignment
+        ctx["driver"] = assignment.driver if assignment else None
         return ctx
 
 

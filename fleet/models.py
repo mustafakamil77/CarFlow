@@ -45,6 +45,15 @@ class Car(models.Model):
         related_name="cars",
     )
 
+    department = models.ForeignKey(
+        "accounts.Department",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="cars",
+        db_index=True,
+    )
+
     notes = models.TextField(blank=True)
 
     current_mileage = models.PositiveIntegerField(default=0, db_index=True)

@@ -37,6 +37,15 @@ class Employee(models.Model):
 
     phone = models.CharField(max_length=20, blank=True)
 
+    department = models.ForeignKey(
+        "accounts.Department",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="employees",
+        db_index=True,
+    )
+
     bio = models.TextField(blank=True, default="")
 
     photo = models.ImageField(

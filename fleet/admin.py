@@ -31,9 +31,9 @@ class VehicleInspectionInline(admin.TabularInline):
 @admin.register(Car)
 class CarAdmin(ImportExportModelAdmin):
     resource_class = CarResource
-    list_display = ("plate_number", "brand", "vehicle_type", "year", "current_mileage", "status", "region", "qr_enabled", "created_at")
-    list_filter = ("status", "year", "brand", "region", "qr_enabled")
-    search_fields = ("plate_number", "brand", "vehicle_type", "vin", "qr_token")
+    list_display = ("plate_number", "brand", "vehicle_type", "year", "current_mileage", "status", "region", "department", "qr_enabled", "created_at")
+    list_filter = ("status", "year", "brand", "region", "department", "qr_enabled")
+    search_fields = ("plate_number", "brand", "vehicle_type", "vin", "qr_token", "department__name_ar", "department__code")
     ordering = ("plate_number",)
     readonly_fields = ("created_at", "qr_token", "qr_public_url", "qr_preview")
     inlines = [VehicleInspectionInline]

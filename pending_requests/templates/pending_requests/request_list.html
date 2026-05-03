@@ -41,6 +41,8 @@
         <tr>
           <th class="px-6 py-4" scope="col">اسم الموظف</th>
           <th class="px-6 py-4" scope="col">نوع الطلب</th>
+          <th class="px-6 py-4" scope="col">القسم</th>
+          <th class="px-6 py-4" scope="col">المنطقة</th>
           <th class="px-6 py-4" scope="col">تاريخ الطلب</th>
           <th class="px-6 py-4" scope="col">قيمة العداد</th>
           <th class="px-6 py-4" scope="col">الحالة</th>
@@ -56,6 +58,7 @@
                 <div class="text-xs text-slate-500">{{ request.submitter_contact }}</div>
               {% endif %}
             </td>
+            
             <td class="px-6 py-4 text-slate-900">
               {% if request.mileage %}
                 إضافة عداد
@@ -66,9 +69,13 @@
               {% endif %}
               <div class="text-xs text-slate-500">{{ request.car.plate_number }}</div>
             </td>
+            <td class="px-6 py-4 text-slate-900">{{ request.department|default:"-" }}</div>
+            <td class="px-6 py-4 text-slate-900">{{ request.region|default:"-" }}</div>
+            </td>
             <td class="px-6 py-4 text-slate-900 whitespace-nowrap">
               {{ request.submitted_at|date:"Y-m-d H:i" }}
             </td>
+            
             <td class="px-6 py-4 text-slate-900 whitespace-nowrap">
               {% if request.mileage %}
                 {{ request.mileage |intcomma }}
@@ -149,6 +156,7 @@
               لا توجد طلبات معلّقة حالياً.
             </td>
           </tr>
+          
         {% endfor %}
       </tbody>
     </table>

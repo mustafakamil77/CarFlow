@@ -25,6 +25,7 @@ class EmployeeEditForm(forms.ModelForm):
             "last_name",
             "phone",
             "date_of_birth",
+            "department",
             "role",
             "bio",
             "photo",
@@ -34,6 +35,7 @@ class EmployeeEditForm(forms.ModelForm):
             "last_name": forms.TextInput(attrs={"class": "border rounded p-2 w-full"}),
             "phone": forms.TextInput(attrs={"class": "border rounded p-2 w-full"}),
             "date_of_birth": forms.DateInput(attrs={"type": "date", "class": "border rounded p-2 w-full"}),
+            "department": forms.Select(attrs={"class": "border rounded p-2 w-full"}),
             "role": forms.Select(attrs={"class": "border rounded p-2 w-full"}),
             "bio": forms.Textarea(attrs={"class": "border rounded p-2 w-full", "rows": 4}),
         }
@@ -42,6 +44,7 @@ class EmployeeEditForm(forms.ModelForm):
             "last_name": "Last name",
             "phone": "Phone",
             "date_of_birth": "Date of Birth",
+            "department": "Department",
             "role": "Role",
             "bio": "Bio",
             "photo": "Photo",

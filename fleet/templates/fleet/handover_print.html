@@ -331,6 +331,14 @@
               <th>الرقم التسلسلي</th>
               <td>{{ car.vin|default:"-" }}</td>
             </tr>
+
+            <tr>
+              <th>القسم</th>
+              <td>{{ car.department|default:"-" }}</td>
+              <th>المنطقة</th>
+              <td>{{ car.region|default:"-" }}</td>
+            </tr>
+
             <tr>
               <th>بداية الاستخدام</th>
               <td>

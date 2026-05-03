@@ -1,7 +1,4 @@
 from django.db import models
-from django.conf import settings
-from fleet.models import Car
-from staff.models import Employee
 
 
 class Region(models.Model):
@@ -15,9 +12,22 @@ class Region(models.Model):
         return self.name
 
 
+class Department(models.Model):
+    code = models.CharField(max_length=32, unique=True)
+    name_ar = models.CharField(max_length=64)
+    name_en = models.CharField(max_length=64, blank=True)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["name_ar"]
+
+    def __str__(self):
+        return self.name_ar or self.code
+
+
 class DriverAssignment(models.Model):
-    driver = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name="driver_assignments")
-    car = models.ForeignKey(Car, on_delete=models.CASCADE, related_name="driver_assignments")
+    driver = models.ForeignKey("staff.Employee", on_delete=models.CASCADE, related_name="driver_assignments")
+    car = models.ForeignKey("fleet.Car", on_delete=models.CASCADE, related_name="driver_assignments")
     region = models.ForeignKey("accounts.Region", on_delete=models.SET_NULL, null=True, blank=True, related_name="driver_assignments")
     start_date = models.DateField()
     end_date = models.DateField(null=True, blank=True)

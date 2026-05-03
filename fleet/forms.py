@@ -54,6 +54,7 @@ class CarForm(forms.ModelForm):
             "vin",
             "status",
             "region",
+            "department",
             "notes",
         ]
         widgets = {
@@ -64,6 +65,7 @@ class CarForm(forms.ModelForm):
             "vin": forms.TextInput(attrs={"class": "border rounded p-2 w-full"}),
             "status": forms.Select(attrs={"class": "border rounded p-2 w-full"}),
             "region": forms.Select(attrs={"class": "border rounded p-2 w-full"}),
+            "department": forms.Select(attrs={"class": "border rounded p-2 w-full"}),
             "notes": forms.Textarea(attrs={"class": "border rounded p-2 w-full", "rows": 3}),
         }
 

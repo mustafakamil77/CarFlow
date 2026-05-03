@@ -51,7 +51,15 @@
             <span class="block text-sm font-medium text-slate-500 mb-1">تاريخ التقديم</span>
             <div class="text-slate-900">{{ request.submitted_at|date:"Y-m-d H:i" }}</div>
           </div>
-          
+          <div>
+            <span class="block text-sm font-medium text-slate-500 mb-1">المنطقة </span>
+            <div class="text-slate-900">{{ request.region|default:"-" }}</div>
+          </div>
+          <div>
+            <span class="block text-sm font-medium text-slate-500 mb-1">القسم </span>
+            <div class="text-slate-900">{{ request.department|default:"-" }}</div>
+          </div>
+
           <div>
             <span class="block text-sm font-medium text-slate-500 mb-1">الحالة</span>
             <div class="mt-1">
@@ -60,6 +68,7 @@
                   <span class="w-1.5 h-1.5 rounded-full bg-yellow-600"></span> قيد الانتظار
                 </span>
               {% elif request.status == 'approved' %}
+              
                 <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-1 rounded-full inline-flex items-center gap-1.5">
                   <span class="w-1.5 h-1.5 rounded-full bg-green-600"></span> معتمد
                 </span>

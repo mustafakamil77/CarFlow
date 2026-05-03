@@ -41,6 +41,7 @@ class EmployeeResource(resources.ModelResource):
             "first_name",
             "last_name",
             "phone",
+            "department_code",
             "created_at",
         )
         skip_unchanged = True
@@ -75,6 +76,9 @@ class EmployeeResource(resources.ModelResource):
         license_number = self._cell_to_str(row.get("license_number"))
         row["license_number"] = license_number
 
+        department_code = self._cell_to_str(row.get("department_code"))
+        row["department_code"] = department_code
+
         if not any([user_username, first_name, last_name, phone, license_number, role]):
             return
 
@@ -92,6 +96,7 @@ class EmployeeResource(resources.ModelResource):
             self._cell_to_str(row.get("last_name")),
             self._cell_to_str(row.get("phone")),
             self._cell_to_str(row.get("license_number")),
+            self._cell_to_str(row.get("department_code")),
             self._cell_to_str(row.get("role")),
         ]
         if not any(values):
@@ -120,12 +125,13 @@ class EmployeeAdmin(ImportExportModelAdmin):
         "get_full_name",
         "user",
         "role",
+        "department",
         "phone",
         "get_license_number",
         "get_license_expiry",
         "created_at",
     )
-    list_filter = ("role",)
+    list_filter = ("role", "department")
     search_fields = (
         "user__username",
         "user__first_name",
@@ -133,6 +139,8 @@ class EmployeeAdmin(ImportExportModelAdmin):
         "first_name",
         "last_name",
         "phone",
+        "department__code",
+        "department__name_ar",
         "license__license_number",
     )
 
