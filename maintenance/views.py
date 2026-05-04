@@ -20,7 +20,12 @@ class MaintenanceRequestListView(LoginRequiredMixin, ListView):
     template_name = "maintenance/request_list.html"
 
     def get_queryset(self):
-        qs = super().get_queryset().order_by("-created_at")
+        qs = (
+            super()
+            .get_queryset()
+            .select_related("car", "car__region", "car__department", "created_by")
+            .order_by("-created_at")
+        )
         q = self.request.GET.get("q")
         status = self.request.GET.get("status")
         region = self.request.GET.get("region")
@@ -41,14 +46,44 @@ class MaintenanceRequestListView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["regions"] = Region.objects.all()
+        object_list = list(context["object_list"])
+
+        from accounts.models import DriverAssignment
+
+        car_ids = [r.car_id for r in object_list if r.car_id]
+        assignments = (
+            DriverAssignment.objects.filter(car_id__in=car_ids, active=True)
+            .select_related("driver__user", "region")
+            .order_by("-start_date")
+        )
+        assignment_by_car_id = {}
+        for a in assignments:
+            if a.car_id not in assignment_by_car_id:
+                assignment_by_car_id[a.car_id] = a
+
         requests_with_days = []
-        for req in context["object_list"]:
+        for req in object_list:
             start_date = req.created_at.date()
             end_date = req.updated_at.date() if req.status == "completed" else timezone.localdate()
             days_count = (end_date - start_date).days + 1
+            assignment = assignment_by_car_id.get(req.car_id)
+            driver = assignment.driver if assignment else None
+
+            if driver and driver.user:
+                requester_name = driver.user.get_full_name() or driver.user.username
+            elif driver:
+                requester_name = f"{driver.first_name} {driver.last_name}".strip() or "-"
+            elif req.created_by:
+                requester_name = req.created_by.get_full_name() or req.created_by.get_username()
+            else:
+                requester_name = "-"
+
             requests_with_days.append({
                 "object": req,
-                "days_count": days_count
+                "days_count": days_count,
+                "requester_name": requester_name,
+                "region": assignment.region if assignment and assignment.region else req.car.region,
+                "department": req.car.department,
             })
         context["requests_with_days"] = requests_with_days
         return context
