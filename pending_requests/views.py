@@ -29,16 +29,48 @@ class PendingRequestListView(StaffRequiredMixin, ListView):
     def get_queryset(self):
         mileage_requests = PendingMileageReport.objects.filter(
             status="pending"
-        ).select_related("car")
+        ).select_related("car", "car__region", "car__department")
         maintenance_requests = PendingMaintenanceReport.objects.filter(
             status="pending"
-        ).select_related("car")
+        ).select_related("car", "car__region", "car__department")
 
         all_requests = sorted(
             list(mileage_requests) + list(maintenance_requests),
             key=lambda x: x.submitted_at,
             reverse=True
         )
+
+        from accounts.models import DriverAssignment
+
+        car_ids = [r.car_id for r in all_requests if getattr(r, "car_id", None)]
+        assignments = (
+            DriverAssignment.objects.filter(car_id__in=car_ids, active=True)
+            .select_related("driver__user", "driver__department", "region", "car__region", "car__department")
+            .order_by("-start_date")
+        )
+        assignment_by_car_id = {}
+        for a in assignments:
+            if a.car_id not in assignment_by_car_id:
+                assignment_by_car_id[a.car_id] = a
+
+        for r in all_requests:
+            a = assignment_by_car_id.get(r.car_id)
+            driver = a.driver if a else None
+            if driver and driver.user:
+                driver_name = driver.user.get_full_name() or driver.user.username
+            elif driver:
+                driver_name = f"{driver.first_name} {driver.last_name}".strip() or "-"
+            else:
+                driver_name = "-"
+
+            requester_name = (getattr(r, "submitter_name", "") or "").strip() or driver_name
+            requester_contact = (getattr(r, "submitter_contact", "") or "").strip() or (driver.phone if driver else "")
+
+            r.requester_name = requester_name
+            r.requester_contact = requester_contact
+            r.region_display = (a.region if a and a.region else r.car.region) if getattr(r, "car", None) else None
+            r.department_display = (r.car.department if getattr(r, "car", None) else None) or (driver.department if driver else None)
+
         return all_requests
 
 class PendingRequestDetailView(StaffRequiredMixin, DetailView):
@@ -56,6 +88,40 @@ class PendingRequestDetailView(StaffRequiredMixin, DetailView):
         else:
             # Handle invalid request_type or raise Http404
             raise Http404("Invalid request type.")
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        req = ctx.get("request")
+        if not req or not getattr(req, "car_id", None):
+            return ctx
+
+        from accounts.models import DriverAssignment
+
+        assignment = (
+            DriverAssignment.objects.filter(car_id=req.car_id, active=True)
+            .select_related("driver__user", "driver__department", "region", "car__region", "car__department")
+            .order_by("-start_date")
+            .first()
+        )
+        driver = assignment.driver if assignment else None
+
+        if driver and driver.user:
+            driver_name = driver.user.get_full_name() or driver.user.username
+        elif driver:
+            driver_name = f"{driver.first_name} {driver.last_name}".strip() or "-"
+        else:
+            driver_name = "-"
+
+        requester_name = (getattr(req, "submitter_name", "") or "").strip() or driver_name
+        requester_contact = (getattr(req, "submitter_contact", "") or "").strip() or (driver.phone if driver else "")
+
+        ctx["driver_assignment"] = assignment
+        ctx["driver"] = driver
+        ctx["requester_name"] = requester_name
+        ctx["requester_contact"] = requester_contact
+        ctx["region_display"] = assignment.region if assignment and assignment.region else req.car.region
+        ctx["department_display"] = req.car.department or (driver.department if driver else None)
+        return ctx
 
 class AcceptRequestView(StaffRequiredMixin, View):
     def post(self, request, request_type, pk):

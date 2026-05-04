@@ -53,9 +53,9 @@
         {% for request in pending_requests %}
           <tr class="bg-white border-b hover:bg-gray-50 transition-colors">
             <td class="px-6 py-4 font-medium text-slate-900">
-              {{ request.submitter_name|default:"-" }}
-              {% if request.submitter_contact %}
-                <div class="text-xs text-slate-500">{{ request.submitter_contact }}</div>
+              {{ request.requester_name|default:request.submitter_name|default:"-" }}
+              {% if request.requester_contact or request.submitter_contact %}
+                <div class="text-xs text-slate-500">{{ request.requester_contact|default:request.submitter_contact }}</div>
               {% endif %}
             </td>
             
@@ -69,9 +69,8 @@
               {% endif %}
               <div class="text-xs text-slate-500">{{ request.car.plate_number }}</div>
             </td>
-            <td class="px-6 py-4 text-slate-900">{{ request.department|default:"-" }}</div>
-            <td class="px-6 py-4 text-slate-900">{{ request.region|default:"-" }}</div>
-            </td>
+            <td class="px-6 py-4 text-slate-900">{{ request.department_display|default:request.department|default:"-" }}</td>
+            <td class="px-6 py-4 text-slate-900">{{ request.region_display|default:request.region|default:"-" }}</td>
             <td class="px-6 py-4 text-slate-900 whitespace-nowrap">
               {{ request.submitted_at|date:"Y-m-d H:i" }}
             </td>

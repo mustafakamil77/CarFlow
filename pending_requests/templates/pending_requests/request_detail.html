@@ -41,9 +41,9 @@
           
           <div>
             <span class="block text-sm font-medium text-slate-500 mb-1">مقدم الطلب</span>
-            <div class="text-slate-900">{{ request.submitter_name|default:"-" }}</div>
-            {% if request.submitter_contact %}
-              <div class="text-sm text-slate-500 mt-0.5">{{ request.submitter_contact }}</div>
+            <div class="text-slate-900">{{ requester_name|default:request.submitter_name|default:"-" }}</div>
+            {% if requester_contact or request.submitter_contact %}
+              <div class="text-sm text-slate-500 mt-0.5">{{ requester_contact|default:request.submitter_contact }}</div>
             {% endif %}
           </div>
           
@@ -53,11 +53,11 @@
           </div>
           <div>
             <span class="block text-sm font-medium text-slate-500 mb-1">المنطقة </span>
-            <div class="text-slate-900">{{ request.region|default:"-" }}</div>
+            <div class="text-slate-900">{{ region_display|default:request.region|default:"-" }}</div>
           </div>
           <div>
             <span class="block text-sm font-medium text-slate-500 mb-1">القسم </span>
-            <div class="text-slate-900">{{ request.department|default:"-" }}</div>
+            <div class="text-slate-900">{{ department_display|default:request.department|default:"-" }}</div>
           </div>
 
           <div>

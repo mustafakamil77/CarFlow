@@ -681,10 +681,20 @@ class CarHandoverView(ManagerRequiredMixin, FormView):
         self.car = get_object_or_404(Car, pk=kwargs["pk"])
         return super().dispatch(request, *args, **kwargs)
 
+    def _get_last_recorded_odometer(self):
+        last_event = self.car.events.filter(odometer__isnull=False).order_by("-created_at").first()
+        last_event_odometer = int(last_event.odometer or 0) if last_event else 0
+        return max(int(self.car.current_mileage or 0), last_event_odometer)
+
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx["car"] = self.car
         return ctx
+
+    def get_initial(self):
+        initial = super().get_initial()
+        initial.setdefault("start_odometer", self._get_last_recorded_odometer())
+        return initial
 
     def form_valid(self, form):
         try:
@@ -720,6 +730,11 @@ class CarReturnView(ManagerRequiredMixin, FormView):
         self.car = get_object_or_404(Car, pk=kwargs["pk"])
         return super().dispatch(request, *args, **kwargs)
 
+    def _get_last_recorded_odometer(self):
+        last_event = self.car.events.filter(odometer__isnull=False).order_by("-created_at").first()
+        last_event_odometer = int(last_event.odometer or 0) if last_event else 0
+        return max(int(self.car.current_mileage or 0), last_event_odometer)
+
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx["car"] = self.car
@@ -727,6 +742,11 @@ class CarReturnView(ManagerRequiredMixin, FormView):
             self.car.assignments.select_related("driver__user").filter(end_date__isnull=True).order_by("-start_date").first()
         )
         return ctx
+
+    def get_initial(self):
+        initial = super().get_initial()
+        initial.setdefault("end_odometer", self._get_last_recorded_odometer())
+        return initial
 
     def form_valid(self, form):
         try:

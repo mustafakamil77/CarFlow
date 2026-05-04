@@ -54,6 +54,14 @@ class PendingRequest(models.Model):
         abstract = True
         ordering = ["-submitted_at"]
 
+    @property
+    def region(self):
+        return self.car.region if self.car_id else None
+
+    @property
+    def department(self):
+        return getattr(self.car, "department", None) if self.car_id else None
+
     def __str__(self):
         return f"Pending Request for {self.car.plate_number} - {self.get_status_display()}"
 
