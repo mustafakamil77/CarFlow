@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.utils import timezone
 from django import forms
 from django.db import transaction
+from django.db.models import Q
 from accounts.models import DriverAssignment
 from .models import Employee, EmployeeLicense, LeaveRequest, LeaveBalance
 
@@ -69,15 +70,34 @@ class EmployeeLicenseForm(forms.ModelForm):
 
 @login_required
 def staff_list(request):
-    employees = Employee.objects.select_related("user").all()
+    role = (request.GET.get("role") or "").strip().lower()
+    q = (request.GET.get("q") or "").strip()
+    employees = Employee.objects.select_related("user", "license", "department").all()
+    if role == "driver":
+        employees = employees.filter(role="driver")
+
+    if q:
+        employees = employees.filter(
+            Q(user__first_name__icontains=q)
+            | Q(user__last_name__icontains=q)
+            | Q(user__username__icontains=q)
+            | Q(first_name__icontains=q)
+            | Q(last_name__icontains=q)
+        )
+
+    employees = list(employees)
     employee_ids = [e.id for e in employees]
-    assignments = (
-        DriverAssignment.objects.filter(active=True, driver_id__in=employee_ids)
-        .select_related("car", "driver")
-    )
-    assigned_by_employee = {a.driver_id: a.car for a in assignments}
+    if employee_ids:
+        assignments = (
+            DriverAssignment.objects.filter(active=True, driver_id__in=employee_ids)
+            .select_related("region")
+        )
+        region_by_employee = {a.driver_id: a.region for a in assignments}
+    else:
+        region_by_employee = {}
+
     for e in employees:
-        e.assigned_car = assigned_by_employee.get(e.id)
+        e.assigned_region = region_by_employee.get(e.id)
     context = {"employees": employees}
     return render(request, "staff/staff_list.html", context)
 
