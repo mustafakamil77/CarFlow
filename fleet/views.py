@@ -526,22 +526,34 @@ class CarCreateView(ManagerRequiredMixin, CreateView):
     form_class = CarForm
     template_name = "fleet/car_form.html"
 
+    image_positions = ["front", "left", "right", "rear", "interior"]
+    image_labels = ["Front", "Left", "Right", "Rear", "Interior"]
+
+    def _prepare_image_formset(self, formset):
+        for i, f in enumerate(formset.forms):
+            if "position" in f.fields:
+                f.fields["position"].widget = dj_forms.HiddenInput()
+                if formset.is_bound:
+                    posted_pos = formset.data.get(f.add_prefix("position"))
+                    if posted_pos:
+                        f.initial["position"] = posted_pos
+                else:
+                    if i < len(self.image_positions) and not f.initial.get("position"):
+                        f.initial["position"] = self.image_positions[i]
+        return formset
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        formset = CarImageFormSet()
-        positions = ["front", "left", "right", "rear", "interior"]
-        labels = ["Front", "Left", "Right", "Rear", "Interior"]
-        for i, f in enumerate(formset.forms):
-            f.fields["position"].widget = dj_forms.HiddenInput()
-            if i < len(positions):
-                f.initial["position"] = positions[i]
+        formset = self._prepare_image_formset(CarImageFormSet())
         context["formset"] = formset
-        context["image_form_pairs"] = list(zip(formset.forms[:5], labels))
+        context["image_form_pairs"] = list(zip(formset.forms[:5], self.image_labels))
         return context
 
     def form_valid(self, form):
         response = super().form_valid(form)
-        formset = CarImageFormSet(self.request.POST or None, self.request.FILES or None, instance=self.object)
+        formset = self._prepare_image_formset(
+            CarImageFormSet(self.request.POST or None, self.request.FILES or None, instance=self.object)
+        )
         if formset.is_valid():
             instances = formset.save(commit=False)
             for img in instances:
@@ -560,22 +572,34 @@ class CarUpdateView(ManagerRequiredMixin, UpdateView):
     form_class = CarForm
     template_name = "fleet/car_form.html"
 
+    image_positions = ["front", "left", "right", "rear", "interior"]
+    image_labels = ["Front", "Left", "Right", "Rear", "Interior"]
+
+    def _prepare_image_formset(self, formset):
+        for i, f in enumerate(formset.forms):
+            if "position" in f.fields:
+                f.fields["position"].widget = dj_forms.HiddenInput()
+                if formset.is_bound:
+                    posted_pos = formset.data.get(f.add_prefix("position"))
+                    if posted_pos:
+                        f.initial["position"] = posted_pos
+                else:
+                    if not getattr(f.instance, "position", None) and i < len(self.image_positions):
+                        f.initial["position"] = self.image_positions[i]
+        return formset
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        formset = CarImageFormSet(instance=self.object)
-        positions = ["front", "left", "right", "rear", "interior"]
-        labels = ["Front", "Left", "Right", "Rear", "Interior"]
-        for i, f in enumerate(formset.forms):
-            f.fields["position"].widget = dj_forms.HiddenInput()
-            if not getattr(f.instance, "position", None) and i < len(positions):
-                f.initial["position"] = positions[i]
+        formset = self._prepare_image_formset(CarImageFormSet(instance=self.object))
         context["formset"] = formset
-        context["image_form_pairs"] = list(zip(formset.forms[:5], labels))
+        context["image_form_pairs"] = list(zip(formset.forms[:5], self.image_labels))
         return context
 
     def form_valid(self, form):
         response = super().form_valid(form)
-        formset = CarImageFormSet(self.request.POST or None, self.request.FILES or None, instance=self.object)
+        formset = self._prepare_image_formset(
+            CarImageFormSet(self.request.POST or None, self.request.FILES or None, instance=self.object)
+        )
         if formset.is_valid():
             instances = formset.save(commit=False)
             for img in instances:
