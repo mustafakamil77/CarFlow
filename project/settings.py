@@ -62,7 +62,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.humanize',
-    'accounts',
+    'accounts.apps.AccountsConfig',
     'fleet',
     'maintenance',
     'fuel',
@@ -156,7 +156,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = "Asia/Riyadh"
 
 USE_I18N = True
 
@@ -228,3 +228,14 @@ if not DEBUG:
     SECURE_HSTS_SECONDS = int(secure_hsts_seconds) if secure_hsts_seconds.isdigit() else 0
     SECURE_HSTS_INCLUDE_SUBDOMAINS = _env_bool("SECURE_HSTS_INCLUDE_SUBDOMAINS", False)
     SECURE_HSTS_PRELOAD = _env_bool("SECURE_HSTS_PRELOAD", False)
+CARFLOW_IMAGE_OPTIMIZATION = {
+    "enabled": True,
+    "max_upload_bytes": 5 * 1024 * 1024,
+    "max_side_px": 1000,
+    "target_bytes": 100 * 1024,
+    "min_quality": 35,
+    "max_quality": 85,
+    "exclude_fields": {
+        "fleet.Car.qr_code_image",
+    },
+}

@@ -3,9 +3,9 @@ from .models import Car, CarDocument, CarCost, CarAssignment, CarEvent
 from django.views.generic.edit import FormView, CreateView, UpdateView
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect
-from django.db.models import Q, Count, Sum
+from django.db.models import Exists, OuterRef, Q, Count, Sum
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from accounts.models import DriverAssignment, Region
+from accounts.models import Department, DriverAssignment, Region
 from .forms import (
     CarImageForm,
     CarConditionForm,
@@ -30,7 +30,7 @@ from django.core.cache import cache
 
 class CarListView(LoginRequiredMixin, ListView):
     model = Car
-    paginate_by = 10
+    paginate_by = 50
     template_name = "fleet/car_list.html"
     context_object_name = "cars"
 
@@ -38,19 +38,78 @@ class CarListView(LoginRequiredMixin, ListView):
         qs = Car.objects.exclude(status="inactive").annotate(
             maintenance_count=Count("maintenance_requests")
         ).prefetch_related("images")
-        q = self.request.GET.get("q")
-        status = self.request.GET.get("status")
-        sort = self.request.GET.get("sort")
-        region = self.request.GET.get("region")
+        q = (self.request.GET.get("q") or "").strip()
+        sort = (self.request.GET.get("sort") or "").strip()
+
+        statuses = [s for s in self.request.GET.getlist("status") if str(s).strip()]
+        if not statuses:
+            legacy_status = (self.request.GET.get("status") or "").strip()
+            if legacy_status:
+                statuses = [legacy_status]
+
+        region_ids = [v for v in self.request.GET.getlist("region") if str(v).strip()]
+        if not region_ids:
+            legacy_region = (self.request.GET.get("region") or "").strip()
+            if legacy_region:
+                region_ids = [legacy_region]
+
+        department_ids = [v for v in self.request.GET.getlist("department") if str(v).strip()]
+        vehicle_types = [v for v in self.request.GET.getlist("vehicle_type") if str(v).strip()]
+        brands = [v for v in self.request.GET.getlist("brand") if str(v).strip()]
+        years = [v for v in self.request.GET.getlist("year") if str(v).strip()]
+        features = {str(v).strip() for v in self.request.GET.getlist("feature") if str(v).strip()}
+        missing = {str(v).strip() for v in self.request.GET.getlist("missing") if str(v).strip()}
+
         if q:
             qs = qs.filter(Q(plate_number__icontains=q) | Q(brand__icontains=q) | Q(vehicle_type__icontains=q))
-        if status:
-            if status == "active":
-                qs = qs.filter(status__in=["available", "assigned"])
-            else:
-                qs = qs.filter(status=status)
-        if region:
-            qs = qs.filter(region_id=region)
+
+        if statuses:
+            s = set(statuses)
+            q_status = Q()
+            if "active" in s:
+                q_status |= Q(status__in=["available", "assigned"])
+                s.discard("active")
+            if s:
+                q_status |= Q(status__in=list(s))
+            qs = qs.filter(q_status)
+
+        if region_ids:
+            qs = qs.filter(region_id__in=region_ids)
+
+        if department_ids:
+            qs = qs.filter(department_id__in=department_ids)
+
+        if vehicle_types:
+            qs = qs.filter(vehicle_type__in=vehicle_types)
+
+        if brands:
+            qs = qs.filter(brand__in=brands)
+
+        if years:
+            qs = qs.filter(year__in=years)
+
+        if "has_images" in features:
+            qs = qs.filter(images__isnull=False).distinct()
+
+        if "qr_enabled" in features:
+            qs = qs.filter(qr_enabled=True)
+
+        if missing:
+            q_missing = Q()
+            if "no_region" in missing:
+                q_missing |= Q(region__isnull=True)
+            if "no_department" in missing:
+                q_missing |= Q(department__isnull=True)
+            if "no_driver" in missing:
+                qs = qs.annotate(
+                    has_open_assignment=Exists(
+                        CarAssignment.objects.filter(car_id=OuterRef("pk"), end_date__isnull=True)
+                    )
+                )
+                q_missing |= Q(has_open_assignment=False)
+            if q_missing:
+                qs = qs.filter(q_missing)
+
         if sort in {"plate_number", "brand", "vehicle_type", "year", "-year", "created_at", "-created_at"}:
             qs = qs.order_by(sort)
         if self.request.user.groups.filter(name="Driver").exists() and not (self.request.user.is_superuser or self.request.user.groups.filter(name__in=["Manager", "Fleet Manager", "Admin"]).exists()):
@@ -62,10 +121,55 @@ class CarListView(LoginRequiredMixin, ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["regions"] = Region.objects.all()
+        context["regions"] = Region.objects.all().order_by("name")
+        context["departments"] = Department.objects.filter(is_active=True).order_by("name_ar", "code")
+        context["vehicle_type_options"] = list(getattr(Car, "VEHICLE_TYPE_CHOICES", []))
+        context["status_options"] = list(getattr(Car, "STATUS_CHOICES", []))
+        context["brand_options"] = list(
+            Car.objects.exclude(status="inactive")
+            .exclude(brand__isnull=True)
+            .exclude(brand__exact="")
+            .values_list("brand", flat=True)
+            .distinct()
+            .order_by("brand")
+        )
+        context["year_options"] = list(
+            Car.objects.exclude(status="inactive")
+            .values_list("year", flat=True)
+            .distinct()
+            .order_by("-year")
+        )
+        context["selected_vehicle_types"] = set(self.request.GET.getlist("vehicle_type"))
+        context["selected_brands"] = set(self.request.GET.getlist("brand"))
+        context["selected_years"] = set(self.request.GET.getlist("year"))
+        context["selected_regions"] = set(self.request.GET.getlist("region") or ([self.request.GET.get("region")] if self.request.GET.get("region") else []))
+        context["selected_departments"] = set(self.request.GET.getlist("department"))
+        context["selected_statuses"] = set(self.request.GET.getlist("status") or ([self.request.GET.get("status")] if self.request.GET.get("status") else []))
+        context["selected_features"] = set(self.request.GET.getlist("feature"))
+        context["selected_missing"] = set(self.request.GET.getlist("missing"))
+        params = self.request.GET.copy()
+        params.pop("page", None)
+        context["qs_without_page"] = params.urlencode()
+
+        context["filtered_count"] = getattr(context.get("paginator"), "count", None)
         for car in context["cars"]:
             car.front_image = next((img for img in car.images.all() if img.position == "front"), None)
         return context
+
+    def render_to_response(self, context, **response_kwargs):
+        if (self.request.GET.get("ajax") or "").strip() == "1" or self.request.headers.get("x-requested-with") == "XMLHttpRequest":
+            from django.http import JsonResponse
+            from django.template.loader import render_to_string
+
+            html = render_to_string("fleet/_car_list_results.html", context, request=self.request)
+            count = context.get("filtered_count")
+            if count is None:
+                try:
+                    count = context["paginator"].count
+                except Exception:
+                    count = 0
+            return JsonResponse({"count": int(count or 0), "html": html})
+        return super().render_to_response(context, **response_kwargs)
 
 
 class CarDetailView(LoginRequiredMixin, DetailView):

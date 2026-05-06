@@ -2,118 +2,260 @@
 {% block content %}
 <div class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 custom-scrollbar">
   <section class="bg-transparent mb-6">
-    <div class="flex flex-col xl:flex-row gap-4 xl:items-end justify-between">
-      <form method="get" class="flex flex-col md:flex-row gap-4 flex-1">
-        <div class="relative w-full md:w-96">
-          <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-            <svg aria-hidden="true" class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
-          </div>
-          <input class="block w-full p-2.5 pl-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-white focus:ring-blue-500 focus:border-blue-500 shadow-sm" name="q" value="{{ request.GET.q }}" placeholder="Search vehicles by ID, Model, Plate..." type="text">
-        </div>
-        <div class="relative w-full md:w-auto">
-          <div class="flex flex-col">
-            <label class="text-xs font-medium text-gray-500 mb-1 ml-1" for="status-filter">Status</label>
-            <select class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 min-w-[160px] shadow-sm" id="status-filter" name="status">
-              <option value="">All Statuses</option>
-              <option value="active" {% if request.GET.status == 'active' %}selected{% endif %}>Active</option>
-              <option value="maintenance" {% if request.GET.status == 'maintenance' %}selected{% endif %}>In Maintenance</option>
-              <option value="inactive" {% if request.GET.status == 'inactive' %}selected{% endif %}>Inactive</option>
-            </select>
-          </div>
-        </div>
-        <div class="relative w-full md:w-auto">
-          <div class="flex flex-col">
-            <label class="text-xs font-medium text-gray-500 mb-1 ml-1" for="region-filter">Region</label>
-            <select class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 min-w-[160px] shadow-sm" id="region-filter" name="region">
-              <option value="">All Regions</option>
-              {% for r in regions %}
-                <option value="{{ r.pk }}" {% if request.GET.region == r.pk|stringformat:"s" %}selected{% endif %}>{{ r.name }}</option>
-              {% endfor %}
-            </select>
-          </div>
-        </div>
-        <div class="relative w-full md:w-auto">
-          <div class="flex flex-col">
-            <label class="text-xs font-medium text-gray-500 mb-1 ml-1" for="sort-filter">Sort</label>
-            <select class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 min-w-[160px] shadow-sm" id="sort-filter" name="sort">
-              <option value="-created_at" {% if request.GET.sort == '-created_at' or not request.GET.sort %}selected{% endif %}>Newest</option>
-              <option value="plate_number" {% if request.GET.sort == 'plate_number' %}selected{% endif %}>Plate</option>
-              <option value="brand" {% if request.GET.sort == 'brand' %}selected{% endif %}>Brand</option>
-              <option value="vehicle_type" {% if request.GET.sort == 'vehicle_type' %}selected{% endif %}>Vehicle Type</option>
-              <option value="year" {% if request.GET.sort == 'year' %}selected{% endif %}>Year</option>
-            </select>
-          </div>
-        </div>
-        <div class="flex items-end">
-          <button type="submit" class="tap-target text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 focus:outline-none shadow-sm">Apply</button>
-        </div>
-      </form>
-      <a href="{% url 'fleet:car_create' %}" class="tap-target text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 focus:outline-none shadow-sm flex-shrink-0 inline-flex items-center justify-center">Add New Vehicle</a>
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div>
+        <h1 class="text-xl sm:text-2xl font-semibold text-gray-900">المركبات</h1>
+        <p class="mt-1 text-sm text-gray-600">
+          عدد النتائج:
+          <span id="car-results-count" class="font-semibold text-gray-900">{{ filtered_count|default:paginator.count|default:0 }}</span>
+        </p>
+      </div>
+      <a href="{% url 'fleet:car_create' %}" class="tap-target text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 focus:outline-none shadow-sm flex-shrink-0 inline-flex items-center justify-center">إضافة مركبة</a>
     </div>
   </section>
-  <section class="bg-white rounded-lg shadow border border-gray-200 overflow-hidden">
-    <div class="table-scroll">
-      <table class="w-full text-sm text-left text-gray-500">
-        <thead class="text-xs text-gray-500 font-bold bg-gray-50/50 uppercase border-b border-gray-100">
-          <tr>
-            <th class="px-6 py-4 w-32" scope="col">Thumbnail</th>
-            <th class="px-6 py-4" scope="col">Vehicle ID</th>
-            <th class="px-6 py-4" scope="col">Vehicle Type</th>
-            <th class="px-6 py-4" scope="col">License Plate</th>
-            <th class="px-6 py-4" scope="col">Status</th>
-            <th class="px-6 py-4" scope="col">Current Driver</th>
-            <th class="px-6 py-4" scope="col">Year</th>
-            <th class="px-6 py-4" scope="col">Region</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for car in cars %}
-          <tr class="bg-white border-b hover:bg-gray-50 transition-colors">
-            <td class="px-6 py-3">
-              <div class="h-12 w-20 sm:h-14 sm:w-24 overflow-hidden rounded-md border border-gray-200 bg-gray-100 flex items-center justify-center">
-                {% if car.front_image %}
-                  <img src="{{ car.front_image.image.url }}" alt="صورة السيارة الأمامية - {{ car.plate_number }}" class="h-full w-full object-cover" loading="lazy" decoding="async" onerror="this.remove();">
-                {% else %}
-                  <img src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" alt="" class="h-full w-full object-cover opacity-0" aria-hidden="true">
-                {% endif %}
-              </div>
-            </td>
-            <td class="px-6 py-4 font-medium text-gray-900"><a href="{% url 'fleet:car_detail' car.pk %}" class="text-blue-600">V-{{ car.pk }}</a></td>
-            <td class="px-6 py-4 text-gray-900">{{ car.brand }} {{ car.get_vehicle_type_display|default:car.vehicle_type }}</td>
-            <td class="px-6 py-4 text-gray-900">{{ car.plate_number }}</td>
-            <td class="px-6 py-4">
-              {% if car.status == 'active' %}
-              <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full flex items-center w-fit gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-green-600"></span> Active</span>
-              {% elif car.status == 'maintenance' %}
-              <span class="bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-0.5 rounded-full flex items-center w-fit gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-yellow-600"></span> In Maintenance</span>
-              {% elif car.status == 'inactive' %}
-              <span class="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded-full flex items-center w-fit gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-red-600"></span> Inactive</span>
-              {% else %}
-              <span class="bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-0.5 rounded-full flex items-center w-fit gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-gray-600"></span> {{ car.status }}</span>
-              {% endif %}
-            </td>
-            <td class="px-6 py-4 text-gray-900">{{ car.current_driver }}</td>
-            <td class="px-6 py-4 text-gray-900">{{ car.year }}</td>
-            <td class="px-6 py-4 text-gray-900">{{ car.region }}</td>
-          </tr>
-          {% empty %}
-          <tr><td class="px-6 py-4" colspan="8">No cars</td></tr>
-          
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
+
+  <section class="mb-6">
+    <form id="car-filters-form" method="get" class="bg-white rounded-lg shadow border border-gray-200 p-4 space-y-4">
+      <div class="flex flex-col lg:flex-row lg:items-end gap-3">
+        <div class="flex-1 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+          <div class="space-y-1">
+            <label class="text-xs font-medium text-gray-500" for="q">بحث</label>
+            <input id="q" class="block w-full p-2.5 text-sm text-gray-900 border border-gray-300 rounded-lg bg-white focus:ring-blue-500 focus:border-blue-500 shadow-sm" name="q" value="{{ request.GET.q|default:'' }}" placeholder="بحث برقم اللوحة أو النوع أو الماركة..." type="text">
+          </div>
+          <div class="space-y-1">
+            <label class="text-xs font-medium text-gray-500" for="sort-filter">ترتيب</label>
+            <select class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 shadow-sm" id="sort-filter" name="sort">
+              <option value="-created_at" {% if request.GET.sort == '-created_at' or not request.GET.sort %}selected{% endif %}>الأحدث</option>
+              <option value="plate_number" {% if request.GET.sort == 'plate_number' %}selected{% endif %}>اللوحة</option>
+              <option value="brand" {% if request.GET.sort == 'brand' %}selected{% endif %}>الماركة</option>
+              <option value="vehicle_type" {% if request.GET.sort == 'vehicle_type' %}selected{% endif %}>نوع المركبة</option>
+              <option value="year" {% if request.GET.sort == 'year' %}selected{% endif %}>السنة</option>
+              <option value="-year" {% if request.GET.sort == '-year' %}selected{% endif %}>السنة (الأحدث أولاً)</option>
+            </select>
+          </div>
+          <div class="flex items-end gap-2">
+            <button type="button" id="clear-filters" class="w-full text-gray-700 bg-gray-100 hover:bg-gray-200 focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-4 py-2.5 focus:outline-none shadow-sm border border-gray-300">مسح الكل</button>
+            <button type="submit" class="w-full text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2.5 focus:outline-none shadow-sm">تطبيق</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
+        <details class="rounded-lg border border-gray-200 bg-gray-50 p-3">
+          <summary class="cursor-pointer text-sm font-semibold text-gray-800">الحالة</summary>
+          <div class="mt-3 space-y-2">
+            <label class="flex items-center gap-2 text-sm text-gray-700">
+              <input type="checkbox" name="status" value="active" class="h-4 w-4" {% if 'active' in selected_statuses %}checked{% endif %}>
+              <span>Active (Available + Assigned)</span>
+            </label>
+            {% for value,label in status_options %}
+              <label class="flex items-center gap-2 text-sm text-gray-700">
+                <input type="checkbox" name="status" value="{{ value }}" class="h-4 w-4" {% if value in selected_statuses %}checked{% endif %}>
+                <span>{{ label }}</span>
+              </label>
+            {% endfor %}
+          </div>
+        </details>
+
+        <details class="rounded-lg border border-gray-200 bg-gray-50 p-3">
+          <summary class="cursor-pointer text-sm font-semibold text-gray-800">النوع</summary>
+          <div class="mt-3 space-y-2">
+            {% for value,label in vehicle_type_options %}
+              <label class="flex items-center gap-2 text-sm text-gray-700">
+                <input type="checkbox" name="vehicle_type" value="{{ value }}" class="h-4 w-4" {% if value in selected_vehicle_types %}checked{% endif %}>
+                <span>{{ label }}</span>
+              </label>
+            {% endfor %}
+          </div>
+        </details>
+
+        <details class="rounded-lg border border-gray-200 bg-gray-50 p-3">
+          <summary class="cursor-pointer text-sm font-semibold text-gray-800">الماركة</summary>
+          <div class="mt-3 space-y-2 max-h-52 overflow-auto pr-1">
+            {% for b in brand_options %}
+              <label class="flex items-center gap-2 text-sm text-gray-700">
+                <input type="checkbox" name="brand" value="{{ b }}" class="h-4 w-4" {% if b in selected_brands %}checked{% endif %}>
+                <span>{{ b }}</span>
+              </label>
+            {% endfor %}
+          </div>
+        </details>
+
+        <details class="rounded-lg border border-gray-200 bg-gray-50 p-3">
+          <summary class="cursor-pointer text-sm font-semibold text-gray-800">السنة</summary>
+          <div class="mt-3 space-y-2 max-h-52 overflow-auto pr-1">
+            {% for y in year_options %}
+              <label class="flex items-center gap-2 text-sm text-gray-700">
+                <input type="checkbox" name="year" value="{{ y }}" class="h-4 w-4" {% if y|stringformat:"s" in selected_years %}checked{% endif %}>
+                <span>{{ y }}</span>
+              </label>
+            {% endfor %}
+          </div>
+        </details>
+
+        <details class="rounded-lg border border-gray-200 bg-gray-50 p-3">
+          <summary class="cursor-pointer text-sm font-semibold text-gray-800">المنطقة</summary>
+          <div class="mt-3 space-y-2 max-h-52 overflow-auto pr-1">
+            {% for r in regions %}
+              <label class="flex items-center gap-2 text-sm text-gray-700">
+                <input type="checkbox" name="region" value="{{ r.pk }}" class="h-4 w-4" {% if r.pk|stringformat:"s" in selected_regions %}checked{% endif %}>
+                <span>{{ r.name }}</span>
+              </label>
+            {% endfor %}
+          </div>
+        </details>
+
+        <details class="rounded-lg border border-gray-200 bg-gray-50 p-3">
+          <summary class="cursor-pointer text-sm font-semibold text-gray-800">القسم</summary>
+          <div class="mt-3 space-y-2 max-h-52 overflow-auto pr-1">
+            {% for d in departments %}
+              <label class="flex items-center gap-2 text-sm text-gray-700">
+                <input type="checkbox" name="department" value="{{ d.pk }}" class="h-4 w-4" {% if d.pk|stringformat:"s" in selected_departments %}checked{% endif %}>
+                <span>{{ d.name_ar|default:d.code }}</span>
+              </label>
+            {% endfor %}
+          </div>
+        </details>
+
+        <details class="rounded-lg border border-gray-200 bg-gray-50 p-3">
+          <summary class="cursor-pointer text-sm font-semibold text-gray-800">نواقص</summary>
+          <div class="mt-3 space-y-2">
+            <label class="flex items-center gap-2 text-sm text-gray-700">
+              <input type="checkbox" name="missing" value="no_driver" class="h-4 w-4" {% if 'no_driver' in selected_missing %}checked{% endif %}>
+              <span>بدون سائق</span>
+            </label>
+            <label class="flex items-center gap-2 text-sm text-gray-700">
+              <input type="checkbox" name="missing" value="no_region" class="h-4 w-4" {% if 'no_region' in selected_missing %}checked{% endif %}>
+              <span>بدون منطقة</span>
+            </label>
+            <label class="flex items-center gap-2 text-sm text-gray-700">
+              <input type="checkbox" name="missing" value="no_department" class="h-4 w-4" {% if 'no_department' in selected_missing %}checked{% endif %}>
+              <span>بدون قسم</span>
+            </label>
+          </div>
+        </details>
+
+        <details class="rounded-lg border border-gray-200 bg-gray-50 p-3">
+          <summary class="cursor-pointer text-sm font-semibold text-gray-800">مميزات</summary>
+          <div class="mt-3 space-y-2">
+            <label class="flex items-center gap-2 text-sm text-gray-700">
+              <input type="checkbox" name="feature" value="has_images" class="h-4 w-4" {% if 'has_images' in selected_features %}checked{% endif %}>
+              <span>لديها صور</span>
+            </label>
+            <label class="flex items-center gap-2 text-sm text-gray-700">
+              <input type="checkbox" name="feature" value="qr_enabled" class="h-4 w-4" {% if 'qr_enabled' in selected_features %}checked{% endif %}>
+              <span>QR مفعل</span>
+            </label>
+          </div>
+        </details>
+      </div>
+    </form>
   </section>
-  {% if is_paginated %}
-  <div class="mt-4 flex items-center space-x-2">
-    {% if page_obj.has_previous %}
-      <a class="px-3 py-2 border rounded" href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.region %}region={{ request.GET.region }}&{% endif %}{% if request.GET.sort %}sort={{ request.GET.sort }}&{% endif %}page={{ page_obj.previous_page_number }}">Previous</a>
-    {% endif %}
-    <span>Page {{ page_obj.number }} of {{ paginator.num_pages }}</span>
-    {% if page_obj.has_next %}
-      <a class="px-3 py-2 border rounded" href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.region %}region={{ request.GET.region }}&{% endif %}{% if request.GET.sort %}sort={{ request.GET.sort }}&{% endif %}page={{ page_obj.next_page_number }}">Next</a>
-    {% endif %}
+
+  <div id="car-results" class="space-y-4">
+    {% include "fleet/_car_list_results.html" %}
   </div>
-  {% endif %}
 </div>
+
+<script>
+(() => {
+  const form = document.getElementById("car-filters-form");
+  const resultsEl = document.getElementById("car-results");
+  const countEl = document.getElementById("car-results-count");
+  const clearBtn = document.getElementById("clear-filters");
+  const qInput = document.getElementById("q");
+  if (!form || !resultsEl || !countEl) return;
+
+  let debounceId = null;
+  let abortController = null;
+
+  const buildParams = () => {
+    const fd = new FormData(form);
+    const params = new URLSearchParams();
+    for (const [k, v] of fd.entries()) {
+      if (v !== null && String(v).trim() !== "") params.append(k, v);
+    }
+    params.set("ajax", "1");
+    return params;
+  };
+
+  const applyToUrl = () => {
+    const fd = new FormData(form);
+    const params = new URLSearchParams();
+    for (const [k, v] of fd.entries()) {
+      if (v !== null && String(v).trim() !== "") params.append(k, v);
+    }
+    const newUrl = `${window.location.pathname}?${params.toString()}`;
+    window.history.replaceState({}, "", newUrl);
+  };
+
+  const fetchResults = async () => {
+    if (abortController) abortController.abort();
+    abortController = new AbortController();
+    const params = buildParams();
+    try {
+      const res = await fetch(`${window.location.pathname}?${params.toString()}`, {
+        headers: { "X-Requested-With": "XMLHttpRequest" },
+        signal: abortController.signal,
+      });
+      if (!res.ok) throw new Error("Request failed");
+      const data = await res.json();
+      resultsEl.innerHTML = data.html || "";
+      countEl.textContent = (data.count ?? 0).toString();
+      applyToUrl();
+    } catch (e) {
+      if (e.name === "AbortError") return;
+    }
+  };
+
+  const scheduleFetch = () => {
+    clearTimeout(debounceId);
+    debounceId = setTimeout(fetchResults, 250);
+  };
+
+  form.addEventListener("change", () => {
+    scheduleFetch();
+  });
+
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    fetchResults();
+  });
+
+  if (qInput) {
+    qInput.addEventListener("input", () => {
+      scheduleFetch();
+    });
+  }
+
+  if (clearBtn) {
+    clearBtn.addEventListener("click", () => {
+      form.reset();
+      fetchResults();
+    });
+  }
+
+  document.addEventListener("click", (e) => {
+    const a = e.target.closest("#car-results a[href]");
+    if (!a) return;
+    const href = a.getAttribute("href") || "";
+    if (!href.startsWith("?")) return;
+    e.preventDefault();
+    const url = new URL(href, window.location.origin);
+    for (const [k, v] of url.searchParams.entries()) {
+      if (k === "page") {
+        const hidden = document.createElement("input");
+        hidden.type = "hidden";
+        hidden.name = "page";
+        hidden.value = v;
+        form.appendChild(hidden);
+      }
+    }
+    fetchResults().finally(() => {
+      const pageHidden = form.querySelector('input[type="hidden"][name="page"]');
+      if (pageHidden) pageHidden.remove();
+    });
+  });
+})();
+</script>
 {% endblock %}

@@ -16,7 +16,7 @@ from reportlab.lib.utils import ImageReader
 from reportlab.pdfgen import canvas
 
 from accounts.models import Region
-from fleet.models import Car, CarEvent
+from fleet.models import Car, CarAssignment, CarEvent
 from fuel.models import FuelLog
 from maintenance.models import MaintenanceRequest
 from staff.models import Employee, LeaveRequest
@@ -24,6 +24,79 @@ from django.contrib.auth import get_user_model
 
 from .forms import VehicleInspectionForm
 from .models import VehicleInspection
+from pending_requests.models import PendingMileageReport
+
+
+def _build_monthly_mileage_report_context():
+    today = timezone.localdate()
+    month_start = today.replace(day=1)
+    if month_start.month == 12:
+        next_month_start = month_start.replace(year=month_start.year + 1, month=1, day=1)
+    else:
+        next_month_start = month_start.replace(month=month_start.month + 1, day=1)
+
+    cars = list(
+        Car.objects.exclude(status="inactive")
+        .select_related("region", "department")
+        .order_by("plate_number")
+    )
+    car_ids = [c.id for c in cars]
+
+    open_assignments = (
+        CarAssignment.objects.filter(car_id__in=car_ids, end_date__isnull=True)
+        .select_related("driver__user", "car")
+        .order_by("-start_date")
+    )
+    assignment_by_car = {}
+    for a in open_assignments:
+        if a.car_id not in assignment_by_car:
+            assignment_by_car[a.car_id] = a
+
+    monthly_reports = list(
+        PendingMileageReport.objects.filter(submitted_at__gte=month_start, submitted_at__lt=next_month_start)
+        .select_related("car")
+        .order_by("-submitted_at")
+    )
+    latest_report_by_car = {}
+    for r in monthly_reports:
+        if r.car_id not in latest_report_by_car:
+            latest_report_by_car[r.car_id] = r
+
+    sent_items = []
+    not_sent_items = []
+    for c in cars:
+        a = assignment_by_car.get(c.id)
+        driver_name = "-"
+        driver_phone = "-"
+        if a and a.driver:
+            if a.driver.user_id:
+                driver_name = (a.driver.user.get_full_name() or a.driver.user.username or "-").strip() or "-"
+            else:
+                driver_name = f"{(a.driver.first_name or '').strip()} {(a.driver.last_name or '').strip()}".strip() or "-"
+            driver_phone = (a.driver.phone or "").strip() or "-"
+
+        r = latest_report_by_car.get(c.id)
+        row = {
+            "car": c,
+            "driver_name": driver_name,
+            "driver_phone": driver_phone,
+        }
+        if r:
+            row["mileage"] = r.mileage
+            row["submitted_at"] = r.submitted_at
+            row["status"] = r.status
+            sent_items.append(row)
+        else:
+            not_sent_items.append(row)
+
+    return {
+        "mileage_month_start": month_start,
+        "mileage_month_end": next_month_start - timedelta(days=1),
+        "mileage_sent_items": sent_items,
+        "mileage_not_sent_items": not_sent_items,
+        "mileage_sent_count": len(sent_items),
+        "mileage_not_sent_count": len(not_sent_items),
+    }
 
 
 class DashboardView(TemplateView):
@@ -34,6 +107,15 @@ class DashboardView(TemplateView):
         context["analytics_initial"] = json.dumps(_build_dashboard_analytics())
         context["regions"] = Region.objects.all()
         return context
+
+
+class MileageMonthlyReportView(TemplateView):
+    template_name = "reports/mileage_monthly_report.html"
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx.update(_build_monthly_mileage_report_context())
+        return ctx
 
 
 class KPIPdfView(TemplateView):

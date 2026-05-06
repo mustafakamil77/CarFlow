@@ -1,10 +1,18 @@
 from django.urls import path
-from .views import DashboardAnalyticsApiView, DashboardView, KPIPdfView, VehiclesExportView, VehiclesQRPdfView
+from .views import (
+    DashboardAnalyticsApiView,
+    DashboardView,
+    KPIPdfView,
+    MileageMonthlyReportView,
+    VehiclesExportView,
+    VehiclesQRPdfView,
+)
 
 app_name = "reports"
 
 urlpatterns = [
     path("dashboard/", DashboardView.as_view(), name="dashboard"),
+    path("mileage/monthly/", MileageMonthlyReportView.as_view(), name="mileage_monthly"),
     path("api/analytics/", DashboardAnalyticsApiView.as_view(), name="analytics_api"),
     path("pdf/kpis/", KPIPdfView.as_view(), name="kpi_pdf"),
     path("pdf/vehicles-qr/", VehiclesQRPdfView.as_view(), name="vehicles_qr_pdf"),
