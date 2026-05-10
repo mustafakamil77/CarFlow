@@ -65,11 +65,7 @@ def _validate_max_upload_size(uploaded_file, *, max_upload_bytes: int):
 
 
 def _build_optimized_path(*, sender, field_name: str, output_ext: str):
-    now = timezone.now()
-    return (
-        f"uploads/optimized/{sender._meta.app_label}/{sender._meta.model_name}/"
-        f"{field_name}/{now:%Y/%m}/{uuid.uuid4().hex}.{output_ext}"
-    )
+    return f"{uuid.uuid4().hex}.{output_ext}"
 
 
 def _open_image(file_obj):
