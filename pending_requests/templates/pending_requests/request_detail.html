@@ -133,7 +133,7 @@
               <div class="text-slate-900 whitespace-pre-line">{{ request.description }}</div>
             </div>
             
-            {% if request.image %}
+            {% if request.image and not request.images.exists %}
               <div>
                 <span class="block text-sm font-medium text-slate-500 mb-2">صورة مرفقة</span>
                 <div class="rounded-lg border border-slate-200 overflow-hidden bg-slate-50 max-w-sm">

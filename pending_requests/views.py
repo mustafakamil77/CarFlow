@@ -6,6 +6,9 @@ from django.shortcuts import get_object_or_404, Http404, redirect, render
 from django.urls import reverse
 from django.db import transaction
 from django.utils import timezone
+from django.http import JsonResponse
+from django.template.loader import render_to_string
+from django.db.models import Q
 
 from .models import PendingMaintenanceImage, PendingMaintenanceReport, PendingMileageReport, RequestLog
 from .forms import RejectionForm, PendingMileageReportForm, PendingMaintenanceReportForm
@@ -26,13 +29,79 @@ class PendingRequestListView(StaffRequiredMixin, ListView):
     context_object_name = "pending_requests"
     paginate_by = 20
 
+    def _parse_filters(self):
+        q_raw = (self.request.GET.get("q") or "").strip()
+        status_param = (self.request.GET.get("status") or "").strip().lower()
+        if not status_param:
+            status_param = "pending"
+        elif status_param == "all":
+            status_param = ""
+        region_param = (self.request.GET.get("region") or "").strip()
+        department_param = (self.request.GET.get("department") or "").strip()
+        request_type_param = (self.request.GET.get("type") or "").strip().lower()
+
+        q_work = " ".join(q_raw.split())
+
+        return {
+            "q_raw": q_raw,
+            "q_work": q_work,
+            "status": status_param,
+            "region": region_param,
+            "department": department_param,
+            "type": request_type_param,
+        }
+
+    def _apply_common_filters(self, qs, *, filters):
+        if filters["status"]:
+            qs = qs.filter(status=filters["status"])
+
+        if filters["department"]:
+            qs = qs.filter(car__department_id=filters["department"])
+
+        if filters["region"]:
+            qs = qs.filter(
+                Q(car__region_id=filters["region"])
+                | Q(car__driver_assignments__active=True, car__driver_assignments__region_id=filters["region"])
+            ).distinct()
+
+        if filters["q_work"]:
+            tokens = [t for t in filters["q_work"].split(" ") if t]
+            for token in tokens:
+                if token.isdigit():
+                    qs = qs.filter(
+                        Q(pk=int(token))
+                        | Q(car__plate_number__icontains=token)
+                        | Q(submitter_contact__icontains=token)
+                    )
+                    continue
+                qs = qs.filter(
+                    Q(car__plate_number__icontains=token)
+                    | Q(submitter_name__icontains=token)
+                    | Q(submitter_contact__icontains=token)
+                )
+
+        return qs
+
     def get_queryset(self):
-        mileage_requests = PendingMileageReport.objects.filter(
-            status="pending"
-        ).select_related("car", "car__region", "car__department")
-        maintenance_requests = PendingMaintenanceReport.objects.filter(
-            status="pending"
-        ).select_related("car", "car__region", "car__department")
+        filters = self._parse_filters()
+
+        mileage_requests = PendingMileageReport.objects.select_related("car", "car__region", "car__department")
+        maintenance_requests = PendingMaintenanceReport.objects.select_related("car", "car__region", "car__department")
+
+        if filters["type"] == "mileage":
+            maintenance_requests = maintenance_requests.none()
+        elif filters["type"] == "maintenance":
+            mileage_requests = mileage_requests.none()
+
+        mileage_requests = self._apply_common_filters(mileage_requests, filters=filters)
+        maintenance_requests = self._apply_common_filters(maintenance_requests, filters=filters)
+
+        if filters["q_work"]:
+            tokens = [t for t in filters["q_work"].split(" ") if t]
+            for token in tokens:
+                if token.isdigit():
+                    mileage_requests = mileage_requests.filter(Q(mileage=int(token)) | Q(pk=int(token)))
+                maintenance_requests = maintenance_requests.filter(Q(title__icontains=token) | Q(description__icontains=token))
 
         all_requests = sorted(
             list(mileage_requests) + list(maintenance_requests),
@@ -72,6 +141,30 @@ class PendingRequestListView(StaffRequiredMixin, ListView):
             r.department_display = (r.car.department if getattr(r, "car", None) else None) or (driver.department if driver else None)
 
         return all_requests
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        from accounts.models import Region, Department
+
+        filters = self._parse_filters()
+        context["regions"] = Region.objects.all()
+        context["departments"] = Department.objects.filter(is_active=True).order_by("name_ar")
+        context["effective_status"] = filters["status"]
+        context["effective_region"] = filters["region"]
+        context["effective_department"] = filters["department"]
+        context["effective_type"] = filters["type"]
+
+        get_params = self.request.GET.copy()
+        if "page" in get_params:
+            get_params.pop("page")
+        context["querystring"] = get_params.urlencode()
+        return context
+
+    def render_to_response(self, context, **response_kwargs):
+        if (self.request.GET.get("ajax") or "").strip() == "1":
+            html = render_to_string("pending_requests/_request_list_results.html", context=context, request=self.request)
+            return JsonResponse({"html": html, "count": context["page_obj"].paginator.count})
+        return super().render_to_response(context, **response_kwargs)
 
 class PendingRequestDetailView(StaffRequiredMixin, DetailView):
     template_name = "pending_requests/request_detail.html"
@@ -178,17 +271,34 @@ class AcceptRequestView(StaffRequiredMixin, View):
                     odometer=pending_request.car.current_mileage,
                 )
 
-                for pending_img in pending_request.images.all():
-                    MaintenanceImage.objects.create(
-                        request=maintenance_request,
-                        image=pending_img.image,
-                    )
+                sources = []
+                seen_names = set()
 
-                if pending_request.image:
-                    MaintenanceImage.objects.create(
-                        request=maintenance_request,
-                        image=pending_request.image,
-                    )
+                pending_images = list(pending_request.images.all())
+                if pending_images:
+                    for pending_img in pending_images:
+                        if not pending_img.image:
+                            continue
+                        name = pending_img.image.name or ""
+                        if name and name in seen_names:
+                            continue
+                        if name:
+                            seen_names.add(name)
+                        sources.append(pending_img.image)
+                elif pending_request.image:
+                    sources.append(pending_request.image)
+
+                for src in sources:
+                    image_name = os.path.basename(getattr(src, "name", "") or "") or "maintenance.jpg"
+                    src.open("rb")
+                    try:
+                        data = src.read()
+                    finally:
+                        src.close()
+
+                    img_obj = MaintenanceImage(request=maintenance_request)
+                    img_obj.image = ContentFile(data, name=image_name)
+                    img_obj.save()
 
             pending_request.status = "approved"
             pending_request.approved_by = request.user

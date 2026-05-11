@@ -1,0 +1,68 @@
+<section class="bg-white rounded-lg shadow border border-gray-200 overflow-hidden">
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm text-left text-gray-500">
+      <thead class="text-xs text-gray-500 font-bold bg-gray-50/50 uppercase border-b border-gray-100">
+        <tr>
+          <th class="px-6 py-4" scope="col">ID</th>
+          <th class="px-6 py-4" scope="col">Vehicle</th>
+          <th class="px-6 py-4" scope="col">Title</th>
+          <th class="px-6 py-4" scope="col">مقدم الطلب</th>
+          <th class="px-6 py-4" scope="col">القسم</th>
+          <th class="px-6 py-4" scope="col">المنطقة</th>
+          <th class="px-6 py-4" scope="col">Status</th>
+          <th class="px-6 py-4" scope="col">Created At</th>
+          <th class="px-6 py-4" scope="col">Days</th>
+          <th class="px-6 py-4 text-right" scope="col">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for req_data in requests_with_days %}
+          {% with req=req_data.object %}
+          <tr class="bg-white border-b hover:bg-gray-50 transition-colors">
+            <td class="px-6 py-4 font-medium text-gray-900">#{{ req.pk }}</td>
+            <td class="px-6 py-4 font-medium text-blue-600">
+              <a href="{% url 'fleet:car_detail' req.car.pk %}">{{ req.car.plate_number }}</a>
+            </td>
+            <td class="px-6 py-4 text-gray-900">{{ req.title }}</td>
+            <td class="px-6 py-4 text-gray-900">{{ req_data.requester_name|default:"-" }}</td>
+            <td class="px-6 py-4 text-gray-900">{{ req_data.department|default:"-" }}</td>
+            <td class="px-6 py-4 text-gray-900">{{ req_data.region|default:"-" }}</td>
+            <td class="px-6 py-4">
+              {% if req.status == 'new' %}
+                <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full flex items-center w-fit gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-blue-600"></span> New</span>
+              {% elif req.status == 'approved' %}
+                <span class="bg-indigo-100 text-indigo-800 text-xs font-medium px-2.5 py-0.5 rounded-full flex items-center w-fit gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-indigo-600"></span> Approved</span>
+              {% elif req.status == 'in_progress' %}
+                <span class="bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-0.5 rounded-full flex items-center w-fit gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-yellow-600"></span> In Progress</span>
+              {% elif req.status == 'completed' %}
+                <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full flex items-center w-fit gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-green-600"></span> Completed</span>
+              {% else %}
+                <span class="bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-0.5 rounded-full flex items-center w-fit gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-gray-600"></span> {{ req.get_status_display }}</span>
+              {% endif %}
+            </td>
+            <td class="px-6 py-4 text-gray-500">{{ req.created_at|date:"Y-m-d H:i" }}</td>
+            <td class="px-6 py-4 text-gray-500">{{ req_data.days_count }}</td>
+            <td class="px-6 py-4 text-right">
+              <a href="{% url 'maintenance:request_detail' req.pk %}" class="font-medium text-blue-600 hover:underline">View</a>
+            </td>
+          </tr>
+          {% endwith %}
+        {% empty %}
+          <tr><td class="px-6 py-6 text-center text-gray-600" colspan="10">لا توجد طلبات صيانة مطابقة</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+{% if is_paginated %}
+  <div class="mt-4 flex flex-wrap items-center gap-2">
+    {% if page_obj.has_previous %}
+      <a data-page-link="1" class="px-3 py-2 border rounded text-sm text-gray-600 bg-white hover:bg-gray-50" href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ page_obj.previous_page_number }}">Previous</a>
+    {% endif %}
+    <span class="text-sm text-gray-600">Page {{ page_obj.number }} of {{ paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+      <a data-page-link="1" class="px-3 py-2 border rounded text-sm text-gray-600 bg-white hover:bg-gray-50" href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ page_obj.next_page_number }}">Next</a>
+    {% endif %}
+  </div>
+{% endif %}

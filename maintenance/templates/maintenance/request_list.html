@@ -1,116 +1,151 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 custom-scrollbar">
-  <section class="bg-transparent mb-6">
+  <section class="bg-white rounded-lg shadow border border-gray-200 p-4 sm:p-5 mb-6">
     <div class="flex flex-col xl:flex-row gap-4 xl:items-end justify-between">
-      <form method="get" class="flex flex-col md:flex-row gap-4 flex-1">
-        <div class="relative w-full md:w-96">
-          <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-            <svg aria-hidden="true" class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+      <form id="filters-form" method="get" class="flex flex-col gap-4 flex-1">
+        <div class="flex flex-col lg:flex-row gap-3 lg:items-end lg:flex-nowrap">
+          <div class="w-full lg:flex-1 min-w-[280px]">
+            <label class="text-xs font-medium text-gray-500 mb-1 ml-1 block" for="q">بحث</label>
+            <div class="relative">
+              <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                <svg aria-hidden="true" class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+              </div>
+              <input id="q" class="block w-full p-2.5 pl-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-white focus:ring-blue-500 focus:border-blue-500 shadow-sm" name="q" value="{{ request.GET.q }}" placeholder="مثال: منتهي الدمام / تسريب زيت / 123" type="text">
+            </div>
+            
           </div>
-          <input class="block w-full p-2.5 pl-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-white focus:ring-blue-500 focus:border-blue-500 shadow-sm" name="q" value="{{ request.GET.q }}" placeholder="Search requests by title, plate..." type="text">
-        </div>
-        <div class="relative w-full md:w-auto">
-          <div class="flex flex-col">
-            <label class="text-xs font-medium text-gray-500 mb-1 ml-1" for="status-filter">Status</label>
-            <select class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 min-w-[160px] shadow-sm" id="status-filter" name="status">
-              <option value="">All Statuses</option>
-              <option value="new" {% if request.GET.status == 'new' %}selected{% endif %}>New</option>
-              <option value="approved" {% if request.GET.status == 'approved' %}selected{% endif %}>Approved</option>
-              <option value="in_progress" {% if request.GET.status == 'in_progress' %}selected{% endif %}>In Progress</option>
-              <option value="completed" {% if request.GET.status == 'completed' %}selected{% endif %}>Completed</option>
-            </select>
-          </div>
-        </div>
-        <div class="relative w-full md:w-auto">
-          <div class="flex flex-col">
-            <label class="text-xs font-medium text-gray-500 mb-1 ml-1" for="region-filter">Region</label>
-            <select class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 min-w-[160px] shadow-sm" id="region-filter" name="region">
-              <option value="">All Regions</option>
-              {% for r in regions %}
-                <option value="{{ r.pk }}" {% if request.GET.region == r.pk|stringformat:"s" %}selected{% endif %}>{{ r.name }}</option>
+          <div class="w-full lg:w-56">
+            <label class="text-xs font-medium text-gray-500 mb-1 ml-1 block" for="department-filter">القسم</label>
+            <select class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 shadow-sm" id="department-filter" name="department">
+              <option value="">كل الأقسام</option>
+              {% for d in departments %}
+                <option value="{{ d.pk }}" {% if effective_department == d.pk|stringformat:"s" %}selected{% endif %}>{{ d }}</option>
               {% endfor %}
             </select>
           </div>
-        </div>
-        <div class="flex items-end gap-2">
-          <button type="submit" class="text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 focus:outline-none shadow-sm transition-colors">Apply Filter</button>
-          <a href="{% url 'maintenance:request_list' %}" class="text-gray-700 bg-gray-100 hover:bg-gray-200 focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-5 py-2.5 focus:outline-none shadow-sm transition-colors border border-gray-300 flex items-center justify-center">Reset</a>
+          <div class="w-full lg:w-56">
+            <label class="text-xs font-medium text-gray-500 mb-1 ml-1 block" for="status-filter">الحالة</label>
+            <select class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 shadow-sm" id="status-filter" name="status">
+              <option value="">كل الحالات</option>
+              <option value="new" {% if effective_status == 'new' %}selected{% endif %}>جديد</option>
+              <option value="approved" {% if effective_status == 'approved' %}selected{% endif %}>معتمد</option>
+              <option value="in_progress" {% if effective_status == 'in_progress' %}selected{% endif %}>قيد التنفيذ</option>
+              <option value="completed" {% if effective_status == 'completed' %}selected{% endif %}>منتهي</option>
+            </select>
+          </div>
+          <div class="w-full lg:w-56">
+            <label class="text-xs font-medium text-gray-500 mb-1 ml-1 block" for="region-filter">المنطقة</label>
+            <select class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 shadow-sm" id="region-filter" name="region">
+              <option value="">كل المناطق</option>
+              {% for r in regions %}
+                <option value="{{ r.pk }}" {% if effective_region == r.pk|stringformat:"s" %}selected{% endif %}>{{ r.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="w-full lg:w-auto">
+            <label class="text-xs font-medium text-gray-500 mb-1 ml-1 block">&nbsp;</label>
+            <label class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-700 select-none">
+              <input id="include-completed" type="checkbox" name="include_completed" value="1" {% if include_completed %}checked{% endif %} class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+              عرض المنتهية
+            </label>
+          </div>
+          <div class="flex items-end gap-2">
+            <button type="submit" class="text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 focus:outline-none shadow-sm transition-colors">تطبيق</button>
+            <a href="{% url 'maintenance:request_list' %}" class="text-gray-700 bg-gray-100 hover:bg-gray-200 focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-5 py-2.5 focus:outline-none shadow-sm transition-colors border border-gray-300 flex items-center justify-center">مسح</a>
+          </div>
         </div>
       </form>
-      <a href="{% url 'maintenance:request_create' %}" class="text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 focus:outline-none shadow-sm flex-shrink-0">Create New Request</a>
+
+      <div class="flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-end">
+        <div class="text-xs text-gray-500">
+          <span class="inline-flex items-center gap-2 rounded-full bg-gray-50 px-3 py-1 border border-gray-200">
+            <span class="h-2 w-2 rounded-full bg-gray-400"></span>
+            <span id="results-count">{{ page_obj.paginator.count }}</span> نتيجة
+          </span>
+        </div>
+        <a href="{% url 'maintenance:request_create' %}" class="text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 focus:outline-none shadow-sm flex-shrink-0">إنشاء طلب صيانة</a>
+      </div>
     </div>
   </section>
 
-  <section class="bg-white rounded-lg shadow border border-gray-200 overflow-hidden">
-    <div class="overflow-x-auto">
-      <table class="w-full text-sm text-left text-gray-500">
-        <thead class="text-xs text-gray-500 font-bold bg-gray-50/50 uppercase border-b border-gray-100">
-          <tr>
-            <th class="px-6 py-4" scope="col">ID</th>
-            <th class="px-6 py-4" scope="col">Vehicle</th>
-            <th class="px-6 py-4" scope="col">Title</th>
-            <th class="px-6 py-4" scope="col">مقدم الطلب</th>
-            <th class="px-6 py-4" scope="col">القسم</th>
-            <th class="px-6 py-4" scope="col">المنطقة</th>
-            <th class="px-6 py-4" scope="col">Status</th>
-            <th class="px-6 py-4" scope="col">Created At</th>
-            <th class="px-6 py-4" scope="col">Days</th>
-            <th class="px-6 py-4 text-right" scope="col">Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for req_data in requests_with_days %}
-          {% with req=req_data.object %}
-          <tr class="bg-white border-b hover:bg-gray-50 transition-colors">
-            <td class="px-6 py-4 font-medium text-gray-900">#{{ req.pk }}</td>
-            <td class="px-6 py-4 font-medium text-blue-600">
-                <a href="{% url 'fleet:car_detail' req.car.pk %}">{{ req.car.plate_number }}</a>
-            </td>
-            <td class="px-6 py-4 text-gray-900">{{ req.title }}</td>
-            <td class="px-6 py-4 text-gray-900">{{ req_data.requester_name|default:"-" }}</td>
-            <td class="px-6 py-4 text-gray-900">{{ req_data.department|default:"-" }}</td>
-            <td class="px-6 py-4 text-gray-900">{{ req_data.region|default:"-" }}</td>
-            <td class="px-6 py-4">
-              {% if req.status == 'new' %}
-              <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full flex items-center w-fit gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-blue-600"></span> New</span>
-              {% elif req.status == 'approved' %}
-              <span class="bg-indigo-100 text-indigo-800 text-xs font-medium px-2.5 py-0.5 rounded-full flex items-center w-fit gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-indigo-600"></span> Approved</span>
-              {% elif req.status == 'in_progress' %}
-              <span class="bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-0.5 rounded-full flex items-center w-fit gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-yellow-600"></span> In Progress</span>
-              {% elif req.status == 'completed' %}
-              <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full flex items-center w-fit gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-green-600"></span> Completed</span>
-              {% else %}
-              <span class="bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-0.5 rounded-full flex items-center w-fit gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-gray-600"></span> {{ req.get_status_display }}</span>
-              {% endif %}
-            </td>
-            <td class="px-6 py-4 text-gray-500">{{ req.created_at|date:"Y-m-d H:i" }}</td>
-            <td class="px-6 py-4 text-gray-500">
-              {{req_data.days_count}}
-            </td>
-            <td class="px-6 py-4 text-right">
-              <a href="{% url 'maintenance:request_detail' req.pk %}" class="font-medium text-blue-600 hover:underline">View</a>
-            </td>
-          </tr>
-          {% endwith %}
-          {% empty %}
-          <tr><td class="px-6 py-4 text-center" colspan="10">No maintenance requests found</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </section>
-
-  {% if is_paginated %}
-  <div class="mt-4 flex items-center space-x-2">
-    {% if page_obj.has_previous %}
-      <a class="px-3 py-2 border rounded text-sm text-gray-600 bg-white hover:bg-gray-50" href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.region %}region={{ request.GET.region }}&{% endif %}page={{ page_obj.previous_page_number }}">Previous</a>
-    {% endif %}
-    <span class="text-sm text-gray-600">Page {{ page_obj.number }} of {{ paginator.num_pages }}</span>
-    {% if page_obj.has_next %}
-      <a class="px-3 py-2 border rounded text-sm text-gray-600 bg-white hover:bg-gray-50" href="?{% if request.GET.q %}q={{ request.GET.q }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.region %}region={{ request.GET.region }}&{% endif %}page={{ page_obj.next_page_number }}">Next</a>
-    {% endif %}
+  <div id="results">
+    {% include "maintenance/_request_list_results.html" %}
   </div>
-  {% endif %}
 </div>
+
+<script>
+  (function () {
+    const form = document.getElementById("filters-form");
+    const results = document.getElementById("results");
+    const countEl = document.getElementById("results-count");
+    let debounceTimer = null;
+    let inFlight = null;
+
+    function buildUrlFromForm(extraParams) {
+      const url = new URL(window.location.href);
+      url.search = "";
+      const params = new URLSearchParams(new FormData(form));
+      params.delete("page");
+      for (const [k, v] of Object.entries(extraParams || {})) {
+        params.set(k, v);
+      }
+      url.search = params.toString();
+      return url;
+    }
+
+    async function refresh(extraParams) {
+      const url = buildUrlFromForm(Object.assign({ ajax: "1" }, extraParams || {}));
+
+      if (inFlight) {
+        inFlight.abort();
+      }
+      inFlight = new AbortController();
+
+      const resp = await fetch(url.toString(), {
+        method: "GET",
+        credentials: "same-origin",
+        headers: { "X-Requested-With": "XMLHttpRequest" },
+        signal: inFlight.signal,
+      });
+
+      if (!resp.ok) return;
+      const data = await resp.json();
+
+      results.innerHTML = data.html;
+      countEl.textContent = data.count ?? "";
+
+      const cleanUrl = buildUrlFromForm(extraParams || {});
+      window.history.replaceState({}, "", cleanUrl.toString());
+    }
+
+    function onFilterChange() {
+      if (debounceTimer) window.clearTimeout(debounceTimer);
+      debounceTimer = window.setTimeout(() => refresh({}), 350);
+    }
+
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      refresh({});
+    });
+
+    form.addEventListener("change", function () {
+      refresh({});
+    });
+
+    const q = form.querySelector("#q");
+    if (q) {
+      q.addEventListener("input", onFilterChange);
+    }
+
+    results.addEventListener("click", function (e) {
+      const link = e.target.closest("a[data-page-link]");
+      if (!link) return;
+      e.preventDefault();
+      const url = new URL(link.href, window.location.origin);
+      const page = url.searchParams.get("page") || "1";
+      refresh({ page });
+    });
+  })();
+</script>
 {% endblock %}

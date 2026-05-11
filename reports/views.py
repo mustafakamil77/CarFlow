@@ -2,6 +2,7 @@ import json
 from io import BytesIO
 from datetime import datetime, timedelta
 from django.utils import timezone
+from django.conf import settings
 
 from django.core.cache import cache
 from django.db.models import Count, Sum
@@ -578,10 +579,9 @@ class QRSubmitMileageView(View):
             image = request.FILES.get("odometerImage")
             if not image:
                 return JsonResponse({'error': 'Odometer image is required'}, status=400)
-            if image.size > 100 * 1024:
-                return JsonResponse({'error': 'Odometer image must be <= 100KB'}, status=400)
-            if image.content_type not in ['image/jpeg', 'image/png', 'image/webp']:
-                return JsonResponse({'error': 'Only JPG, PNG, and WEBP images are allowed'}, status=400)
+            max_bytes = int((getattr(settings, "CARFLOW_IMAGE_OPTIMIZATION", {}) or {}).get("max_upload_bytes", 5 * 1024 * 1024))
+            if int(getattr(image, "size", 0) or 0) > max_bytes:
+                return JsonResponse({'error': f'Odometer image must be <= {max_bytes // (1024 * 1024)}MB'}, status=400)
             pending.image = image
             pending.save(update_fields=["image"])
 
@@ -610,16 +610,15 @@ class QRSubmitMaintenanceView(View):
         if len(images) < 1 or len(images) > 10:
             return JsonResponse({'error': 'Please upload between 1 and 10 images'}, status=400)
 
+        max_bytes = int((getattr(settings, "CARFLOW_IMAGE_OPTIMIZATION", {}) or {}).get("max_upload_bytes", 5 * 1024 * 1024))
         total_size = 0
         for img in images:
             total_size += int(img.size or 0)
-            if img.size > 100 * 1024:
-                return JsonResponse({'error': 'Each image must be <= 100KB'}, status=400)
-            if img.content_type not in ['image/jpeg', 'image/png']:
-                return JsonResponse({'error': 'Only JPG and PNG images are allowed'}, status=400)
+            if int(getattr(img, "size", 0) or 0) > max_bytes:
+                return JsonResponse({'error': f'Each image must be <= {max_bytes // (1024 * 1024)}MB'}, status=400)
 
-        if total_size > 3 * 1024 * 1024:
-            return JsonResponse({'error': 'Total images size must be <= 3MB'}, status=400)
+        if total_size > (max_bytes * 10):
+            return JsonResponse({'error': 'Total images size is too large'}, status=400)
 
         try:
             pending = PendingMaintenanceReport.objects.create(
@@ -639,8 +638,6 @@ class QRSubmitMaintenanceView(View):
             pending.save(update_fields=["title"])
 
             if images:
-                pending.image = images[0]
-                pending.save(update_fields=["image"])
                 for img in images:
                     PendingMaintenanceImage.objects.create(report=pending, image=img)
 

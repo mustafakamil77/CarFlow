@@ -13,7 +13,7 @@
     <div class="text-xs text-slate-500">
       <span class="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 border border-slate-200">
         <span class="h-2 w-2 rounded-full bg-slate-400"></span>
-        {{ page_obj.paginator.count|default:pending_requests|length }} طلب
+        <span id="results-count">{{ page_obj.paginator.count|default:pending_requests|length }}</span> طلب
       </span>
     </div>
   </div>
@@ -34,149 +34,133 @@
   </div>
 {% endif %}
 
-<section class="bg-white rounded-lg shadow border border-gray-200 overflow-hidden">
-  <div class="overflow-x-auto">
-    <table class="w-full text-sm text-left text-slate-600">
-      <thead class="text-xs text-slate-500 font-bold bg-gray-50/50 uppercase border-b border-gray-100">
-        <tr>
-          <th class="px-6 py-4" scope="col">اسم الموظف</th>
-          <th class="px-6 py-4" scope="col">نوع الطلب</th>
-          <th class="px-6 py-4" scope="col">القسم</th>
-          <th class="px-6 py-4" scope="col">المنطقة</th>
-          <th class="px-6 py-4" scope="col">تاريخ الطلب</th>
-          <th class="px-6 py-4" scope="col">قيمة العداد</th>
-          <th class="px-6 py-4" scope="col">الحالة</th>
-          <th class="px-6 py-4" scope="col">إجراءات</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for request in pending_requests %}
-          <tr class="bg-white border-b hover:bg-gray-50 transition-colors">
-            <td class="px-6 py-4 font-medium text-slate-900">
-              {{ request.requester_name|default:request.submitter_name|default:"-" }}
-              {% if request.requester_contact or request.submitter_contact %}
-                <div class="text-xs text-slate-500">{{ request.requester_contact|default:request.submitter_contact }}</div>
-              {% endif %}
-            </td>
-            
-            <td class="px-6 py-4 text-slate-900">
-              {% if request.mileage %}
-                إضافة عداد
-              {% elif request.description %}
-                طلب صيانة
-              {% else %}
-                -
-              {% endif %}
-              <div class="text-xs text-slate-500">{{ request.car.plate_number }}</div>
-            </td>
-            <td class="px-6 py-4 text-slate-900">{{ request.department_display|default:request.department|default:"-" }}</td>
-            <td class="px-6 py-4 text-slate-900">{{ request.region_display|default:request.region|default:"-" }}</td>
-            <td class="px-6 py-4 text-slate-900 whitespace-nowrap">
-              {{ request.submitted_at|date:"Y-m-d H:i" }}
-            </td>
-            
-            <td class="px-6 py-4 text-slate-900 whitespace-nowrap">
-              {% if request.mileage %}
-                {{ request.mileage |intcomma }}
-              {% else %}
-                -
-              {% endif %}
-                         </td>
-            <td class="px-6 py-4">
-              {% if request.status == 'pending' %}
-                <span class="bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-0.5 rounded-full inline-flex items-center w-fit gap-1.5">
-                  <span class="w-1.5 h-1.5 rounded-full bg-yellow-600"></span> قيد الانتظار
-                </span>
-              {% elif request.status == 'approved' %}
-                <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full inline-flex items-center w-fit gap-1.5">
-                  <span class="w-1.5 h-1.5 rounded-full bg-green-600"></span> معتمد
-                </span>
-              {% elif request.status == 'rejected' %}
-                <span class="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded-full inline-flex items-center w-fit gap-1.5">
-                  <span class="w-1.5 h-1.5 rounded-full bg-red-600"></span> مرفوض
-                </span>
-              {% else %}
-                <span class="bg-slate-100 text-slate-800 text-xs font-medium px-2.5 py-0.5 rounded-full inline-flex items-center w-fit gap-1.5">
-                  <span class="w-1.5 h-1.5 rounded-full bg-slate-600"></span> {{ request.get_status_display }}
-                </span>
-              {% endif %}
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap">
-              <div class="flex items-center gap-2">
-                <a href="{% url 'pending_requests:request_detail' request_type=request.get_request_type pk=request.pk %}"
-                   class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50">
-                  <i class="fa-solid fa-eye"></i>
-                  عرض
-                </a>
+<section class="bg-white rounded-lg shadow border border-gray-200 p-4 sm:p-5 mb-4">
+  <form id="filters-form" method="get" class="flex flex-col gap-3">
+    <div class="flex flex-col lg:flex-row gap-3 lg:items-end lg:flex-nowrap">
+      <div class="w-full lg:flex-1 min-w-[280px]">
+        <label class="text-xs font-medium text-slate-500 mb-1 block" for="q">بحث</label>
+        <input id="q" class="block w-full p-2.5 text-sm text-slate-900 border border-slate-200 rounded-lg bg-white focus:ring-blue-500 focus:border-blue-500 shadow-sm" name="q" value="{{ request.GET.q }}" placeholder="رقم لوحة / اسم / هاتف / وصف" type="text">
+      </div>
 
-                {% if request.status == "pending" %}
-                  <form action="{% url 'pending_requests:accept_request' request_type=request.get_request_type pk=request.pk %}"
-                        method="post"
-                        class="inline"
-                        onsubmit="return confirm('تأكيد الموافقة النهائية؟');">
-                    {% csrf_token %}
-                    <button type="submit"
-                            class="inline-flex items-center gap-2 rounded-lg bg-green-600 px-3 py-2 text-xs font-medium text-white hover:bg-green-700">
-                      <i class="fa-solid fa-check"></i>
-                      موافقة نهائية
-                    </button>
-                  </form>
-                {% endif %}
+      <div class="w-full lg:w-56">
+        <label class="text-xs font-medium text-slate-500 mb-1 block" for="type-filter">نوع الطلب</label>
+        <select id="type-filter" name="type" class="bg-white border border-slate-200 text-slate-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 shadow-sm">
+          <option value="" {% if not effective_type %}selected{% endif %}>الكل</option>
+          <option value="mileage" {% if effective_type == "mileage" %}selected{% endif %}>عداد</option>
+          <option value="maintenance" {% if effective_type == "maintenance" %}selected{% endif %}>صيانة</option>
+        </select>
+      </div>
 
-                <a href="{% url 'pending_requests:reject_request' request_type=request.get_request_type pk=request.pk %}"
-                   class="inline-flex items-center gap-2 rounded-lg bg-red-600 px-3 py-2 text-xs font-medium text-white hover:bg-red-700">
-                  <i class="fa-solid fa-xmark"></i>
-                  رفض
-                </a>
+      <div class="w-full lg:w-56">
+        <label class="text-xs font-medium text-slate-500 mb-1 block" for="department-filter">القسم</label>
+        <select id="department-filter" name="department" class="bg-white border border-slate-200 text-slate-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 shadow-sm">
+          <option value="">كل الأقسام</option>
+          {% for d in departments %}
+            <option value="{{ d.pk }}" {% if effective_department == d.pk|stringformat:"s" %}selected{% endif %}>{{ d }}</option>
+          {% endfor %}
+        </select>
+      </div>
 
-                <a href="{% url 'pending_requests:edit_request' request_type=request.get_request_type pk=request.pk %}"
-                   class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50">
-                  <i class="fa-solid fa-pen"></i>
-                  تعديل
-                </a>
+      <div class="w-full lg:w-56">
+        <label class="text-xs font-medium text-slate-500 mb-1 block" for="region-filter">المنطقة</label>
+        <select id="region-filter" name="region" class="bg-white border border-slate-200 text-slate-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 shadow-sm">
+          <option value="">كل المناطق</option>
+          {% for r in regions %}
+            <option value="{{ r.pk }}" {% if effective_region == r.pk|stringformat:"s" %}selected{% endif %}>{{ r.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
 
-                <form action="{% url 'pending_requests:delete_request' request_type=request.get_request_type pk=request.pk %}"
-                      method="post"
-                      class="inline"
-                      onsubmit="return confirm('تأكيد حذف الطلب نهائياً؟');">
-                  {% csrf_token %}
-                  <button type="submit"
-                          class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50">
-                    <i class="fa-solid fa-trash"></i>
-                    حذف
-                  </button>
-                </form>
-              </div>
-            </td>
-          </tr>
-        {% empty %}
-          <tr>
-            <td class="px-6 py-8 text-center text-slate-500" colspan="5">
-              لا توجد طلبات معلّقة حالياً.
-            </td>
-          </tr>
-          
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
+      <div class="w-full lg:w-56">
+        <label class="text-xs font-medium text-slate-500 mb-1 block" for="status-filter">الحالة</label>
+        <select id="status-filter" name="status" class="bg-white border border-slate-200 text-slate-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 shadow-sm">
+          <option value="pending" {% if effective_status == "pending" %}selected{% endif %}>قيد الانتظار</option>
+          <option value="approved" {% if effective_status == "approved" %}selected{% endif %}>معتمد</option>
+          <option value="rejected" {% if effective_status == "rejected" %}selected{% endif %}>مرفوض</option>
+          <option value="all" {% if not effective_status %}selected{% endif %}>الكل</option>
+        </select>
+      </div>
+
+      <div class="flex items-end gap-2">
+        <button type="submit" class="text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 focus:outline-none shadow-sm transition-colors">تطبيق</button>
+        <a href="{% url 'pending_requests:request_list' %}" class="text-slate-700 bg-slate-100 hover:bg-slate-200 focus:ring-4 focus:ring-slate-300 font-medium rounded-lg text-sm px-5 py-2.5 focus:outline-none shadow-sm transition-colors border border-slate-200 flex items-center justify-center">مسح</a>
+      </div>
+    </div>
+  </form>
 </section>
 
-{% if is_paginated %}
-  <div class="mt-4 flex items-center justify-between gap-3">
-    <div class="text-sm text-slate-500">
-      صفحة {{ page_obj.number }} من {{ paginator.num_pages }}
-    </div>
-    <div class="flex items-center gap-2">
-      {% if page_obj.has_previous %}
-        <a class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
-           href="?page={{ page_obj.previous_page_number }}">السابق</a>
-      {% endif %}
-      {% if page_obj.has_next %}
-        <a class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
-           href="?page={{ page_obj.next_page_number }}">التالي</a>
-      {% endif %}
-    </div>
-  </div>
-{% endif %}
+<div id="results">
+  {% include "pending_requests/_request_list_results.html" %}
+</div>
+
+<script>
+  (function () {
+    const form = document.getElementById("filters-form");
+    const results = document.getElementById("results");
+    const countEl = document.getElementById("results-count");
+    let debounceTimer = null;
+    let inFlight = null;
+
+    function buildUrlFromForm(extraParams) {
+      const url = new URL(window.location.href);
+      url.search = "";
+      const params = new URLSearchParams(new FormData(form));
+      params.delete("page");
+      for (const [k, v] of Object.entries(extraParams || {})) {
+        params.set(k, v);
+      }
+      url.search = params.toString();
+      return url;
+    }
+
+    async function refresh(extraParams) {
+      const url = buildUrlFromForm(Object.assign({ ajax: "1" }, extraParams || {}));
+
+      if (inFlight) inFlight.abort();
+      inFlight = new AbortController();
+
+      const resp = await fetch(url.toString(), {
+        method: "GET",
+        credentials: "same-origin",
+        headers: { "X-Requested-With": "XMLHttpRequest" },
+        signal: inFlight.signal,
+      });
+
+      if (!resp.ok) return;
+      const data = await resp.json();
+
+      results.innerHTML = data.html;
+      countEl.textContent = data.count ?? "";
+
+      const cleanUrl = buildUrlFromForm(extraParams || {});
+      window.history.replaceState({}, "", cleanUrl.toString());
+    }
+
+    function onFilterChange() {
+      if (debounceTimer) window.clearTimeout(debounceTimer);
+      debounceTimer = window.setTimeout(() => refresh({}), 350);
+    }
+
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      refresh({});
+    });
+
+    form.addEventListener("change", function () {
+      refresh({});
+    });
+
+    const q = form.querySelector("#q");
+    if (q) q.addEventListener("input", onFilterChange);
+
+    results.addEventListener("click", function (e) {
+      const link = e.target.closest("a[data-page-link]");
+      if (!link) return;
+      e.preventDefault();
+      const url = new URL(link.href, window.location.origin);
+      const page = url.searchParams.get("page") || "1";
+      refresh({ page });
+    });
+  })();
+</script>
 {% endblock %}

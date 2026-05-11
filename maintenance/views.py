@@ -12,40 +12,144 @@ from django.utils.http import url_has_allowed_host_and_scheme
 
 
 from django.db.models import Q
-from accounts.models import Region
+from accounts.models import Region, Department
+from django.http import JsonResponse
+from django.template.loader import render_to_string
 
 class MaintenanceRequestListView(LoginRequiredMixin, ListView):
     model = MaintenanceRequest
     paginate_by = 20
     template_name = "maintenance/request_list.html"
 
-    def get_queryset(self):
+    def _parse_filters(self):
+        q_raw = (self.request.GET.get("q") or "").strip()
+        status_param = (self.request.GET.get("status") or "").strip()
+        region_param = (self.request.GET.get("region") or "").strip()
+        department_param = (self.request.GET.get("department") or "").strip()
+        include_completed = (self.request.GET.get("include_completed") or "").strip().lower() in {"1", "true", "yes", "on"}
+
+        q_work = q_raw
+        q_lower = q_raw.lower()
+
+        derived_status = ""
+        derived_region_id = ""
+
+        if not status_param and q_lower:
+            status_phrases = [
+                ("قيد التنفيذ", "in_progress"),
+                ("قيدالمتابعة", "in_progress"),
+                ("in progress", "in_progress"),
+                ("in_progress", "in_progress"),
+                ("منتهي", "completed"),
+                ("مكتمل", "completed"),
+                ("completed", "completed"),
+                ("جديد", "new"),
+                ("new", "new"),
+                ("معتمد", "approved"),
+                ("approved", "approved"),
+            ]
+            for phrase, code in status_phrases:
+                if phrase in q_lower:
+                    derived_status = code
+                    q_work = q_work.replace(phrase, " ")
+                    q_lower = q_work.lower()
+                    break
+
+        if not region_param and q_lower:
+            regions = list(Region.objects.all())
+            region_matches = []
+            for r in regions:
+                name = (r.name or "").strip()
+                if not name:
+                    continue
+                if name.lower() in q_lower:
+                    region_matches.append((len(name), r.pk, name))
+            if region_matches:
+                region_matches.sort(reverse=True)
+                derived_region_id = str(region_matches[0][1])
+                q_work = q_work.replace(region_matches[0][2], " ")
+                q_lower = q_work.lower()
+
+        effective_status = status_param or derived_status
+        effective_region = region_param or derived_region_id
+
+        q_work = " ".join(q_work.split())
+
+        return {
+            "q_raw": q_raw,
+            "q_work": q_work,
+            "effective_status": effective_status,
+            "effective_region": effective_region,
+            "department": department_param,
+            "include_completed": include_completed,
+        }
+
+    def _build_queryset(self, *, apply_default_completed_exclusion: bool):
         qs = (
             super()
             .get_queryset()
             .select_related("car", "car__region", "car__department", "created_by")
             .order_by("-created_at")
         )
-        q = self.request.GET.get("q")
-        status = self.request.GET.get("status")
-        region = self.request.GET.get("region")
-        
-        if q:
+
+        filters = self._parse_filters()
+
+        if filters["effective_status"]:
+            qs = qs.filter(status=filters["effective_status"])
+
+        if filters["effective_region"]:
             qs = qs.filter(
-                Q(title__icontains=q) | 
-                Q(car__plate_number__icontains=q) | 
-                Q(description__icontains=q)
-            )
-        if status:
-            qs = qs.filter(status=status)
-        if region:
-            qs = qs.filter(car__region_id=region)
-            
+                Q(car__region_id=filters["effective_region"])
+                | Q(car__driver_assignments__active=True, car__driver_assignments__region_id=filters["effective_region"])
+            ).distinct()
+
+        if filters["department"]:
+            qs = qs.filter(car__department_id=filters["department"])
+
+        if filters["q_work"]:
+            tokens = [t for t in filters["q_work"].split(" ") if t]
+            for token in tokens:
+                if token.isdigit():
+                    qs = qs.filter(Q(pk=int(token)) | Q(car__plate_number__icontains=token))
+                    continue
+                qs = qs.filter(
+                    Q(title__icontains=token)
+                    | Q(car__plate_number__icontains=token)
+                    | Q(description__icontains=token)
+                )
+
+        if apply_default_completed_exclusion and (not filters["effective_status"]) and (not filters["include_completed"]):
+            qs = qs.exclude(status="completed")
+
         return qs
+
+    def get_queryset(self):
+        return self._build_queryset(apply_default_completed_exclusion=True)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        filters = self._parse_filters()
+
         context["regions"] = Region.objects.all()
+        context["departments"] = Department.objects.filter(is_active=True).order_by("name_ar")
+        context["effective_status"] = filters["effective_status"]
+        context["effective_region"] = filters["effective_region"]
+        context["effective_department"] = filters["department"]
+        context["include_completed"] = filters["include_completed"]
+
+        get_params = self.request.GET.copy()
+        if "page" in get_params:
+            get_params.pop("page")
+        context["querystring"] = get_params.urlencode()
+
+        completed_hidden = (not filters["effective_status"]) and (not filters["include_completed"])
+        context["completed_hidden"] = completed_hidden
+        if completed_hidden:
+            base_qs = self._build_queryset(apply_default_completed_exclusion=False)
+            context["hidden_completed_count"] = base_qs.filter(status="completed").count()
+        else:
+            context["hidden_completed_count"] = 0
+
         object_list = list(context["object_list"])
 
         from accounts.models import DriverAssignment
@@ -87,6 +191,19 @@ class MaintenanceRequestListView(LoginRequiredMixin, ListView):
             })
         context["requests_with_days"] = requests_with_days
         return context
+
+    def render_to_response(self, context, **response_kwargs):
+        if (self.request.GET.get("ajax") or "").strip() == "1":
+            html = render_to_string("maintenance/_request_list_results.html", context=context, request=self.request)
+            return JsonResponse(
+                {
+                    "html": html,
+                    "count": context["page_obj"].paginator.count,
+                    "completed_hidden": bool(context.get("completed_hidden")),
+                    "hidden_completed_count": int(context.get("hidden_completed_count") or 0),
+                }
+            )
+        return super().render_to_response(context, **response_kwargs)
 
 
 class MaintenanceRequestDetailView(LoginRequiredMixin, DetailView):
