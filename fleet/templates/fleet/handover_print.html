@@ -3,7 +3,14 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title> السيارة رقم {{ car.plate_number }}   تقرير تسليم وتفويض</title>
+    <title>
+      السيارة رقم {{ car.plate_number }}
+      {% if event.event_type == "return" %}
+        تقرير استلام وإنهاء تفويض
+      {% else %}
+        تقرير تسليم وتفويض
+      {% endif %}
+    </title>
     <style>
       :root {
         --primary: #0ea5e9;
@@ -266,7 +273,13 @@
       <div class="sheet">
         <div class="header">
           <div>
-            <h1 class="title">تقرير تسليم وطلب تفويض</h1>
+            <h1 class="title">
+              {% if event.event_type == "return" %}
+                تقرير استلام وإنهاء تفويض
+              {% else %}
+                تقرير تسليم وطلب تفويض
+              {% endif %}
+            </h1>
             <div class="subtitle"></div>
           </div>
           <div class="meta">
@@ -276,7 +289,13 @@
           </div>
         </div>
 
-        <div class="section-title">بيانات التسليم</div>
+        <div class="section-title">
+          {% if event.event_type == "return" %}
+            بيانات الاستلام
+          {% else %}
+            بيانات التسليم
+          {% endif %}
+        </div>
         <table>
           <tbody>
             <tr>
@@ -339,24 +358,51 @@
               <td>{{ car.region|default:"-" }}</td>
             </tr>
 
-            <tr>
-              <th>بداية الاستخدام</th>
-              <td>
-                {% if assignment %}
-                  {{ assignment.start_date|date:"Y-m-d H:i" }}
-                {% else %}
-                  -
-                {% endif %}
-              </td>
-              <th colspan="2"></th>
-            </tr>
+            {% if event.event_type == "return" %}
+              <tr>
+                <th>بداية الاستخدام</th>
+                <td>
+                  {% if assignment %}
+                    {{ assignment.start_date|date:"Y-m-d H:i" }}
+                  {% else %}
+                    -
+                  {% endif %}
+                </td>
+                <th>نهاية الاستخدام</th>
+                <td>
+                  {% if assignment and assignment.end_date %}
+                    {{ assignment.end_date|date:"Y-m-d H:i" }}
+                  {% else %}
+                    -
+                  {% endif %}
+                </td>
+              </tr>
+            {% else %}
+              <tr>
+                <th>بداية الاستخدام</th>
+                <td>
+                  {% if assignment %}
+                    {{ assignment.start_date|date:"Y-m-d H:i" }}
+                  {% else %}
+                    -
+                  {% endif %}
+                </td>
+                <th colspan="2"></th>
+              </tr>
+            {% endif %}
           </tbody>
         </table>
 
         <div class="section-title">الملاحظات</div>
         <div class="notes">{{ event.notes|default:"-" }}</div>
 
-        <div class="section-title">طلب التفويض</div>
+        <div class="section-title">
+          {% if event.event_type == "return" %}
+            إنهاء التفويض
+          {% else %}
+            طلب التفويض
+          {% endif %}
+        </div>
         <table>
           <tbody>
             <tr>
@@ -380,7 +426,13 @@
           </tbody>
         </table>
 
-        <div class="section-title">صور وقت التسليم</div>
+        <div class="section-title">
+          {% if event.event_type == "return" %}
+            صور وقت الاستلام
+          {% else %}
+            صور وقت التسليم
+          {% endif %}
+        </div>
         {% if images %}
           <div class="images">
             {% for img in images %}
@@ -393,7 +445,13 @@
             {% endfor %}
           </div>
         {% else %}
-          <div class="muted">لا توجد صور لهذا التسليم</div>
+          <div class="muted">
+            {% if event.event_type == "return" %}
+              لا توجد صور لهذا الاستلام
+            {% else %}
+              لا توجد صور لهذا التسليم
+            {% endif %}
+          </div>
         {% endif %}
 
         <div class="signatures">

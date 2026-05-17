@@ -333,16 +333,21 @@
                 {% endif %}
               </td>
               <td class="px-4 py-2">
-                {% if row.event %}
+                {% if row.event or row.return_event %}
                   <div class="flex flex-wrap gap-2">
-                    <a href="{% url 'fleet:handover_detail' object.pk row.event.pk %}" class="px-3 py-1.5 bg-white border border-gray-300 rounded text-xs text-gray-700 hover:bg-gray-50">View</a>
-                    <a href="{% url 'fleet:handover_detail' object.pk row.event.pk %}?print=1" target="_blank" rel="noopener" class="px-3 py-1.5 bg-emerald-600 rounded text-xs text-white hover:bg-emerald-700">Print</a>
-                    <a href="{% url 'fleet:handover_edit' object.pk row.event.pk %}" class="px-3 py-1.5 bg-indigo-600 rounded text-xs text-white hover:bg-indigo-700">Edit</a>
-                    <form method="post" action="{% url 'fleet:handover_delete' object.pk row.event.pk %}" onsubmit="return confirm('هل أنت متأكد من حذف سجل التسليم؟');">
-                      {% csrf_token %}
-                      <button type="submit" class="px-3 py-1.5 bg-red-600 rounded text-xs text-white hover:bg-red-700">Delete</button>
-                    </form>
-                   
+                    {% if row.event %}
+                      <a href="{% url 'fleet:handover_detail' object.pk row.event.pk %}" class="px-3 py-1.5 bg-white border border-gray-300 rounded text-xs text-gray-700 hover:bg-gray-50">Handover View</a>
+                      <a href="{% url 'fleet:handover_detail' object.pk row.event.pk %}?print=1" target="_blank" rel="noopener" class="px-3 py-1.5 bg-emerald-600 rounded text-xs text-white hover:bg-emerald-700">Handover Print</a>
+                      <a href="{% url 'fleet:handover_edit' object.pk row.event.pk %}" class="px-3 py-1.5 bg-indigo-600 rounded text-xs text-white hover:bg-indigo-700">Edit</a>
+                      <form method="post" action="{% url 'fleet:handover_delete' object.pk row.event.pk %}" onsubmit="return confirm('هل أنت متأكد من حذف سجل التسليم؟');">
+                        {% csrf_token %}
+                        <button type="submit" class="px-3 py-1.5 bg-red-600 rounded text-xs text-white hover:bg-red-700">Delete</button>
+                      </form>
+                    {% endif %}
+                    {% if row.return_event %}
+                      <a href="{% url 'fleet:return_detail' object.pk row.return_event.pk %}" class="px-3 py-1.5 bg-white border border-gray-300 rounded text-xs text-gray-700 hover:bg-gray-50">Return View</a>
+                      <a href="{% url 'fleet:return_detail' object.pk row.return_event.pk %}?print=1" target="_blank" rel="noopener" class="px-3 py-1.5 bg-sky-600 rounded text-xs text-white hover:bg-sky-700">Return Print</a>
+                    {% endif %}
                   </div>
                 {% else %}
                   <span class="text-xs text-gray-400">-</span>

@@ -213,10 +213,13 @@ class CarDetailView(LoginRequiredMixin, DetailView):
         handover_events = list(
             car.events.filter(event_type="handover").order_by("-created_at")[:50]
         )
+        return_events = list(
+            car.events.filter(event_type="return").order_by("-created_at")[:50]
+        )
         handover_rows = []
         for a in context["assignment_history"]:
-            matched = None
-            best_delta = None
+            matched_handover = None
+            best_handover_delta = None
             for ev in handover_events:
                 if ev.odometer is None or ev.created_at is None:
                     continue
@@ -225,10 +228,26 @@ class CarDetailView(LoginRequiredMixin, DetailView):
                 delta = abs((ev.created_at - a.start_date).total_seconds())
                 if delta > 120:
                     continue
-                if best_delta is None or delta < best_delta:
-                    matched = ev
-                    best_delta = delta
-            handover_rows.append({"assignment": a, "event": matched})
+                if best_handover_delta is None or delta < best_handover_delta:
+                    matched_handover = ev
+                    best_handover_delta = delta
+
+            matched_return = None
+            best_return_delta = None
+            if a.end_date and a.end_odometer is not None:
+                for ev in return_events:
+                    if ev.odometer is None or ev.created_at is None:
+                        continue
+                    if a.end_odometer != ev.odometer:
+                        continue
+                    delta = abs((ev.created_at - a.end_date).total_seconds())
+                    if delta > 120:
+                        continue
+                    if best_return_delta is None or delta < best_return_delta:
+                        matched_return = ev
+                        best_return_delta = delta
+
+            handover_rows.append({"assignment": a, "event": matched_handover, "return_event": matched_return})
         context["handover_rows"] = handover_rows
         last_handover_event = car.events.filter(event_type="handover").prefetch_related("images").first()
         context["last_handover_event"] = last_handover_event
@@ -401,6 +420,48 @@ class CarHandoverEventDetailView(ManagerRequiredMixin, TemplateView):
             self.car.assignments.select_related("driver__user")
             .filter(start_odometer=self.event.odometer, start_date__gte=self.event.created_at - timedelta(minutes=2), start_date__lte=self.event.created_at + timedelta(minutes=2))
             .order_by("-start_date")
+            .first()
+        )
+        driver_license_number = "-"
+        driver_phone = "-"
+        driver_birth_date = "-"
+        if assignment:
+            license_obj = EmployeeLicense.objects.filter(employee=assignment.driver).first()
+            driver_license_number = (license_obj.license_number if license_obj else "") or "-"
+            driver_phone = (assignment.driver.phone or "").strip() or "-"
+            driver_birth_date = assignment.driver.date_of_birth
+        ctx["car"] = self.car
+        ctx["event"] = self.event
+        ctx["assignment"] = assignment
+        ctx["driver_license_number"] = driver_license_number
+        ctx["driver_phone"] = driver_phone
+        ctx["driver_birth_date"] = driver_birth_date
+        ctx["documents"] = list(self.car.documents.order_by("-created_at"))
+        ctx["images"] = list(self.event.images.all().order_by("created_at"))
+        return ctx
+
+
+class CarReturnEventDetailView(ManagerRequiredMixin, TemplateView):
+    template_name = "fleet/handover_detail.html"
+
+    def get_template_names(self):
+        if str(self.request.GET.get("print", "")).strip().lower() in {"1", "true", "yes"}:
+            return ["fleet/handover_print.html"]
+        return [self.template_name]
+
+    def dispatch(self, request, *args, **kwargs):
+        self.car = get_object_or_404(Car, pk=kwargs["car_pk"])
+        self.event = get_object_or_404(CarEvent, pk=kwargs["event_pk"], car=self.car, event_type="return")
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        from staff.models import EmployeeLicense
+
+        assignment = (
+            self.car.assignments.select_related("driver__user")
+            .filter(end_odometer=self.event.odometer, end_date__gte=self.event.created_at - timedelta(minutes=2), end_date__lte=self.event.created_at + timedelta(minutes=2))
+            .order_by("-end_date")
             .first()
         )
         driver_license_number = "-"
