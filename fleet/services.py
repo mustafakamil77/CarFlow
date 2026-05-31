@@ -3,7 +3,7 @@ from django.db import transaction
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 
-from .models import CarAssignment, CarEvent, CarEventImage, CarEventCondition
+from .models import CarAssignment, CarEvent, CarEventImage, CarEventCondition, CarEventAttachment
 
 
 @transaction.atomic
@@ -142,6 +142,7 @@ def return_car(
 def record_accident(
     *,
     car,
+    odometer=None,
     notes="",
     liability_percent=None,
     images=None,
@@ -150,6 +151,7 @@ def record_accident(
     event = CarEvent.objects.create(
         car=car,
         event_type="accident",
+        odometer=odometer,
         notes=notes or "",
         created_by=created_by,
     )
@@ -160,8 +162,14 @@ def record_accident(
     )
 
     if images:
-        for image in images:
-            if image:
-                CarEventImage.objects.create(event=event, image=image, caption="")
+        for uploaded in images:
+            if not uploaded:
+                continue
+            name = (getattr(uploaded, "name", "") or "").lower()
+            content_type = (getattr(uploaded, "content_type", "") or "").lower()
+            if name.endswith(".pdf") or content_type == "application/pdf":
+                CarEventAttachment.objects.create(event=event, file=uploaded)
+                continue
+            CarEventImage.objects.create(event=event, image=uploaded, caption="")
 
     return event

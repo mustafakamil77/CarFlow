@@ -6,8 +6,13 @@
     <p class="text-sm text-gray-700">
       Delete completion for request
       <span class="font-medium">#{{ object.pk }} — {{ object.title }}</span>
-      for car
-      <span class="font-medium">{{ object.car.plate_number }}</span>?
+      {% if object.car %}
+        for car <span class="font-medium">{{ object.car.plate_number }}</span>?
+      {% elif object.branch %}
+        for branch <span class="font-medium">{{ object.branch.legal_name|default:object.branch.name }}</span>?
+      {% else %}
+        ?
+      {% endif %}
     </p>
     <p class="text-sm text-gray-600 mt-2">
       This will set status back to In Progress, clear the completion comment, and remove images added at completion time.

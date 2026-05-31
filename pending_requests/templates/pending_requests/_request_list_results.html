@@ -31,7 +31,7 @@
               {% else %}
                 -
               {% endif %}
-              <div class="text-xs text-slate-500">{{ request.car.plate_number }}</div>
+              <div class="text-xs text-slate-500">{{ request.target_display }}</div>
             </td>
             <td class="px-6 py-4 text-slate-900">{{ request.department_display|default:request.department|default:"-" }}</td>
             <td class="px-6 py-4 text-slate-900">{{ request.region_display|default:request.region|default:"-" }}</td>

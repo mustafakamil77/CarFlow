@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block content %}
+<div class="flex-1 overflow-y-auto p-8">
+  <section class="max-w-6xl mx-auto">
+    <div class="flex items-start justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900">{{ object.name }}</h1>
+        <div class="mt-1 text-sm text-gray-600">
+          {% if object.legal_name %}
+            <div><span class="font-medium">Legal:</span> {{ object.legal_name }}</div>
+          {% endif %}
+          <div class="mt-1"><span class="font-medium">Branch ID:</span> B-{{ object.pk }}</div>
+        </div>
+      </div>
+      <div class="flex flex-wrap items-center gap-2 mt-4 sm:mt-0">
+        <a href="{% url 'fleet:branch_edit' object.pk %}" class="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-sm transition-colors shadow-sm">Edit</a>
+        <a href="{% url 'fleet:branch_delete' object.pk %}" class="px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded text-sm transition-colors shadow-sm">Delete</a>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+      <section class="p-4 bg-white rounded shadow border border-gray-100 md:col-span-2">
+        <h2 class="text-lg font-semibold mb-3">Profile</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-gray-700">
+          <div><span class="font-medium">Region:</span> {{ object.region|default:"-" }}</div>
+          <div><span class="font-medium">Department:</span> {{ object.department|default:"-" }}</div>
+          <div><span class="font-medium">Start Date:</span> {{ object.start_date|default:"-" }}</div>
+          <div><span class="font-medium">Active:</span> {{ object.is_active|yesno:"Yes,No" }}</div>
+          <div><span class="font-medium">Phone:</span> {{ object.contact_phone|default:"-" }}</div>
+          <div><span class="font-medium">Email:</span> {{ object.contact_email|default:"-" }}</div>
+          <div class="sm:col-span-2">
+            <span class="font-medium">Manager:</span>
+            {% if object.manager %}
+              {% if object.manager.user %}
+                {{ object.manager.user.get_full_name|default:object.manager.user.username }}
+              {% else %}
+                {{ object.manager.first_name }} {{ object.manager.last_name }}
+              {% endif %}
+            {% else %}
+              -
+            {% endif %}
+          </div>
+        </div>
+        {% if object.address %}
+        <div class="mt-4">
+          <div class="text-sm font-medium text-gray-700 mb-1">Address</div>
+          <div class="text-sm text-gray-700 whitespace-pre-line">{{ object.address }}</div>
+        </div>
+        {% endif %}
+        {% if object.notes %}
+        <div class="mt-4">
+          <div class="text-sm font-medium text-gray-700 mb-1">Notes</div>
+          <div class="text-sm text-gray-700 whitespace-pre-line">{{ object.notes }}</div>
+        </div>
+        {% endif %}
+      </section>
+
+      <section class="p-4 bg-white rounded shadow border border-gray-100">
+        <h2 class="text-lg font-semibold mb-3">QR</h2>
+        <div class="text-sm text-gray-700 space-y-2">
+          <div><span class="font-medium">Enabled:</span> {{ object.qr_enabled|yesno:"Yes,No" }}</div>
+          <div><span class="font-medium">Token:</span> {{ object.qr_token|default:"-" }}</div>
+          {% if object.get_qr_url %}
+          <div>
+            <span class="font-medium">URL:</span>
+            <a href="{{ object.get_qr_url }}" target="_blank" rel="noopener" class="text-blue-600 hover:underline break-all">{{ object.get_qr_url }}</a>
+          </div>
+          {% endif %}
+        </div>
+        {% if object.qr_code_image %}
+        <div class="mt-4">
+          <img src="{{ object.qr_code_image.url }}" alt="" class="w-full h-auto rounded border border-gray-200 bg-white">
+        </div>
+        {% endif %}
+      </section>
+    </div>
+
+    <hr class="my-6">
+    <section class="p-4 bg-white rounded shadow">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-lg font-semibold">Documents</h2>
+        <a href="{% url 'fleet:branch_document_create' object.pk %}" class="px-3 py-2 bg-blue-600 text-white rounded text-sm">Add Branch Document</a>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left text-gray-600">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-4 py-2">Type</th>
+              <th class="px-4 py-2">Number</th>
+              <th class="px-4 py-2">Issue</th>
+              <th class="px-4 py-2">Expiry</th>
+              <th class="px-4 py-2">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for doc in documents %}
+            <tr class="border-t">
+              <td class="px-4 py-2">{{ doc.get_document_type_display }}</td>
+              <td class="px-4 py-2">{{ doc.number|default:"-" }}</td>
+              <td class="px-4 py-2">{{ doc.issue_date|default:'-' }}</td>
+              <td class="px-4 py-2">{{ doc.expiry_date|default:'-' }}</td>
+              <td class="px-4 py-2">
+                <div class="flex flex-wrap gap-2">
+                  <a href="{% url 'fleet:branch_document_detail' object.pk doc.pk %}" class="px-3 py-1.5 bg-white border border-gray-300 rounded text-xs text-gray-700 hover:bg-gray-50">View</a>
+                  <a href="{% url 'fleet:branch_document_edit' object.pk doc.pk %}" class="px-3 py-1.5 bg-indigo-600 rounded text-xs text-white hover:bg-indigo-700">Edit</a>
+                  <form method="post" action="{% url 'fleet:branch_document_delete' object.pk doc.pk %}" onsubmit="return confirm('تأكيد حذف المستند؟');">
+                    {% csrf_token %}
+                    <button type="submit" class="px-3 py-1.5 bg-red-600 rounded text-xs text-white hover:bg-red-700">Delete</button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td class="px-4 py-2" colspan="5">No documents</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <hr class="my-6">
+    <section class="p-4 bg-white rounded shadow">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-lg font-semibold">Recent Maintenance Requests</h2>
+        <div class="text-sm text-gray-500">Total: {{ maintenance_count }}</div>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left text-gray-600">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-4 py-2">ID</th>
+              <th class="px-4 py-2">Title</th>
+              <th class="px-4 py-2">Status</th>
+              <th class="px-4 py-2">Created</th>
+              <th class="px-4 py-2">Days</th>
+              <th class="px-4 py-2">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in maintenance_items %}
+            <tr class="border-t">
+              <td class="px-4 py-2">#{{ item.request.pk }}</td>
+              <td class="px-4 py-2">{{ item.request.title }}</td>
+              <td class="px-4 py-2">{{ item.request.get_status_display }}</td>
+              <td class="px-4 py-2">{{ item.request.created_at|date:"Y-m-d H:i" }}</td>
+              <td class="px-4 py-2">{{ item.days_in_maintenance }}</td>
+              <td class="px-4 py-2">
+                <a href="{% url 'maintenance:request_detail' item.request.pk %}" class="px-3 py-1.5 bg-white border border-gray-300 rounded text-xs text-gray-700 hover:bg-gray-50">View</a>
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td class="px-4 py-2" colspan="6">No maintenance requests</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </section>
+</div>
+{% endblock %}
+

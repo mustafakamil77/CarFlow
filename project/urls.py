@@ -21,7 +21,15 @@ from django.conf.urls.static import static
 from django.views.static import serve
 from django.views.generic import TemplateView, RedirectView
 from django.contrib.auth import views as auth_views
-from reports.views import VehicleQRReportView, VehicleQRSuccessView, DashboardView, QRSubmitMileageView, QRSubmitMaintenanceView
+from reports.views import (
+    BranchQRReportView,
+    DashboardView,
+    QRSubmitBranchMaintenanceView,
+    QRSubmitMaintenanceView,
+    QRSubmitMileageView,
+    VehicleQRReportView,
+    VehicleQRSuccessView,
+)
 
 urlpatterns = [
     path('', DashboardView.as_view(), name='home'),
@@ -41,6 +49,8 @@ urlpatterns = [
     path("r/<str:token>/", VehicleQRReportView.as_view(), name="qr_vehicle_report"),
     path("api/r/<str:token>/mileage/", QRSubmitMileageView.as_view(), name="api_qr_mileage"),
     path("api/r/<str:token>/maintenance/", QRSubmitMaintenanceView.as_view(), name="api_qr_maintenance"),
+    path("b/<str:token>/", BranchQRReportView.as_view(), name="qr_branch_report"),
+    path("api/b/<str:token>/maintenance/", QRSubmitBranchMaintenanceView.as_view(), name="api_qr_branch_maintenance"),
 ]
 
 if settings.DEBUG:

@@ -4,14 +4,14 @@
   <section class="max-w-2xl mx-auto bg-white rounded-lg shadow-sm border border-gray-200 p-8">
     <h1 class="text-xl font-bold text-gray-800 mb-6">
       {% if document %}
-        Edit Car Document
+        Edit Branch Document
       {% else %}
-        Add Car Document
+        Add Branch Document
       {% endif %}
     </h1>
     <div class="mb-4 text-sm text-gray-600">
-      <span class="font-medium">Car:</span>
-      <span class="ml-1">{{ car.plate_number }} — {{ car.brand }} {{ car.vehicle_type }} ({{ car.year }})</span>
+      <span class="font-medium">Branch:</span>
+      <span class="ml-1">{{ branch.legal_name|default:branch.name }}</span>
     </div>
     <form method="post" enctype="multipart/form-data">
       {% csrf_token %}
@@ -33,19 +33,19 @@
           {{ form.expiry_date }}
         </div>
         <div class="space-y-1 md:col-span-2">
-          <label class="block text-sm font-semibold text-gray-700">Image (optional)</label>
-          {{ form.image }}
+          <label class="block text-sm font-semibold text-gray-700">File (optional)</label>
+          {{ form.file }}
         </div>
-        {% if document and document.image %}
+        {% if document and document.file %}
         <div class="md:col-span-2">
-          <a href="{{ document.image.url }}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 text-sm text-blue-700 hover:underline">
-            View current image
+          <a href="{{ document.file.url }}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 text-sm text-blue-700 hover:underline">
+            View current file
           </a>
         </div>
         {% endif %}
       </div>
       <div class="flex items-center justify-end gap-3 pt-6">
-        <a href="{% url 'fleet:car_detail' car.pk %}" class="rounded-md bg-white px-5 py-2.5 text-sm font-semibold text-gray-700 border border-gray-300 shadow-sm hover:bg-gray-50">Cancel</a>
+        <a href="{% url 'fleet:branch_detail' branch.pk %}" class="rounded-md bg-white px-5 py-2.5 text-sm font-semibold text-gray-700 border border-gray-300 shadow-sm hover:bg-gray-50">Cancel</a>
         <button type="submit" class="rounded-md bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700">
           {% if document %}Save Changes{% else %}Add Document{% endif %}
         </button>
@@ -54,3 +54,4 @@
   </section>
   </div>
 {% endblock %}
+

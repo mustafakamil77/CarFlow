@@ -12,8 +12,11 @@ from import_export.widgets import ForeignKeyWidget
 
 from .models import (
     Car,
+    Branch,
     CarDocument,
+    BranchDocument,
     CarEvent,
+    CarEventAttachment,
     CarEventImage,
     CarImage,
 )
@@ -66,6 +69,36 @@ class CarAdmin(ImportExportModelAdmin):
         for car in queryset:
             car.qr_code_image = None
             car.save(update_fields=["qr_code_image"])
+
+
+@admin.register(Branch)
+class BranchAdmin(admin.ModelAdmin):
+    list_display = ("name", "legal_name", "region", "department", "manager", "start_date", "is_active", "qr_enabled", "created_at")
+    list_filter = ("is_active", "region", "department", "qr_enabled", "start_date")
+    search_fields = ("name", "legal_name", "contact_phone", "contact_email", "qr_token")
+    readonly_fields = ("created_at", "qr_token")
+    actions = ["regenerate_qr_tokens", "regenerate_qr_codes"]
+
+    @admin.action(description="Regenerate QR tokens")
+    def regenerate_qr_tokens(self, request, queryset):
+        for branch in queryset:
+            branch.qr_token = None
+            branch.qr_code_image = None
+            branch.save()
+
+    @admin.action(description="Regenerate QR code images")
+    def regenerate_qr_codes(self, request, queryset):
+        for branch in queryset:
+            branch.qr_code_image = None
+            branch.save(update_fields=["qr_code_image"])
+
+
+@admin.register(BranchDocument)
+class BranchDocumentAdmin(admin.ModelAdmin):
+    list_display = ("branch", "document_type", "number", "issue_date", "expiry_date", "created_at")
+    list_filter = ("document_type", "expiry_date")
+    search_fields = ("branch__name", "branch__legal_name", "number")
+    readonly_fields = ("created_at",)
 
 
 class CarDocumentResource(resources.ModelResource):
@@ -186,6 +219,14 @@ class CarEventImageAdmin(admin.ModelAdmin):
     list_display = ("event", "created_at", "caption")
     list_filter = ("created_at",)
     search_fields = ("event__car__plate_number", "caption")
+    raw_id_fields = ("event",)
+
+
+@admin.register(CarEventAttachment)
+class CarEventAttachmentAdmin(admin.ModelAdmin):
+    list_display = ("event", "created_at", "file")
+    list_filter = ("created_at",)
+    search_fields = ("event__car__plate_number", "file")
     raw_id_fields = ("event",)
 
 

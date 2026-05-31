@@ -15,7 +15,13 @@
         {% endif %}
       </h1>
       <p class="text-sm text-slate-500">
-        رقم اللوحة: {{ request.car.plate_number }}
+        {% if request.car %}
+          رقم اللوحة: {{ request.car.plate_number }}
+        {% elif request.branch %}
+          الفرع: {{ request.branch.legal_name|default:request.branch.name }}
+        {% else %}
+          -
+        {% endif %}
       </p>
     </div>
     <div class="flex items-center gap-2">
@@ -35,8 +41,8 @@
       <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div class="space-y-6">
           <div>
-            <span class="block text-sm font-medium text-slate-500 mb-1">المركبة</span>
-            <div class="text-slate-900 font-medium">{{ request.car.plate_number }}</div>
+            <span class="block text-sm font-medium text-slate-500 mb-1">{% if request.branch %}الفرع{% else %}المركبة{% endif %}</span>
+            <div class="text-slate-900 font-medium">{{ request.target_display }}</div>
           </div>
           
           <div>

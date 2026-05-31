@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="text-2xl">Delete Branch</h1>
+<div class="mt-4">
+  <div class="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center">
+    <div class="bg-white rounded shadow p-6 max-w-md w-full mx-4">
+      <p class="mb-4">Are you sure you want to delete branch {{ view.branch.legal_name|default:view.branch.name }}?</p>
+      <form method="post">
+        {% csrf_token %}
+        <div class="flex flex-col sm:flex-row sm:items-center gap-2">
+          <button type="submit" class="tap-target px-4 py-2 bg-red-600 text-white rounded">Confirm</button>
+          <a href="{% url 'fleet:branch_detail' view.branch.pk %}" class="tap-target inline-flex items-center justify-center px-4 py-2 border rounded">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+  <noscript>
+    <form method="post" class="mt-4">
+      {% csrf_token %}
+      <div class="flex flex-col sm:flex-row sm:items-center gap-2">
+        <button type="submit" class="tap-target px-4 py-2 bg-red-600 text-white rounded">Confirm</button>
+        <a href="{% url 'fleet:branch_detail' view.branch.pk %}" class="tap-target inline-flex items-center justify-center px-4 py-2 border rounded">Cancel</a>
+      </div>
+    </form>
+  </noscript>
+</div>
+{% endblock %}
+

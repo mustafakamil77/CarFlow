@@ -8,7 +8,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from accounts.models import Region
-from fleet.models import Car, CarEvent
+from fleet.models import Branch, Car, CarEvent
 
 from .models import VehicleInspection
 from maintenance.models import MaintenanceRequest
@@ -247,6 +247,44 @@ class VehicleQRReportTests(TestCase):
         big = SimpleUploadedFile("big.jpg", b"x" * (110 * 1024), content_type="image/jpeg")
         response = self.client.post(url, data={"mileage": 12345, "odometerImage": big})
         self.assertEqual(response.status_code, 400)
+
+    def test_qr_branch_maintenance_creates_pending_and_approval_creates_branch_request(self):
+        branch = Branch.objects.create(name="BR-QR-1", legal_name="BR-QR-1 LLC", qr_enabled=True)
+        url = reverse("api_qr_branch_maintenance", kwargs={"token": branch.qr_token})
+        response = self.client.post(
+            url,
+            data={
+                "description": "Some branch maintenance issue with enough details for validation.",
+                "images": [self._png("a.png"), self._png("b.png")],
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+
+        pending = PendingMaintenanceReport.objects.filter(branch=branch, status="pending").order_by("-id").first()
+        self.assertIsNotNone(pending)
+        self.assertEqual(PendingMaintenanceImage.objects.filter(report=pending).count(), 2)
+        self.assertFalse(MaintenanceRequest.objects.filter(branch=branch).exists())
+
+        User = get_user_model()
+        staff = User.objects.create_user(username="staff_branch", password="x", is_staff=True)
+        self.client.force_login(staff)
+        resp = self.client.post(
+            reverse("pending_requests:accept_request", kwargs={"request_type": "maintenance", "pk": pending.pk})
+        )
+        self.assertEqual(resp.status_code, 302)
+
+        req = MaintenanceRequest.objects.filter(branch=branch).order_by("-id").first()
+        self.assertIsNotNone(req)
+        pending.refresh_from_db()
+        self.assertEqual(pending.status, "approved")
+
+        car_list = self.client.get(reverse("maintenance:request_list"))
+        self.assertEqual(car_list.status_code, 200)
+        self.assertEqual(car_list.context["page_obj"].paginator.count, 0)
+
+        branch_list = self.client.get(reverse("maintenance:branch_request_list"))
+        self.assertEqual(branch_list.status_code, 200)
+        self.assertEqual(branch_list.context["page_obj"].paginator.count, 1)
 
     def test_vehicles_qr_pdf_by_region(self):
         User = get_user_model()

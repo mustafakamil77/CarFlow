@@ -38,6 +38,8 @@ class LoginRequiredMiddleware:
             media_url,
             "/r/",
             "/api/r/",
+            "/b/",
+            "/api/b/",
         }
 
         allowed_exact = {
@@ -50,4 +52,3 @@ class LoginRequiredMiddleware:
         if any(path.startswith(prefix) for prefix in allowed_prefixes):
             return True
         return False
-

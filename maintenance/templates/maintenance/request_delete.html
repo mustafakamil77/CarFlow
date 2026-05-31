@@ -6,8 +6,13 @@
     <p class="text-sm text-gray-700">
       Are you sure you want to delete:
       <span class="font-medium">{{ object.title }}</span>
-      for car
-      <span class="font-medium">{{ object.car.plate_number }}</span>?
+      {% if object.car %}
+        for car <span class="font-medium">{{ object.car.plate_number }}</span>?
+      {% elif object.branch %}
+        for branch <span class="font-medium">{{ object.branch.legal_name|default:object.branch.name }}</span>?
+      {% else %}
+        ?
+      {% endif %}
     </p>
     <form method="post" class="mt-6 flex items-center justify-end gap-3">
       {% csrf_token %}

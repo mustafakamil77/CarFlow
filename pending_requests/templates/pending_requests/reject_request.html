@@ -10,9 +10,9 @@
       <p class="text-sm text-slate-500">
         رفض 
         {% if request.mileage %}
-          تقرير العداد للمركبة {{ request.car.plate_number }}
+          تقرير العداد للمركبة {{ request.target_display }}
         {% elif request.description %}
-          طلب الصيانة للمركبة {{ request.car.plate_number }}
+          طلب الصيانة {% if request.branch %}للفرع{% else %}للمركبة{% endif %} {{ request.target_display }}
         {% endif %}
       </p>
     </div>

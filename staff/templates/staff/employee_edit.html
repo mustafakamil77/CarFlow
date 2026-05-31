@@ -3,8 +3,14 @@
 <div class="flex-1 overflow-y-auto p-8">
   <section class="max-w-2xl mx-auto bg-white rounded-lg shadow-sm border border-gray-100 p-8">
     <div class="flex items-center justify-between gap-3 mb-6">
-      <h1 class="text-xl font-bold text-gray-900">Edit Driver</h1>
-      <a href="{% url 'staff:profile' employee.id %}" class="rounded-md bg-white px-4 py-2 text-sm font-semibold text-gray-700 border border-gray-300 shadow-sm hover:bg-gray-50">Back</a>
+      <h1 class="text-xl font-bold text-gray-900">
+        {% if employee and employee.id %}
+          تعديل موظف
+        {% else %}
+          إضافة موظف
+        {% endif %}
+      </h1>
+      <a href="{% if employee and employee.id %}{% url 'staff:profile' employee.id %}{% else %}{% url 'staff:list' %}{% endif %}" class="rounded-md bg-white px-4 py-2 text-sm font-semibold text-gray-700 border border-gray-300 shadow-sm hover:bg-gray-50">Back</a>
     </div>
 
     <form method="post" enctype="multipart/form-data">
@@ -73,7 +79,7 @@
       </div>
 
       <div class="flex items-center justify-end gap-3 pt-6">
-        <a href="{% url 'staff:profile' employee.id %}" class="rounded-md bg-white px-5 py-2.5 text-sm font-semibold text-gray-700 border border-gray-300 shadow-sm hover:bg-gray-50">Cancel</a>
+        <a href="{% if employee and employee.id %}{% url 'staff:profile' employee.id %}{% else %}{% url 'staff:list' %}{% endif %}" class="rounded-md bg-white px-5 py-2.5 text-sm font-semibold text-gray-700 border border-gray-300 shadow-sm hover:bg-gray-50">Cancel</a>
         <button type="submit" class="rounded-md bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700">Save</button>
       </div>
     </form>

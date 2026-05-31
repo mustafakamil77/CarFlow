@@ -1,5 +1,6 @@
 from django.urls import path
 from .views import (
+    BranchMaintenanceRequestListView,
     MaintenanceRequestListView,
     MaintenanceRequestDetailView,
     MaintenanceRequestReportView,
@@ -18,6 +19,7 @@ app_name = "maintenance"
 
 urlpatterns = [
     path("requests/", MaintenanceRequestListView.as_view(), name="request_list"),
+    path("branch-requests/", BranchMaintenanceRequestListView.as_view(), name="branch_request_list"),
     path("requests/new/", MaintenanceRequestCreateView.as_view(), name="request_create"),
     path("requests/new/<int:car_pk>/", MaintenanceRequestCreateForCarView.as_view(), name="request_create_for_car"),
     path("requests/<int:pk>/", MaintenanceRequestDetailView.as_view(), name="request_detail"),

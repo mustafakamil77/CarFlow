@@ -1,0 +1,78 @@
+<section class="bg-white rounded-lg shadow border border-gray-200 overflow-hidden">
+  <div class="table-scroll">
+    <table class="w-full text-sm text-left text-gray-500">
+      <thead class="text-xs text-gray-500 font-bold bg-gray-50/50 uppercase border-b border-gray-100">
+        <tr>
+          <th class="px-6 py-4" scope="col">Branch ID</th>
+          <th class="px-6 py-4" scope="col">Name</th>
+          <th class="px-6 py-4" scope="col">Manager</th>
+          <th class="px-6 py-4" scope="col">Region</th>
+          <th class="px-6 py-4" scope="col">Department</th>
+          <th class="px-6 py-4" scope="col">Start Date</th>
+          <th class="px-6 py-4" scope="col">Maintenance</th>
+          <th class="px-6 py-4" scope="col">QR</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for branch in branches %}
+        <tr class="bg-white border-b hover:bg-gray-50 transition-colors">
+          <td class="px-6 py-4 font-medium text-gray-900">
+            <a href="{% url 'fleet:branch_detail' branch.pk %}" class="text-blue-600">B-{{ branch.pk }}</a>
+          </td>
+          <td class="px-6 py-4 text-gray-900">
+            <div class="font-medium">{{ branch.name }}</div>
+            {% if branch.legal_name %}
+              <div class="text-xs text-gray-500">{{ branch.legal_name }}</div>
+            {% endif %}
+          </td>
+          <td class="px-6 py-4 text-gray-900">
+            {% if branch.manager %}
+              {% if branch.manager.user %}
+                {{ branch.manager.user.get_full_name|default:branch.manager.user.username }}
+              {% else %}
+                {{ branch.manager.first_name }} {{ branch.manager.last_name }}
+              {% endif %}
+            {% else %}
+              -
+            {% endif %}
+          </td>
+          <td class="px-6 py-4 text-gray-900">{{ branch.region|default:"-" }}</td>
+          <td class="px-6 py-4 text-gray-900">{{ branch.department|default:"-" }}</td>
+          <td class="px-6 py-4 text-gray-900">{{ branch.start_date|default:"-" }}</td>
+          <td class="px-6 py-4 text-gray-900">{{ branch.maintenance_count|default:0 }}</td>
+          <td class="px-6 py-4">
+            {% if branch.qr_enabled %}
+              <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full inline-flex items-center w-fit gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-green-600"></span> Enabled</span>
+            {% else %}
+              <span class="bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-0.5 rounded-full inline-flex items-center w-fit gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-gray-600"></span> Disabled</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td class="px-6 py-10 text-center text-gray-600" colspan="8">
+            لا توجد نتائج مطابقة للفلاتر المحددة.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+{% if is_paginated %}
+<div class="mt-4 flex items-center justify-between gap-3 flex-wrap">
+  <div class="text-sm text-gray-600">
+    Page {{ page_obj.number }} of {{ paginator.num_pages }}
+  </div>
+  <div class="flex items-center gap-2">
+    {% if page_obj.has_previous %}
+      <a data-page-link="1" class="px-3 py-2 border rounded bg-white hover:bg-gray-50" href="?{% if qs_without_page %}{{ qs_without_page }}&{% endif %}page={{ page_obj.previous_page_number }}">Previous</a>
+    {% endif %}
+    {% if page_obj.has_next %}
+      <a data-page-link="1" class="px-3 py-2 border rounded bg-white hover:bg-gray-50" href="?{% if qs_without_page %}{{ qs_without_page }}&{% endif %}page={{ page_obj.next_page_number }}">Next</a>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+

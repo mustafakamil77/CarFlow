@@ -14,8 +14,18 @@ class MaintenanceRequest(models.Model):
 
     car = models.ForeignKey(
         "fleet.Car",
-        on_delete=models.CASCADE,
-        related_name="maintenance_requests"
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="maintenance_requests",
+    )
+
+    branch = models.ForeignKey(
+        "fleet.Branch",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="maintenance_requests",
     )
 
     title = models.CharField(max_length=200)
@@ -51,6 +61,38 @@ class MaintenanceRequest(models.Model):
     completion_comment = models.TextField(blank=True)
 
     completed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                name="maintenance_request_exactly_one_target",
+                condition=(
+                    (models.Q(car__isnull=False) & models.Q(branch__isnull=True))
+                    | (models.Q(car__isnull=True) & models.Q(branch__isnull=False))
+                ),
+            ),
+        ]
+
+    def get_target_label(self):
+        if self.car_id:
+            return "car"
+        if self.branch_id:
+            return "branch"
+        return ""
+
+    def get_target_display(self):
+        if self.car_id and self.car:
+            return self.car.plate_number
+        if self.branch_id and self.branch:
+            return self.branch.legal_name or self.branch.name
+        return "-"
+
+    def get_target_url(self):
+        if self.car_id:
+            return reverse("fleet:car_detail", kwargs={"pk": self.car_id})
+        if self.branch_id:
+            return reverse("fleet:branch_detail", kwargs={"pk": self.branch_id})
+        return ""
 
 class MaintenanceCategory(models.Model):
     name = models.CharField(max_length=100, unique=True)

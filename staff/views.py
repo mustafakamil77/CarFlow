@@ -147,6 +147,26 @@ def is_admin(user):
 
 @login_required
 @user_passes_test(is_admin)
+def employee_create(request):
+    employee = Employee()
+    if request.method == "POST":
+        form = EmployeeEditForm(request.POST, request.FILES, instance=employee)
+        license_form = EmployeeLicenseForm(request.POST)
+        if form.is_valid() and license_form.is_valid():
+            with transaction.atomic():
+                employee = form.save()
+                license_obj = license_form.save(commit=False)
+                license_obj.employee = employee
+                license_obj.save()
+            return redirect("staff:profile", id=employee.id)
+    else:
+        form = EmployeeEditForm(instance=employee)
+        license_form = EmployeeLicenseForm()
+    return render(request, "staff/employee_edit.html", {"employee": employee, "form": form, "license_form": license_form})
+
+
+@login_required
+@user_passes_test(is_admin)
 def leave_requests_admin(request):
     pending = (
         LeaveRequest.objects.filter(status="pending")

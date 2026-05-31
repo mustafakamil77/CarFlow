@@ -17,7 +17,7 @@ from reportlab.lib.utils import ImageReader
 from reportlab.pdfgen import canvas
 
 from accounts.models import Region
-from fleet.models import Car, CarAssignment, CarEvent
+from fleet.models import Branch, Car, CarAssignment, CarEvent
 from fuel.models import FuelLog
 from maintenance.models import MaintenanceRequest
 from staff.models import Employee, LeaveRequest
@@ -554,6 +554,28 @@ class VehicleQRReportView(TemplateView):
         ]
         return context
 
+
+@method_decorator(ensure_csrf_cookie, name="dispatch")
+class BranchQRReportView(TemplateView):
+    template_name = "reports/qr_branch_report_form.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        token = (kwargs.get("token") or "").strip()
+        if len(token) < 32:
+            return render(request, "reports/qr_invalid.html", status=404)
+
+        branch = Branch.objects.filter(qr_token=token, qr_enabled=True, is_active=True).first()
+        if not branch:
+            return render(request, "reports/qr_invalid.html", status=404)
+
+        self.branch = branch
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["branch"] = self.branch
+        return context
+
 class QRSubmitMileageView(View):
     def post(self, request, token):
         vehicle = Car.objects.filter(qr_token=token, qr_enabled=True).first()
@@ -648,3 +670,59 @@ class QRSubmitMaintenanceView(View):
             })
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)
+
+
+class QRSubmitBranchMaintenanceView(View):
+    def post(self, request, token):
+        branch = Branch.objects.filter(qr_token=token, qr_enabled=True, is_active=True).first()
+        if not branch:
+            return JsonResponse({"error": "Invalid token"}, status=404)
+
+        description = request.POST.get("description", "").strip()
+        if len(description) < 20 or len(description) > 1000:
+            return JsonResponse({"error": "Description must be between 20 and 1000 characters"}, status=400)
+
+        images = request.FILES.getlist("images")
+        if len(images) < 1 or len(images) > 10:
+            return JsonResponse({"error": "Please upload between 1 and 10 images"}, status=400)
+
+        max_bytes = int((getattr(settings, "CARFLOW_IMAGE_OPTIMIZATION", {}) or {}).get("max_upload_bytes", 5 * 1024 * 1024))
+        total_size = 0
+        for img in images:
+            total_size += int(img.size or 0)
+            if int(getattr(img, "size", 0) or 0) > max_bytes:
+                return JsonResponse({"error": f"Each image must be <= {max_bytes // (1024 * 1024)}MB"}, status=400)
+
+        if total_size > (max_bytes * 10):
+            return JsonResponse({"error": "Total images size is too large"}, status=400)
+
+        try:
+            pending = PendingMaintenanceReport.objects.create(
+                car=None,
+                branch=branch,
+                title="",
+                description=description,
+                status="pending",
+                submitter_name=(request.POST.get("submitter_name") or "").strip(),
+                submitter_contact=(request.POST.get("submitter_contact") or "").strip(),
+                submitter_address=(request.POST.get("submitter_address") or "").strip(),
+                raw_data={
+                    "ip": request.META.get("REMOTE_ADDR", ""),
+                    "ua": request.META.get("HTTP_USER_AGENT", ""),
+                },
+            )
+            pending.title = f"طلب صيانة فرع {pending.id}"
+            pending.save(update_fields=["title"])
+
+            for img in images:
+                PendingMaintenanceImage.objects.create(report=pending, image=img)
+
+            return JsonResponse(
+                {
+                    "success": True,
+                    "request_id": pending.id,
+                    "received_at": timezone.now().strftime("%Y-%m-%d %H:%M:%S"),
+                }
+            )
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=400)

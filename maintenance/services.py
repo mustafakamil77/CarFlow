@@ -14,5 +14,6 @@ def enqueue_new_request_email(request):
     except Group.DoesNotExist:
         emails = []
     subject = f"New Maintenance Request: {request.title}"
-    message = f"A new maintenance request was created for car {request.car.plate_number}.\n\n{request.description}"
+    target = request.get_target_display() if hasattr(request, "get_target_display") else "-"
+    message = f"A new maintenance request was created for {target}.\n\n{request.description}"
     async_task(_send_new_request_email, subject, message, emails)

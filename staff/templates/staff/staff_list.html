@@ -7,21 +7,26 @@
         <h1 class="text-xl sm:text-2xl font-semibold text-gray-900">قائمة السائقين والموظفين</h1>
         <p class="mt-1 text-sm text-gray-600">فلترة السائقين وعرض بيانات التواصل والمنطقة وانتهاء الرخصة</p>
       </div>
-      <form method="get" class="flex items-end gap-2 flex-wrap">
-        <div class="flex flex-col">
-          <label class="text-xs font-medium text-gray-500 mb-1 ml-1" for="q">بحث</label>
-          <input id="q" name="q" value="{{ request.GET.q|default:'' }}" placeholder="اسم السائق..." class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 min-w-[220px] shadow-sm" />
-        </div>
-        <div class="flex flex-col">
-          <label class="text-xs font-medium text-gray-500 mb-1 ml-1" for="role-filter">فلتر</label>
-          <select id="role-filter" name="role" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 min-w-[180px] shadow-sm">
-            <option value="">الكل</option>
-            <option value="driver" {% if request.GET.role == 'driver' %}selected{% endif %}>السائقين فقط</option>
-          </select>
-        </div>
-        <button type="submit" class="text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 focus:outline-none shadow-sm transition-colors">تطبيق</button>
-        <a href="{% url 'staff:list' %}" class="text-gray-700 bg-gray-100 hover:bg-gray-200 focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-5 py-2.5 focus:outline-none shadow-sm transition-colors border border-gray-300 flex items-center justify-center">إعادة ضبط</a>
-      </form>
+      <div class="flex items-end gap-2 flex-wrap">
+        <form method="get" class="flex items-end gap-2 flex-wrap">
+          <div class="flex flex-col">
+            <label class="text-xs font-medium text-gray-500 mb-1 ml-1" for="q">بحث</label>
+            <input id="q" name="q" value="{{ request.GET.q|default:'' }}" placeholder="اسم السائق..." class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 min-w-[220px] shadow-sm" />
+          </div>
+          <div class="flex flex-col">
+            <label class="text-xs font-medium text-gray-500 mb-1 ml-1" for="role-filter">فلتر</label>
+            <select id="role-filter" name="role" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 min-w-[180px] shadow-sm">
+              <option value="">الكل</option>
+              <option value="driver" {% if request.GET.role == 'driver' %}selected{% endif %}>السائقين فقط</option>
+            </select>
+          </div>
+          <button type="submit" class="text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 focus:outline-none shadow-sm transition-colors">تطبيق</button>
+          <a href="{% url 'staff:list' %}" class="text-gray-700 bg-gray-100 hover:bg-gray-200 focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-5 py-2.5 focus:outline-none shadow-sm transition-colors border border-gray-300 flex items-center justify-center">إعادة ضبط</a>
+        </form>
+        {% if request.user.is_superuser or request.user.is_staff %}
+          <a href="{% url 'staff:employee_create' %}" class="text-white bg-indigo-600 hover:bg-indigo-700 focus:ring-4 focus:ring-indigo-300 font-medium rounded-lg text-sm px-5 py-2.5 focus:outline-none shadow-sm transition-colors">إضافة موظف</a>
+        {% endif %}
+      </div>
     </div>
   </section>
 

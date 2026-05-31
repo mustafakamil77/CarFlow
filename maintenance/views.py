@@ -88,6 +88,7 @@ class MaintenanceRequestListView(LoginRequiredMixin, ListView):
         qs = (
             super()
             .get_queryset()
+            .filter(car__isnull=False)
             .select_related("car", "car__region", "car__department", "created_by")
             .order_by("-created_at")
         )
@@ -206,6 +207,178 @@ class MaintenanceRequestListView(LoginRequiredMixin, ListView):
         return super().render_to_response(context, **response_kwargs)
 
 
+class BranchMaintenanceRequestListView(LoginRequiredMixin, ListView):
+    model = MaintenanceRequest
+    paginate_by = 20
+    template_name = "maintenance/branch_request_list.html"
+
+    def _parse_filters(self):
+        q_raw = (self.request.GET.get("q") or "").strip()
+        status_param = (self.request.GET.get("status") or "").strip()
+        region_param = (self.request.GET.get("region") or "").strip()
+        department_param = (self.request.GET.get("department") or "").strip()
+        include_completed = (self.request.GET.get("include_completed") or "").strip().lower() in {"1", "true", "yes", "on"}
+
+        q_work = q_raw
+        q_lower = q_raw.lower()
+
+        derived_status = ""
+        derived_region_id = ""
+
+        if not status_param and q_lower:
+            status_phrases = [
+                ("قيد التنفيذ", "in_progress"),
+                ("قيدالمتابعة", "in_progress"),
+                ("in progress", "in_progress"),
+                ("in_progress", "in_progress"),
+                ("منتهي", "completed"),
+                ("مكتمل", "completed"),
+                ("completed", "completed"),
+                ("جديد", "new"),
+                ("new", "new"),
+                ("معتمد", "approved"),
+                ("approved", "approved"),
+            ]
+            for phrase, code in status_phrases:
+                if phrase in q_lower:
+                    derived_status = code
+                    q_work = q_work.replace(phrase, " ")
+                    q_lower = q_work.lower()
+                    break
+
+        if not region_param and q_lower:
+            regions = list(Region.objects.all())
+            region_matches = []
+            for r in regions:
+                name = (r.name or "").strip()
+                if not name:
+                    continue
+                if name.lower() in q_lower:
+                    region_matches.append((len(name), r.pk, name))
+            if region_matches:
+                region_matches.sort(reverse=True)
+                derived_region_id = str(region_matches[0][1])
+                q_work = q_work.replace(region_matches[0][2], " ")
+                q_lower = q_work.lower()
+
+        effective_status = status_param or derived_status
+        effective_region = region_param or derived_region_id
+
+        q_work = " ".join(q_work.split())
+
+        return {
+            "q_raw": q_raw,
+            "q_work": q_work,
+            "effective_status": effective_status,
+            "effective_region": effective_region,
+            "department": department_param,
+            "include_completed": include_completed,
+        }
+
+    def _build_queryset(self, *, apply_default_completed_exclusion: bool):
+        qs = (
+            super()
+            .get_queryset()
+            .filter(branch__isnull=False)
+            .select_related("branch", "branch__region", "branch__department", "created_by")
+            .order_by("-created_at")
+        )
+
+        filters = self._parse_filters()
+
+        if filters["effective_status"]:
+            qs = qs.filter(status=filters["effective_status"])
+
+        if filters["effective_region"]:
+            qs = qs.filter(branch__region_id=filters["effective_region"])
+
+        if filters["department"]:
+            qs = qs.filter(branch__department_id=filters["department"])
+
+        if filters["q_work"]:
+            tokens = [t for t in filters["q_work"].split(" ") if t]
+            for token in tokens:
+                if token.isdigit():
+                    qs = qs.filter(Q(pk=int(token)) | Q(branch__pk=int(token)))
+                    continue
+                qs = qs.filter(
+                    Q(title__icontains=token)
+                    | Q(description__icontains=token)
+                    | Q(branch__name__icontains=token)
+                    | Q(branch__legal_name__icontains=token)
+                    | Q(branch__address__icontains=token)
+                )
+
+        if apply_default_completed_exclusion and (not filters["effective_status"]) and (not filters["include_completed"]):
+            qs = qs.exclude(status="completed")
+
+        return qs
+
+    def get_queryset(self):
+        return self._build_queryset(apply_default_completed_exclusion=True)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        filters = self._parse_filters()
+
+        context["regions"] = Region.objects.all()
+        context["departments"] = Department.objects.filter(is_active=True).order_by("name_ar")
+        context["effective_status"] = filters["effective_status"]
+        context["effective_region"] = filters["effective_region"]
+        context["effective_department"] = filters["department"]
+        context["include_completed"] = filters["include_completed"]
+
+        get_params = self.request.GET.copy()
+        if "page" in get_params:
+            get_params.pop("page")
+        context["querystring"] = get_params.urlencode()
+
+        completed_hidden = (not filters["effective_status"]) and (not filters["include_completed"])
+        context["completed_hidden"] = completed_hidden
+        if completed_hidden:
+            base_qs = self._build_queryset(apply_default_completed_exclusion=False)
+            context["hidden_completed_count"] = base_qs.filter(status="completed").count()
+        else:
+            context["hidden_completed_count"] = 0
+
+        object_list = list(context["object_list"])
+        requests_with_days = []
+        for req in object_list:
+            start_date = req.created_at.date()
+            end_date = req.updated_at.date() if req.status == "completed" else timezone.localdate()
+            days_count = (end_date - start_date).days + 1
+
+            if req.created_by:
+                requester_name = req.created_by.get_full_name() or req.created_by.get_username()
+            else:
+                requester_name = "-"
+
+            requests_with_days.append(
+                {
+                    "object": req,
+                    "days_count": days_count,
+                    "requester_name": requester_name,
+                    "region": req.branch.region if req.branch_id else None,
+                    "department": req.branch.department if req.branch_id else None,
+                }
+            )
+        context["requests_with_days"] = requests_with_days
+        return context
+
+    def render_to_response(self, context, **response_kwargs):
+        if (self.request.GET.get("ajax") or "").strip() == "1":
+            html = render_to_string("maintenance/_branch_request_list_results.html", context=context, request=self.request)
+            return JsonResponse(
+                {
+                    "html": html,
+                    "count": context["page_obj"].paginator.count,
+                    "completed_hidden": bool(context.get("completed_hidden")),
+                    "hidden_completed_count": int(context.get("hidden_completed_count") or 0),
+                }
+            )
+        return super().render_to_response(context, **response_kwargs)
+
+
 class MaintenanceRequestDetailView(LoginRequiredMixin, DetailView):
     model = MaintenanceRequest
     template_name = "maintenance/request_detail.html"
@@ -243,14 +416,18 @@ class MaintenanceRequestReportView(MaintenanceStaffRequiredMixin, DetailView):
 
         from accounts.models import DriverAssignment
 
-        assignment = (
-            DriverAssignment.objects.filter(car=req.car, active=True)
-            .select_related("driver__user", "driver__department", "region", "car__region", "car__department")
-            .order_by("-start_date")
-            .first()
-        )
-        ctx["driver_assignment"] = assignment
-        ctx["driver"] = assignment.driver if assignment else None
+        if req.car_id:
+            assignment = (
+                DriverAssignment.objects.filter(car=req.car, active=True)
+                .select_related("driver__user", "driver__department", "region", "car__region", "car__department")
+                .order_by("-start_date")
+                .first()
+            )
+            ctx["driver_assignment"] = assignment
+            ctx["driver"] = assignment.driver if assignment else None
+        else:
+            ctx["driver_assignment"] = None
+            ctx["driver"] = None
         return ctx
 
 
@@ -332,16 +509,20 @@ class MaintenanceRequestDeleteView(MaintenanceStaffRequiredMixin, TemplateView):
         return ctx
 
     def post(self, request, *args, **kwargs):
-        car = self.obj.car
-        previous_status = self.obj.previous_car_status or "available"
-        other_open = car.maintenance_requests.exclude(pk=self.obj.pk).exclude(status="completed").exists()
-        if not other_open and car.status == "maintenance":
-            if previous_status == "assigned" and not car.assignments.filter(end_date__isnull=True).exists():
-                previous_status = "available"
-            car.status = previous_status
-            car.save(update_fields=["status"])
+        if self.obj.car_id and self.obj.car:
+            car = self.obj.car
+            previous_status = self.obj.previous_car_status or "available"
+            other_open = car.maintenance_requests.exclude(pk=self.obj.pk).exclude(status="completed").exists()
+            if not other_open and car.status == "maintenance":
+                if previous_status == "assigned" and not car.assignments.filter(end_date__isnull=True).exists():
+                    previous_status = "available"
+                car.status = previous_status
+                car.save(update_fields=["status"])
+            self.obj.delete()
+            return redirect("maintenance:request_list")
+
         self.obj.delete()
-        return redirect("maintenance:request_list")
+        return redirect("maintenance:branch_request_list")
 
 
 class MaintenanceRequestCompleteView(MaintenanceStaffRequiredMixin, FormView):
@@ -374,6 +555,9 @@ class MaintenanceRequestCompleteView(MaintenanceStaffRequiredMixin, FormView):
         for image in images:
             MaintenanceImage.objects.create(request=req, image=image)
 
+        if not req.car_id:
+            return redirect("maintenance:request_detail", pk=req.pk)
+
         has_other_open = req.car.maintenance_requests.exclude(pk=req.pk).exclude(status="completed").exists()
         if has_other_open:
             return redirect("maintenance:request_detail", pk=req.pk)
@@ -404,8 +588,9 @@ class MaintenanceRequestReopenView(MaintenanceStaffRequiredMixin, TemplateView):
         req.completed_at = None
         req.completion_comment = ""
         req.save(update_fields=["status", "completed_at", "completion_comment"])
-        req.car.status = "maintenance"
-        req.car.save(update_fields=["status"])
+        if req.car_id:
+            req.car.status = "maintenance"
+            req.car.save(update_fields=["status"])
         return redirect("maintenance:request_detail", pk=req.pk)
 
 
@@ -430,8 +615,9 @@ class MaintenanceRequestCompletionDeleteView(MaintenanceStaffRequiredMixin, Temp
         req.save(update_fields=["status", "completed_at", "completion_comment"])
         if cutoff:
             MaintenanceImage.objects.filter(request=req, created_at__gte=cutoff).delete()
-        req.car.status = "maintenance"
-        req.car.save(update_fields=["status"])
+        if req.car_id:
+            req.car.status = "maintenance"
+            req.car.save(update_fields=["status"])
         return redirect("maintenance:request_detail", pk=req.pk)
 
 

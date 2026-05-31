@@ -134,6 +134,7 @@
               <th class="px-4 py-2">Number</th>
               <th class="px-4 py-2">Issue</th>
               <th class="px-4 py-2">Expiry</th>
+              <th class="px-4 py-2">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -143,9 +144,19 @@
               <td class="px-4 py-2">{{ doc.number }}</td>
               <td class="px-4 py-2">{{ doc.issue_date|default:'-' }}</td>
               <td class="px-4 py-2">{{ doc.expiry_date|default:'-' }}</td>
+              <td class="px-4 py-2">
+                <div class="flex flex-wrap gap-2">
+                  <a href="{% url 'fleet:car_document_detail' object.pk doc.pk %}" class="px-3 py-1.5 bg-white border border-gray-300 rounded text-xs text-gray-700 hover:bg-gray-50">View</a>
+                  <a href="{% url 'fleet:car_document_edit' object.pk doc.pk %}" class="px-3 py-1.5 bg-indigo-600 rounded text-xs text-white hover:bg-indigo-700">Edit</a>
+                  <form method="post" action="{% url 'fleet:car_document_delete' object.pk doc.pk %}" onsubmit="return confirm('تأكيد حذف المستند؟');">
+                    {% csrf_token %}
+                    <button type="submit" class="px-3 py-1.5 bg-red-600 rounded text-xs text-white hover:bg-red-700">Delete</button>
+                  </form>
+                </div>
+              </td>
             </tr>
             {% empty %}
-            <tr><td class="px-4 py-2" colspan="4">No documents</td></tr>
+            <tr><td class="px-4 py-2" colspan="5">No documents</td></tr>
             {% endfor %}
           </tbody>
         </table>
@@ -161,19 +172,39 @@
           <a href="{% url 'fleet:car_accident_create' object.pk %}" class="px-3 py-2 bg-blue-600 text-white rounded text-sm">Add Accidents</a>
         </div>
       </div>
-      <ul class="divide-y">
-        {% for item in accidents_items %}
-        <li class="py-2">
-          <div class="text-sm"><span class="font-medium">{{ item.event.created_at|date:"Y-m-d H:i" }}</span> — Odometer: {{ item.event.odometer|intcomma}}</div>
-          <div class="text-xs text-gray-600">{{ item.event.notes|default:'-' }}</div>
-          {% if item.liability_percent != None %}
-          <div class="text-xs text-gray-600">Liability: {{ item.liability_percent }}%</div>
-          {% endif %}
-        </li>
-        {% empty %}
-        <li class="py-2">No accidents</li>
-        {% endfor %}
-      </ul>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left text-gray-600">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-4 py-2">Date</th>
+              <th class="px-4 py-2">Liability</th>
+              <th class="px-4 py-2">Notes</th>
+              <th class="px-4 py-2">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in accidents_items %}
+            <tr class="border-t">
+              <td class="px-4 py-2 whitespace-nowrap">{{ item.event.created_at|date:"Y-m-d H:i" }}</td>
+              <td class="px-4 py-2">{% if item.liability_percent != None %}{{ item.liability_percent }}%{% else %}-{% endif %}</td>
+              <td class="px-4 py-2">{{ item.event.notes|default:"-" }}</td>
+              <td class="px-4 py-2">
+                <div class="flex flex-wrap gap-2">
+                  <a href="{% url 'fleet:car_accident_detail' object.pk item.event.pk %}" class="px-3 py-1.5 bg-white border border-gray-300 rounded text-xs text-gray-700 hover:bg-gray-50">View</a>
+                  <a href="{% url 'fleet:car_accident_edit' object.pk item.event.pk %}" class="px-3 py-1.5 bg-indigo-600 rounded text-xs text-white hover:bg-indigo-700">Edit</a>
+                  <form method="post" action="{% url 'fleet:car_accident_delete' object.pk item.event.pk %}" onsubmit="return confirm('تأكيد حذف الحادث؟');">
+                    {% csrf_token %}
+                    <button type="submit" class="px-3 py-1.5 bg-red-600 rounded text-xs text-white hover:bg-red-700">Delete</button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td class="px-4 py-2" colspan="4">No accidents</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </section>
 
     <hr class="my-6">

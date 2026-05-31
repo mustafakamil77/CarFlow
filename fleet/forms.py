@@ -1,7 +1,7 @@
 from django import forms
 from datetime import datetime
 from django.forms import inlineformset_factory
-from .models import Car, CarImage, CarDocument, CarEvent, CarCost
+from .models import Branch, BranchDocument, Car, CarImage, CarDocument, CarEvent, CarCost
 from staff.models import Employee
 try:
     from .models import CarCondition  # قد لا يكون موجوداً في المخطط الجديد
@@ -79,6 +79,39 @@ class CarForm(forms.ModelForm):
     # لا توجد إحداثيات أو حالة تفعيل في المخطط الجديد، إزالة التحقق القديم
 
 
+class BranchForm(forms.ModelForm):
+    class Meta:
+        model = Branch
+        fields = [
+            "name",
+            "legal_name",
+            "address",
+            "contact_phone",
+            "contact_email",
+            "manager",
+            "region",
+            "department",
+            "start_date",
+            "notes",
+            "is_active",
+            "qr_enabled",
+        ]
+        widgets = {
+            "name": forms.TextInput(attrs={"class": "border rounded p-2 w-full"}),
+            "legal_name": forms.TextInput(attrs={"class": "border rounded p-2 w-full"}),
+            "address": forms.Textarea(attrs={"class": "border rounded p-2 w-full", "rows": 3}),
+            "contact_phone": forms.TextInput(attrs={"class": "border rounded p-2 w-full"}),
+            "contact_email": forms.EmailInput(attrs={"class": "border rounded p-2 w-full"}),
+            "manager": forms.Select(attrs={"class": "border rounded p-2 w-full"}),
+            "region": forms.Select(attrs={"class": "border rounded p-2 w-full"}),
+            "department": forms.Select(attrs={"class": "border rounded p-2 w-full"}),
+            "start_date": forms.DateInput(attrs={"type": "date", "class": "border rounded p-2 w-full"}),
+            "notes": forms.Textarea(attrs={"class": "border rounded p-2 w-full", "rows": 3}),
+            "is_active": forms.CheckboxInput(attrs={"class": "rounded"}),
+            "qr_enabled": forms.CheckboxInput(attrs={"class": "rounded"}),
+        }
+
+
 # Inline formset to attach up to 5 optional images to a Car
 CarImageFormSet = inlineformset_factory(
     parent_model=Car,
@@ -104,6 +137,19 @@ class CarDocumentForm(forms.ModelForm):
             "issue_date": forms.DateInput(attrs={"type": "date", "class": "border rounded p-2 w-full"}),
             "expiry_date": forms.DateInput(attrs={"type": "date", "class": "border rounded p-2 w-full"}),
             "image": forms.ClearableFileInput(attrs={"class": "block w-full text-sm border rounded p-2"}),
+        }
+
+
+class BranchDocumentForm(forms.ModelForm):
+    class Meta:
+        model = BranchDocument
+        fields = ["document_type", "number", "issue_date", "expiry_date", "file"]
+        widgets = {
+            "document_type": forms.Select(attrs={"class": "border rounded p-2 w-full"}),
+            "number": forms.TextInput(attrs={"class": "border rounded p-2 w-full"}),
+            "issue_date": forms.DateInput(attrs={"type": "date", "class": "border rounded p-2 w-full"}),
+            "expiry_date": forms.DateInput(attrs={"type": "date", "class": "border rounded p-2 w-full"}),
+            "file": forms.ClearableFileInput(attrs={"class": "block w-full text-sm border rounded p-2"}),
         }
 
 
@@ -268,6 +314,39 @@ class MultipleImageField(forms.ImageField):
         return cleaned_files
 
 
+class MultipleUploadField(forms.FileField):
+    def clean(self, data, initial=None):
+        if not data:
+            return []
+        if not isinstance(data, (list, tuple)):
+            data = [data]
+
+        cleaned_files = []
+        image_cleaner = forms.ImageField()
+        for item in data:
+            if not item:
+                continue
+            filename = (getattr(item, "name", "") or "").lower()
+            content_type = (getattr(item, "content_type", "") or "").lower()
+
+            is_pdf = filename.endswith(".pdf") or content_type == "application/pdf"
+            is_image = content_type.startswith("image/") or any(
+                filename.endswith(ext) for ext in [".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".tif", ".tiff"]
+            )
+
+            if is_pdf:
+                cleaned_files.append(super().clean(item, initial))
+                continue
+
+            if is_image:
+                cleaned_files.append(image_cleaner.clean(item, initial))
+                continue
+
+            raise forms.ValidationError("Only images and PDF files are allowed.")
+
+        return cleaned_files
+
+
 class CarAccidentForm(forms.Form):
     liability_percent = forms.IntegerField(
         required=False,
@@ -277,7 +356,7 @@ class CarAccidentForm(forms.Form):
         required=False,
         widget=forms.Textarea(attrs={"class": "border rounded p-2 w-full", "rows": 4}),
     )
-    images = MultipleImageField(
+    attachments = MultipleUploadField(
         required=False,
-        widget=MultiFileInput(attrs={"class": "block w-full text-sm border rounded p-2", "multiple": True}),
+        widget=MultiFileInput(attrs={"class": "block w-full text-sm border rounded p-2", "multiple": True, "accept": "image/*,application/pdf"}),
     )

@@ -56,12 +56,15 @@ class PendingRequestListView(StaffRequiredMixin, ListView):
             qs = qs.filter(status=filters["status"])
 
         if filters["department"]:
-            qs = qs.filter(car__department_id=filters["department"])
+            qs = qs.filter(
+                Q(car__department_id=filters["department"]) | Q(branch__department_id=filters["department"])
+            )
 
         if filters["region"]:
             qs = qs.filter(
                 Q(car__region_id=filters["region"])
                 | Q(car__driver_assignments__active=True, car__driver_assignments__region_id=filters["region"])
+                | Q(branch__region_id=filters["region"])
             ).distinct()
 
         if filters["q_work"]:
@@ -71,11 +74,15 @@ class PendingRequestListView(StaffRequiredMixin, ListView):
                     qs = qs.filter(
                         Q(pk=int(token))
                         | Q(car__plate_number__icontains=token)
+                        | Q(branch__name__icontains=token)
+                        | Q(branch__legal_name__icontains=token)
                         | Q(submitter_contact__icontains=token)
                     )
                     continue
                 qs = qs.filter(
                     Q(car__plate_number__icontains=token)
+                    | Q(branch__name__icontains=token)
+                    | Q(branch__legal_name__icontains=token)
                     | Q(submitter_name__icontains=token)
                     | Q(submitter_contact__icontains=token)
                 )
@@ -86,7 +93,9 @@ class PendingRequestListView(StaffRequiredMixin, ListView):
         filters = self._parse_filters()
 
         mileage_requests = PendingMileageReport.objects.select_related("car", "car__region", "car__department")
-        maintenance_requests = PendingMaintenanceReport.objects.select_related("car", "car__region", "car__department")
+        maintenance_requests = PendingMaintenanceReport.objects.select_related(
+            "car", "car__region", "car__department", "branch", "branch__region", "branch__department"
+        )
 
         if filters["type"] == "mileage":
             maintenance_requests = maintenance_requests.none()
@@ -137,8 +146,12 @@ class PendingRequestListView(StaffRequiredMixin, ListView):
 
             r.requester_name = requester_name
             r.requester_contact = requester_contact
-            r.region_display = (a.region if a and a.region else r.car.region) if getattr(r, "car", None) else None
-            r.department_display = (r.car.department if getattr(r, "car", None) else None) or (driver.department if driver else None)
+            if getattr(r, "car_id", None):
+                r.region_display = (a.region if a and a.region else r.car.region) if getattr(r, "car", None) else None
+                r.department_display = (r.car.department if getattr(r, "car", None) else None) or (driver.department if driver else None)
+            else:
+                r.region_display = r.branch.region if getattr(r, "branch", None) else None
+                r.department_display = r.branch.department if getattr(r, "branch", None) else None
 
         return all_requests
 
@@ -185,18 +198,22 @@ class PendingRequestDetailView(StaffRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         req = ctx.get("request")
-        if not req or not getattr(req, "car_id", None):
+        if not req:
             return ctx
 
         from accounts.models import DriverAssignment
 
-        assignment = (
-            DriverAssignment.objects.filter(car_id=req.car_id, active=True)
-            .select_related("driver__user", "driver__department", "region", "car__region", "car__department")
-            .order_by("-start_date")
-            .first()
-        )
-        driver = assignment.driver if assignment else None
+        if getattr(req, "car_id", None):
+            assignment = (
+                DriverAssignment.objects.filter(car_id=req.car_id, active=True)
+                .select_related("driver__user", "driver__department", "region", "car__region", "car__department")
+                .order_by("-start_date")
+                .first()
+            )
+            driver = assignment.driver if assignment else None
+        else:
+            assignment = None
+            driver = None
 
         if driver and driver.user:
             driver_name = driver.user.get_full_name() or driver.user.username
@@ -212,8 +229,15 @@ class PendingRequestDetailView(StaffRequiredMixin, DetailView):
         ctx["driver"] = driver
         ctx["requester_name"] = requester_name
         ctx["requester_contact"] = requester_contact
-        ctx["region_display"] = assignment.region if assignment and assignment.region else req.car.region
-        ctx["department_display"] = req.car.department or (driver.department if driver else None)
+        if getattr(req, "car_id", None) and getattr(req, "car", None):
+            ctx["region_display"] = assignment.region if assignment and assignment.region else req.car.region
+            ctx["department_display"] = req.car.department or (driver.department if driver else None)
+        elif getattr(req, "branch_id", None) and getattr(req, "branch", None):
+            ctx["region_display"] = req.branch.region
+            ctx["department_display"] = req.branch.department
+        else:
+            ctx["region_display"] = None
+            ctx["department_display"] = None
         return ctx
 
 class AcceptRequestView(StaffRequiredMixin, View):
@@ -262,14 +286,26 @@ class AcceptRequestView(StaffRequiredMixin, View):
                     )
 
             else:
-                maintenance_request = MaintenanceRequest.objects.create(
-                    car=pending_request.car,
-                    title=(pending_request.title or f"QR Maintenance Request - {pending_request.car.plate_number}"),
-                    description=pending_request.description,
-                    created_by=request.user,
-                    status="new",
-                    odometer=pending_request.car.current_mileage,
-                )
+                if pending_request.car_id and pending_request.car:
+                    maintenance_request = MaintenanceRequest.objects.create(
+                        car=pending_request.car,
+                        branch=None,
+                        title=(pending_request.title or f"QR Maintenance Request - {pending_request.car.plate_number}"),
+                        description=pending_request.description,
+                        created_by=request.user,
+                        status="new",
+                        odometer=pending_request.car.current_mileage,
+                    )
+                else:
+                    maintenance_request = MaintenanceRequest.objects.create(
+                        car=None,
+                        branch=pending_request.branch,
+                        title=(pending_request.title or f"QR Maintenance Request - {pending_request.target_display}"),
+                        description=pending_request.description,
+                        created_by=request.user,
+                        status="new",
+                        odometer=0,
+                    )
 
                 sources = []
                 seen_names = set()
@@ -310,7 +346,7 @@ class AcceptRequestView(StaffRequiredMixin, View):
                 request_type=request_type,
                 action="accepted",
                 acted_by=request.user,
-                details=f"Request for {pending_request.car.plate_number} approved.",
+                details=f"Request for {pending_request.target_display} approved.",
             )
 
         send_request_status_notification(pending_request, "accepted")

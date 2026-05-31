@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.db import models
 
-from fleet.models import Car
+from fleet.models import Branch, Car
 from maintenance.models import MaintenanceCategory
 
 class PendingRequest(models.Model):
@@ -16,9 +16,20 @@ class PendingRequest(models.Model):
 
     car = models.ForeignKey(
         Car,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name="pending_%(class)s_requests",
-        verbose_name="Car"
+        verbose_name="Car",
+    )
+
+    branch = models.ForeignKey(
+        Branch,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="pending_%(class)s_requests",
+        verbose_name="Branch",
     )
     submitted_at = models.DateTimeField(auto_now_add=True, verbose_name="Submitted At")
     status = models.CharField(
@@ -56,14 +67,30 @@ class PendingRequest(models.Model):
 
     @property
     def region(self):
-        return self.car.region if self.car_id else None
+        if self.car_id and self.car:
+            return self.car.region
+        if self.branch_id and self.branch:
+            return self.branch.region
+        return None
 
     @property
     def department(self):
-        return getattr(self.car, "department", None) if self.car_id else None
+        if self.car_id and self.car:
+            return getattr(self.car, "department", None)
+        if self.branch_id and self.branch:
+            return getattr(self.branch, "department", None)
+        return None
+
+    @property
+    def target_display(self):
+        if self.car_id and self.car:
+            return self.car.plate_number
+        if self.branch_id and self.branch:
+            return self.branch.legal_name or self.branch.name
+        return "-"
 
     def __str__(self):
-        return f"Pending Request for {self.car.plate_number} - {self.get_status_display()}"
+        return f"Pending Request for {self.target_display} - {self.get_status_display()}"
 
 class PendingMileageReport(PendingRequest):
     """
@@ -80,6 +107,12 @@ class PendingMileageReport(PendingRequest):
     class Meta(PendingRequest.Meta):
         verbose_name = "Pending Mileage Report"
         verbose_name_plural = "Pending Mileage Reports"
+        constraints = [
+            models.CheckConstraint(
+                name="pending_mileage_requires_car",
+                condition=models.Q(car__isnull=False) & models.Q(branch__isnull=True),
+            ),
+        ]
 
     def __str__(self):
         return f"Mileage Report for {self.car.plate_number} - {self.mileage} km"
@@ -110,9 +143,18 @@ class PendingMaintenanceReport(PendingRequest):
     class Meta(PendingRequest.Meta):
         verbose_name = "Pending Maintenance Report"
         verbose_name_plural = "Pending Maintenance Reports"
+        constraints = [
+            models.CheckConstraint(
+                name="pending_maintenance_requires_exactly_one_target",
+                condition=(
+                    (models.Q(car__isnull=False) & models.Q(branch__isnull=True))
+                    | (models.Q(car__isnull=True) & models.Q(branch__isnull=False))
+                ),
+            ),
+        ]
 
     def __str__(self):
-        return f"Maintenance Report for {self.car.plate_number} - {self.category or 'N/A'}"
+        return f"Maintenance Report for {self.target_display} - {self.category or 'N/A'}"
 
     def get_request_type(self):
         return "maintenance"

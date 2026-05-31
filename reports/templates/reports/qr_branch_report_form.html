@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  {% load static %}
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Branch Report | تقرير الفرع</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <link rel="stylesheet" href="https://site-assets.fontawesome.com/releases/v6.5.2/css/all.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Tajawal:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root { --font-en: 'Inter', sans-serif; --font-ar: 'Tajawal', sans-serif; }
+    body { font-family: var(--font-ar); background-color: #f3f4f6; transition: all 0.3s ease; }
+    html[lang="en"] body { font-family: var(--font-en); }
+    .hidden { display: none !important; }
+    #imagePreviewContainer img { width: 80px; height: 80px; object-fit: cover; border-radius: 8px; }
+  </style>
+</head>
+<body class="min-h-screen pb-10">
+  <div class="w-full flex justify-end p-4">
+    <button id="langToggle" class="px-3 py-1 bg-white rounded shadow text-sm font-semibold text-gray-700">English</button>
+  </div>
+
+  <div class="mx-auto max-w-md px-4 pt-2">
+    <div class="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200 mb-4">
+      <div class="text-sm font-medium text-gray-600" data-i18n="branch">الفرع</div>
+      <div class="mt-1 text-xl font-bold text-gray-900" data-i18n="branch_report">تقرير الفرع</div>
+      <div class="mt-1 text-sm text-gray-500" data-i18n="branch_report_sub">رفع طلب صيانة خاص بالفرع</div>
+      <div class="mt-3 text-sm text-gray-700">
+        <span class="font-semibold" data-i18n="branch_name">اسم الفرع:</span>
+        <span class="font-medium">{{ branch.legal_name|default:branch.name }}</span>
+      </div>
+    </div>
+
+    <div class="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200 relative">
+      <div id="loadingOverlay" class="hidden absolute inset-0 bg-white/80 z-10 flex items-center justify-center rounded-2xl">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+
+      <form id="maintenanceForm" class="space-y-4" onsubmit="submitMaintenance(event)">
+        <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+
+        <div>
+          <label class="block text-sm font-semibold text-gray-800" data-i18n="upload_images">رفع صور العطل (1 إلى 10 صور)</label>
+          <button type="button" id="captureMaintenanceBtn" class="mt-2 w-full rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 px-4 py-8 text-center hover:bg-gray-100 transition-colors focus:outline-none focus:ring-4 focus:ring-blue-200">
+            <div class="flex flex-col items-center justify-center gap-3">
+              <i class="fa-light fa-camera text-5xl text-blue-600"></i>
+              <div class="text-sm font-semibold text-gray-900" data-i18n="capture_photo">التقاط صورة</div>
+              <div class="text-xs text-gray-500" data-i18n="images_help">يسمح بصور JPEG أو PNG فقط.</div>
+            </div>
+          </button>
+          <input type="file" id="imagesInput" name="images" multiple accept="image/jpeg, image/png" capture="environment" class="hidden">
+          <div id="imagePreviewContainer" class="flex flex-wrap gap-2 mt-3"></div>
+        </div>
+
+        <div>
+          <div class="flex justify-between items-end">
+            <label class="block text-sm font-semibold text-gray-800" data-i18n="issue_details">تفاصيل العطل</label>
+            <span id="charCount" class="text-xs text-gray-500 font-mono">0/1000</span>
+          </div>
+          <textarea id="descriptionInput" name="description" rows="5" required minlength="20" maxlength="1000" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="..."></textarea>
+        </div>
+
+        <button id="maintenanceSubmitBtn" type="submit" class="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-200 transition-colors disabled:opacity-60 disabled:cursor-not-allowed" data-i18n="submit_request">إرسال الطلب</button>
+      </form>
+
+      <div id="successMessage" class="hidden flex-col items-center justify-center py-6 text-center">
+        <svg class="w-16 h-16 text-green-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <h3 class="text-xl font-bold text-gray-900 mb-2" id="successTitle">تم استلام الطلب</h3>
+        <p class="text-sm text-gray-600 mb-4" id="successText">تمت العملية بنجاح.</p>
+        <button onclick="resetForms()" class="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200" data-i18n="back">العودة</button>
+      </div>
+    </div>
+
+    <div class="mt-6 text-center text-xs text-gray-500" data-i18n="powered_by">
+      مشغل بواسطة CarFlow
+    </div>
+  </div>
+
+  <script>
+    const translations = {
+      ar: {
+        branch: "الفرع",
+        branch_report: "تقرير الفرع",
+        branch_report_sub: "رفع طلب صيانة خاص بالفرع",
+        branch_name: "اسم الفرع:",
+        upload_images: "رفع صور العطل (1 إلى 10 صور)",
+        capture_photo: "التقاط صورة",
+        images_help: "يسمح بصور JPEG أو PNG فقط.",
+        issue_details: "تفاصيل العطل",
+        submit_request: "إرسال الطلب",
+        powered_by: "مشغل بواسطة CarFlow",
+        lang_toggle: "English",
+        back: "العودة",
+        err_images_count: "الرجاء رفع بين 1 و 10 صور",
+        err_images_type: "يسمح فقط بصور JPEG أو PNG",
+        err_description_len: "تفاصيل العطل يجب أن تكون بين 20 و 1000 حرف",
+        err_generic: "حدث خطأ غير متوقع. الرجاء المحاولة مجدداً."
+      },
+      en: {
+        branch: "Branch",
+        branch_report: "Branch Report",
+        branch_report_sub: "Submit a branch maintenance request",
+        branch_name: "Branch:",
+        upload_images: "Upload Issue Images (1 to 10 images)",
+        capture_photo: "Capture Photo",
+        images_help: "Only JPEG or PNG images are allowed.",
+        issue_details: "Issue Details",
+        submit_request: "Submit Request",
+        powered_by: "Powered by CarFlow",
+        lang_toggle: "عربي",
+        back: "Go Back",
+        err_images_count: "Please upload between 1 and 10 images",
+        err_images_type: "Only JPEG or PNG images are allowed",
+        err_description_len: "Issue details must be between 20 and 1000 characters",
+        err_generic: "Unexpected error. Please try again."
+      }
+    };
+
+    let currentLang = "ar";
+    function applyTranslations(lang) {
+      document.documentElement.lang = lang;
+      document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
+      document.querySelectorAll("[data-i18n]").forEach(el => {
+        const key = el.getAttribute("data-i18n");
+        if (translations[lang] && translations[lang][key]) el.textContent = translations[lang][key];
+      });
+      document.getElementById("langToggle").textContent = translations[lang].lang_toggle;
+    }
+    document.getElementById("langToggle").addEventListener("click", () => {
+      currentLang = currentLang === "ar" ? "en" : "ar";
+      applyTranslations(currentLang);
+    });
+    applyTranslations(currentLang);
+
+    const imagesInput = document.getElementById("imagesInput");
+    const captureBtn = document.getElementById("captureMaintenanceBtn");
+    const imagePreviewContainer = document.getElementById("imagePreviewContainer");
+    const descriptionInput = document.getElementById("descriptionInput");
+    const charCount = document.getElementById("charCount");
+    const loadingOverlay = document.getElementById("loadingOverlay");
+    const maintenanceForm = document.getElementById("maintenanceForm");
+    const successMessage = document.getElementById("successMessage");
+    const successText = document.getElementById("successText");
+
+    captureBtn.addEventListener("click", () => imagesInput.click());
+    descriptionInput.addEventListener("input", () => {
+      charCount.textContent = `${descriptionInput.value.length}/1000`;
+    });
+
+    imagesInput.addEventListener("change", () => {
+      imagePreviewContainer.innerHTML = "";
+      const files = Array.from(imagesInput.files || []);
+      files.forEach(f => {
+        const img = document.createElement("img");
+        img.src = URL.createObjectURL(f);
+        imagePreviewContainer.appendChild(img);
+      });
+    });
+
+    function setLoading(isLoading) {
+      loadingOverlay.classList.toggle("hidden", !isLoading);
+      document.getElementById("maintenanceSubmitBtn").disabled = !!isLoading;
+    }
+
+    function showError(msgKey) {
+      alert((translations[currentLang] && translations[currentLang][msgKey]) || translations[currentLang].err_generic);
+    }
+
+    async function submitMaintenance(ev) {
+      ev.preventDefault();
+      const files = Array.from(imagesInput.files || []);
+      if (files.length < 1 || files.length > 10) { showError("err_images_count"); return; }
+      for (const f of files) {
+        const type = (f.type || "").toLowerCase();
+        if (type !== "image/jpeg" && type !== "image/png") { showError("err_images_type"); return; }
+      }
+      const desc = (descriptionInput.value || "").trim();
+      if (desc.length < 20 || desc.length > 1000) { showError("err_description_len"); return; }
+
+      const formData = new FormData();
+      formData.append("csrfmiddlewaretoken", document.querySelector('input[name="csrfmiddlewaretoken"]').value);
+      formData.append("description", desc);
+      for (const f of files) formData.append("images", f);
+
+      setLoading(true);
+      try {
+        const resp = await fetch("{% url 'api_qr_branch_maintenance' token=branch.qr_token %}", {
+          method: "POST",
+          body: formData,
+          credentials: "same-origin"
+        });
+        const payload = await resp.json().catch(() => ({}));
+        if (!resp.ok || !payload.success) {
+          alert(payload.error || translations[currentLang].err_generic);
+          return;
+        }
+        successText.textContent = (currentLang === "ar")
+          ? `رقم الطلب: #${payload.request_id}\nوقت الاستلام: ${payload.received_at}`
+          : `Request No: #${payload.request_id}\nReceived at: ${payload.received_at}`;
+        maintenanceForm.classList.add("hidden");
+        successMessage.classList.remove("hidden");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    function resetForms() {
+      imagesInput.value = "";
+      imagePreviewContainer.innerHTML = "";
+      descriptionInput.value = "";
+      charCount.textContent = "0/1000";
+      successMessage.classList.add("hidden");
+      maintenanceForm.classList.remove("hidden");
+    }
+  </script>
+</body>
+</html>
+

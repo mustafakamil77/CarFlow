@@ -1,5 +1,5 @@
-from django.views.generic import ListView, DetailView, TemplateView
-from .models import Car, CarDocument, CarCost, CarAssignment, CarEvent
+from django.views.generic import ListView, DetailView, TemplateView, View
+from .models import Branch, BranchDocument, Car, CarDocument, CarCost, CarAssignment, CarEvent, CarEventImage
 from django.views.generic.edit import FormView, CreateView, UpdateView
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect
@@ -12,6 +12,8 @@ from .forms import (
     CarForm,
     CarImageFormSet,
     CarDocumentForm,
+    BranchForm,
+    BranchDocumentForm,
     CarEventForm,
     CarCostForm,
     CarHandoverForm,
@@ -172,6 +174,107 @@ class CarListView(LoginRequiredMixin, ListView):
         return super().render_to_response(context, **response_kwargs)
 
 
+class BranchListView(LoginRequiredMixin, ListView):
+    model = Branch
+    paginate_by = 50
+    template_name = "fleet/branch_list.html"
+    context_object_name = "branches"
+
+    def get_queryset(self):
+        qs = (
+            Branch.objects.filter(is_active=True)
+            .select_related("region", "department", "manager", "manager__user")
+            .annotate(maintenance_count=Count("maintenance_requests"))
+            .order_by("name")
+        )
+        q = (self.request.GET.get("q") or "").strip()
+        region_ids = [v for v in self.request.GET.getlist("region") if str(v).strip()]
+        department_ids = [v for v in self.request.GET.getlist("department") if str(v).strip()]
+        features = {str(v).strip() for v in self.request.GET.getlist("feature") if str(v).strip()}
+
+        if q:
+            qs = qs.filter(
+                Q(name__icontains=q)
+                | Q(legal_name__icontains=q)
+                | Q(address__icontains=q)
+                | Q(contact_phone__icontains=q)
+                | Q(contact_email__icontains=q)
+                | Q(manager__first_name__icontains=q)
+                | Q(manager__last_name__icontains=q)
+                | Q(manager__user__username__icontains=q)
+                | Q(manager__user__first_name__icontains=q)
+                | Q(manager__user__last_name__icontains=q)
+            )
+
+        if region_ids:
+            qs = qs.filter(region_id__in=region_ids)
+
+        if department_ids:
+            qs = qs.filter(department_id__in=department_ids)
+
+        if "qr_enabled" in features:
+            qs = qs.filter(qr_enabled=True)
+
+        return qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["regions"] = Region.objects.all().order_by("name")
+        context["departments"] = Department.objects.filter(is_active=True).order_by("name_ar", "code")
+        context["selected_regions"] = set(self.request.GET.getlist("region"))
+        context["selected_departments"] = set(self.request.GET.getlist("department"))
+        context["selected_features"] = set(self.request.GET.getlist("feature"))
+        params = self.request.GET.copy()
+        params.pop("page", None)
+        context["qs_without_page"] = params.urlencode()
+        context["filtered_count"] = getattr(context.get("paginator"), "count", None)
+        return context
+
+    def render_to_response(self, context, **response_kwargs):
+        if (self.request.GET.get("ajax") or "").strip() == "1" or self.request.headers.get("x-requested-with") == "XMLHttpRequest":
+            from django.http import JsonResponse
+            from django.template.loader import render_to_string
+
+            html = render_to_string("fleet/_branch_list_results.html", context, request=self.request)
+            count = context.get("filtered_count")
+            if count is None:
+                try:
+                    count = context["paginator"].count
+                except Exception:
+                    count = 0
+            return JsonResponse({"count": int(count or 0), "html": html})
+        return super().render_to_response(context, **response_kwargs)
+
+
+class BranchDetailView(LoginRequiredMixin, DetailView):
+    model = Branch
+    template_name = "fleet/branch_detail.html"
+
+    def get_queryset(self):
+        return Branch.objects.select_related("region", "department", "manager", "manager__user").all()
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        branch = self.object
+        context["maintenance_count"] = branch.maintenance_requests.count()
+        today = timezone.localdate()
+        maintenance_items = []
+        for req in branch.maintenance_requests.order_by("-created_at")[:5]:
+            start_date = req.created_at.date()
+            end_date = req.updated_at.date() if req.status == "completed" else today
+            days = (end_date - start_date).days + 1
+            maintenance_items.append(
+                {
+                    "request": req,
+                    "days_in_maintenance": days,
+                    "created_date": req.created_at.date(),
+                }
+            )
+        context["maintenance_items"] = maintenance_items
+        context["documents"] = branch.documents.order_by("-created_at")
+        return context
+
+
 class CarDetailView(LoginRequiredMixin, DetailView):
     model = Car
     template_name = "fleet/car_detail.html"
@@ -261,7 +364,7 @@ class CarDetailView(LoginRequiredMixin, DetailView):
         accidents_qs = car.events.filter(event_type="accident").order_by("-created_at")
         context["accidents_count"] = accidents_qs.count()
         accidents_items = []
-        for ev in accidents_qs[:5]:
+        for ev in accidents_qs:
             try:
                 condition = ev.condition
             except Exception:
@@ -792,6 +895,120 @@ class CarDeleteView(ManagerRequiredMixin, TemplateView):
         return redirect("fleet:car_list")
 
 
+class BranchCreateView(ManagerRequiredMixin, CreateView):
+    model = Branch
+    form_class = BranchForm
+    template_name = "fleet/branch_form.html"
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.success(self.request, "Branch created successfully.")
+        return response
+
+    def get_success_url(self):
+        return reverse_lazy("fleet:branch_detail", kwargs={"pk": self.object.pk})
+
+
+class BranchUpdateView(ManagerRequiredMixin, UpdateView):
+    model = Branch
+    form_class = BranchForm
+    template_name = "fleet/branch_form.html"
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.success(self.request, "Branch updated successfully.")
+        return response
+
+    def get_success_url(self):
+        return reverse_lazy("fleet:branch_detail", kwargs={"pk": self.object.pk})
+
+
+class BranchDeleteView(ManagerRequiredMixin, TemplateView):
+    template_name = "fleet/branch_confirm_delete.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        self.branch = get_object_or_404(Branch, pk=kwargs["pk"])
+        return super().dispatch(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        self.branch.is_active = False
+        self.branch.save(update_fields=["is_active"])
+        messages.success(request, "Branch deleted (soft) successfully.")
+        return redirect("fleet:branch_list")
+
+
+class BranchDocumentCreateView(LoginRequiredMixin, FormView):
+    form_class = BranchDocumentForm
+    template_name = "fleet/branch_document_form.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        self.branch = get_object_or_404(Branch, pk=kwargs["pk"])
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["branch"] = self.branch
+        ctx["document"] = None
+        return ctx
+
+    def form_valid(self, form):
+        instance = form.save(commit=False)
+        instance.branch = self.branch
+        instance.save()
+        messages.success(self.request, "Branch document added successfully.")
+        return redirect("fleet:branch_detail", pk=self.branch.pk)
+
+
+class BranchDocumentDetailView(LoginRequiredMixin, TemplateView):
+    template_name = "fleet/branch_document_detail.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        self.branch = get_object_or_404(Branch, pk=kwargs["branch_pk"])
+        self.document = get_object_or_404(BranchDocument, pk=kwargs["doc_pk"], branch=self.branch)
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["branch"] = self.branch
+        ctx["document"] = self.document
+        return ctx
+
+
+class BranchDocumentUpdateView(LoginRequiredMixin, FormView):
+    form_class = BranchDocumentForm
+    template_name = "fleet/branch_document_form.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        self.branch = get_object_or_404(Branch, pk=kwargs["branch_pk"])
+        self.document = get_object_or_404(BranchDocument, pk=kwargs["doc_pk"], branch=self.branch)
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["instance"] = self.document
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["branch"] = self.branch
+        ctx["document"] = self.document
+        return ctx
+
+    def form_valid(self, form):
+        form.save()
+        messages.success(self.request, "Branch document updated successfully.")
+        return redirect("fleet:branch_detail", pk=self.branch.pk)
+
+
+class BranchDocumentDeleteView(LoginRequiredMixin, View):
+    def post(self, request, *args, **kwargs):
+        branch = get_object_or_404(Branch, pk=kwargs["branch_pk"])
+        document = get_object_or_404(BranchDocument, pk=kwargs["doc_pk"], branch=branch)
+        document.delete()
+        messages.success(request, "Branch document deleted successfully.")
+        return redirect("fleet:branch_detail", pk=branch.pk)
+
+
 class CarDocumentCreateView(LoginRequiredMixin, FormView):
     form_class = CarDocumentForm
     template_name = "fleet/car_document_form.html"
@@ -803,6 +1020,7 @@ class CarDocumentCreateView(LoginRequiredMixin, FormView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx["car"] = self.car
+        ctx["document"] = None
         return ctx
 
     def form_valid(self, form):
@@ -813,9 +1031,59 @@ class CarDocumentCreateView(LoginRequiredMixin, FormView):
         return redirect("fleet:car_detail", pk=self.car.pk)
 
 
+class CarDocumentDetailView(LoginRequiredMixin, TemplateView):
+    template_name = "fleet/car_document_detail.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        self.car = get_object_or_404(Car, pk=kwargs["car_pk"])
+        self.document = get_object_or_404(CarDocument, pk=kwargs["doc_pk"], car=self.car)
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["car"] = self.car
+        ctx["document"] = self.document
+        return ctx
+
+
+class CarDocumentUpdateView(LoginRequiredMixin, FormView):
+    form_class = CarDocumentForm
+    template_name = "fleet/car_document_form.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        self.car = get_object_or_404(Car, pk=kwargs["car_pk"])
+        self.document = get_object_or_404(CarDocument, pk=kwargs["doc_pk"], car=self.car)
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["instance"] = self.document
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["car"] = self.car
+        ctx["document"] = self.document
+        return ctx
+
+    def form_valid(self, form):
+        form.save()
+        messages.success(self.request, "Car document updated successfully.")
+        return redirect("fleet:car_detail", pk=self.car.pk)
+
+
+class CarDocumentDeleteView(LoginRequiredMixin, View):
+    def post(self, request, *args, **kwargs):
+        car = get_object_or_404(Car, pk=kwargs["car_pk"])
+        document = get_object_or_404(CarDocument, pk=kwargs["doc_pk"], car=car)
+        document.delete()
+        messages.success(request, "Car document deleted successfully.")
+        return redirect("fleet:car_detail", pk=car.pk)
+
+
+
 class CarEventCreateView(LoginRequiredMixin, FormView):
     form_class = CarEventForm
-    template_name = "fleet/car_event_form.html"
 
     def dispatch(self, request, *args, **kwargs):
         self.car = get_object_or_404(Car, pk=kwargs["pk"])
@@ -971,7 +1239,12 @@ class CarAccidentCreateView(LoginRequiredMixin, FormView):
         ctx["current_assignment"] = (
             self.car.assignments.select_related("driver__user").filter(end_date__isnull=True).order_by("-start_date").first()
         )
+        ctx["accident_event"] = None
+        ctx["accident_images"] = []
         return ctx
+
+    def get_initial(self):
+        return super().get_initial()
 
     def form_valid(self, form):
         try:
@@ -979,7 +1252,7 @@ class CarAccidentCreateView(LoginRequiredMixin, FormView):
                 car=self.car,
                 notes=form.cleaned_data.get("notes", ""),
                 liability_percent=form.cleaned_data.get("liability_percent"),
-                images=form.cleaned_data.get("images") or [],
+                images=form.cleaned_data.get("attachments") or [],
                 created_by=self.request.user if self.request.user.is_authenticated else None,
             )
         except Exception as e:
@@ -987,3 +1260,94 @@ class CarAccidentCreateView(LoginRequiredMixin, FormView):
             return self.form_invalid(form)
         messages.success(self.request, "Accident added successfully.")
         return redirect("fleet:car_detail", pk=self.car.pk)
+
+
+class CarAccidentDetailView(LoginRequiredMixin, TemplateView):
+    template_name = "fleet/accident_detail.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        self.car = get_object_or_404(Car, pk=kwargs["car_pk"])
+        self.event = get_object_or_404(CarEvent, pk=kwargs["event_pk"], car=self.car, event_type="accident")
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        try:
+            condition = self.event.condition
+        except Exception:
+            from .models import CarEventCondition
+            condition = CarEventCondition.objects.create(event=self.event)
+        ctx["car"] = self.car
+        ctx["accident_event"] = self.event
+        ctx["condition"] = condition
+        ctx["images"] = list(self.event.images.all().order_by("created_at"))
+        ctx["attachments"] = list(self.event.attachments.all().order_by("created_at"))
+        return ctx
+
+
+class CarAccidentUpdateView(LoginRequiredMixin, FormView):
+    form_class = CarAccidentForm
+    template_name = "fleet/car_accident_form.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        self.car = get_object_or_404(Car, pk=kwargs["car_pk"])
+        self.event = get_object_or_404(CarEvent, pk=kwargs["event_pk"], car=self.car, event_type="accident")
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["car"] = self.car
+        ctx["current_assignment"] = (
+            self.car.assignments.select_related("driver__user").filter(end_date__isnull=True).order_by("-start_date").first()
+        )
+        ctx["accident_event"] = self.event
+        ctx["accident_images"] = list(self.event.images.all().order_by("created_at"))
+        ctx["accident_attachments"] = list(self.event.attachments.all().order_by("created_at"))
+        return ctx
+
+    def get_initial(self):
+        initial = super().get_initial()
+        try:
+            condition = self.event.condition
+        except Exception:
+            condition = None
+        initial["notes"] = self.event.notes
+        initial["liability_percent"] = getattr(condition, "liability_percent", None)
+        return initial
+
+    def form_valid(self, form):
+        try:
+            condition = self.event.condition
+        except Exception:
+            from .models import CarEventCondition
+            condition = CarEventCondition.objects.create(event=self.event)
+
+        self.event.notes = form.cleaned_data.get("notes", "")
+        self.event.save(update_fields=["notes"])
+
+        condition.liability_percent = form.cleaned_data.get("liability_percent")
+        condition.save(update_fields=["liability_percent"])
+
+        uploads = form.cleaned_data.get("attachments") or []
+        for uploaded in uploads:
+            if not uploaded:
+                continue
+            name = (getattr(uploaded, "name", "") or "").lower()
+            content_type = (getattr(uploaded, "content_type", "") or "").lower()
+            if name.endswith(".pdf") or content_type == "application/pdf":
+                from .models import CarEventAttachment
+                CarEventAttachment.objects.create(event=self.event, file=uploaded)
+                continue
+            CarEventImage.objects.create(event=self.event, image=uploaded, caption="")
+
+        messages.success(self.request, "Accident updated successfully.")
+        return redirect("fleet:car_detail", pk=self.car.pk)
+
+
+class CarAccidentDeleteView(LoginRequiredMixin, View):
+    def post(self, request, *args, **kwargs):
+        car = get_object_or_404(Car, pk=kwargs["car_pk"])
+        event = get_object_or_404(CarEvent, pk=kwargs["event_pk"], car=car, event_type="accident")
+        event.delete()
+        messages.success(request, "Accident deleted successfully.")
+        return redirect("fleet:car_detail", pk=car.pk)

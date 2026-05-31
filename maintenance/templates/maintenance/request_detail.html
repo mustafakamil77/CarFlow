@@ -6,7 +6,15 @@
       <div>
         <h1 class="text-2xl font-bold text-gray-900">{{ object.title }}</h1>
         <div class="mt-1 text-sm text-gray-600">
-          <span class="font-medium">Car:</span> {{ object.car.plate_number }}
+          {% if object.car %}
+            <span class="font-medium">Car:</span>
+            <a class="text-blue-600 hover:underline" href="{% url 'fleet:car_detail' object.car.pk %}">{{ object.car.plate_number }}</a>
+          {% elif object.branch %}
+            <span class="font-medium">Branch:</span>
+            <a class="text-blue-600 hover:underline" href="{% url 'fleet:branch_detail' object.branch.pk %}">{{ object.branch.legal_name|default:object.branch.name }}</a>
+          {% else %}
+            <span class="font-medium">Target:</span> -
+          {% endif %}
         </div>
       </div>
       <div class="flex flex-wrap items-center gap-2 mt-4 sm:mt-0">

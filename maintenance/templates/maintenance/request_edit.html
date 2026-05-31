@@ -4,8 +4,16 @@
   <section class="max-w-2xl mx-auto bg-white rounded-lg shadow-sm border border-gray-200 p-8">
     <h1 class="text-xl font-bold text-gray-800 mb-6">Edit Maintenance Request</h1>
     <div class="mb-4 text-sm text-gray-600">
-      <span class="font-medium">Car:</span>
-      <span class="ml-1">{{ object.car.plate_number }} — {{ object.car.brand }} {{ object.car.vehicle_type }} ({{ object.car.year }})</span>
+      {% if object.car %}
+        <span class="font-medium">Car:</span>
+        <span class="ml-1">{{ object.car.plate_number }} — {{ object.car.brand }} {{ object.car.vehicle_type }} ({{ object.car.year }})</span>
+      {% elif object.branch %}
+        <span class="font-medium">Branch:</span>
+        <span class="ml-1">{{ object.branch.legal_name|default:object.branch.name }}</span>
+      {% else %}
+        <span class="font-medium">Target:</span>
+        <span class="ml-1">-</span>
+      {% endif %}
     </div>
     <form method="post">
       {% csrf_token %}

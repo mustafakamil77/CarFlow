@@ -6,11 +6,16 @@
     <p class="text-sm text-gray-700">
       Reopen request
       <span class="font-medium">#{{ object.pk }} — {{ object.title }}</span>
-      for car
-      <span class="font-medium">{{ object.car.plate_number }}</span>?
+      {% if object.car %}
+        for car <span class="font-medium">{{ object.car.plate_number }}</span>?
+      {% elif object.branch %}
+        for branch <span class="font-medium">{{ object.branch.legal_name|default:object.branch.name }}</span>?
+      {% else %}
+        ?
+      {% endif %}
     </p>
     <p class="text-sm text-gray-600 mt-2">
-      This will set status to In Progress and return the car status to Maintenance.
+      This will set status to In Progress.
     </p>
     <form method="post" class="mt-6 flex items-center justify-end gap-3">
       {% csrf_token %}
