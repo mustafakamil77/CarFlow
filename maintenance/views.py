@@ -168,9 +168,7 @@ class MaintenanceRequestListView(LoginRequiredMixin, ListView):
 
         requests_with_days = []
         for req in object_list:
-            start_date = req.created_at.date()
-            end_date = req.updated_at.date() if req.status == "completed" else timezone.localdate()
-            days_count = (end_date - start_date).days + 1
+            days_count = req.get_days_in_maintenance()
             assignment = assignment_by_car_id.get(req.car_id)
             driver = assignment.driver if assignment else None
 
@@ -344,9 +342,7 @@ class BranchMaintenanceRequestListView(LoginRequiredMixin, ListView):
         object_list = list(context["object_list"])
         requests_with_days = []
         for req in object_list:
-            start_date = req.created_at.date()
-            end_date = req.updated_at.date() if req.status == "completed" else timezone.localdate()
-            days_count = (end_date - start_date).days + 1
+            days_count = req.get_days_in_maintenance()
 
             if req.created_by:
                 requester_name = req.created_by.get_full_name() or req.created_by.get_username()
@@ -386,9 +382,7 @@ class MaintenanceRequestDetailView(LoginRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         req = self.object
-        start_date = req.created_at.date()
-        end_date = req.updated_at.date() if req.status == "completed" else timezone.localdate()
-        context["days_in_maintenance"] = (end_date - start_date).days + 1
+        context["days_in_maintenance"] = req.get_days_in_maintenance()
         return context
 
 
@@ -410,9 +404,7 @@ class MaintenanceRequestReportView(MaintenanceStaffRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         req = self.object
-        start_date = req.created_at.date()
-        end_date = req.completed_at.date() if req.status == "completed" and req.completed_at else timezone.localdate()
-        ctx["days_in_maintenance"] = (end_date - start_date).days + 1
+        ctx["days_in_maintenance"] = req.get_days_in_maintenance()
 
         from accounts.models import DriverAssignment
 

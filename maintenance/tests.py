@@ -68,3 +68,14 @@ class MaintenanceTimestampsEditTests(TestCase):
         self.req.refresh_from_db()
         self.assertEqual(self.req.status, "completed")
         self.assertEqual(self.req.completed_at.replace(second=0, microsecond=0), dt)
+
+    def test_days_in_maintenance_uses_completed_at_not_updated_at(self):
+        created_dt = timezone.make_aware(datetime(2026, 6, 1, 8, 0), timezone.get_current_timezone())
+        completed_dt = timezone.make_aware(datetime(2026, 6, 15, 14, 43), timezone.get_current_timezone())
+        MaintenanceRequest.objects.filter(pk=self.req.pk).update(
+            created_at=created_dt,
+            completed_at=completed_dt,
+            status="completed",
+        )
+        self.req.refresh_from_db()
+        self.assertEqual(self.req.get_days_in_maintenance(), 15)

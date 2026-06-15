@@ -1,4 +1,5 @@
 import json
+import os
 from io import BytesIO
 from datetime import datetime, timedelta
 from django.utils import timezone
@@ -14,8 +15,13 @@ from django.views.generic import TemplateView
 from django.views.generic.edit import FormView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from reportlab.lib.pagesizes import A4
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.utils import ImageReader
 from reportlab.pdfgen import canvas
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 
 from accounts.models import Region
 from fleet.models import Branch, Car, CarAssignment, CarEvent
@@ -101,6 +107,142 @@ def _build_monthly_mileage_report_context():
     }
 
 
+def _detect_maintenance_category(req):
+    text = f"{req.title or ''} {req.description or ''}".lower()
+    rules = [
+        ("oil", "Oil Change", ["oil", "زيت", "فلتر", "filter", "lubric"]),
+        ("brakes", "Brake Check", ["brake", "فرامل", "brakes", "هوبات", "pads"]),
+        ("engine", "Engine Check", ["engine", "محرك", "مكينة", "حرارة", "coolant"]),
+        ("repair", "Repair Work", ["repair", "اصلاح", "تصليح", "ورشة", "fix", "broken", "عطل"]),
+    ]
+    for key, label, keywords in rules:
+        if any(word in text for word in keywords):
+            return key, label
+    return "other", "General Maintenance"
+
+
+def _schedule_state_label(req):
+    state = req.get_schedule_state()
+    mapping = {
+        "completed": "Completed",
+        "in_progress": "In Progress",
+        "scheduled": "Scheduled",
+    }
+    return state, mapping.get(state, req.get_status_display())
+
+
+def _get_pdf_font_name():
+    candidates = [
+        r"C:\Windows\Fonts\arial.ttf",
+        r"C:\Windows\Fonts\Tahoma.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "/usr/share/fonts/truetype/liberation2/LiberationSans-Regular.ttf",
+    ]
+    for path in candidates:
+        try:
+            if os.path.exists(path):
+                font_name = f"carflow_pdf_{abs(hash(path))}"
+                if font_name not in pdfmetrics.getRegisteredFontNames():
+                    pdfmetrics.registerFont(TTFont(font_name, path))
+                return font_name
+        except Exception:
+            continue
+    return "Helvetica"
+
+
+def _build_car_maintenance_report_data(selected_car):
+    if not selected_car:
+        return {
+            "maintenance_rows": [],
+            "maintenance_count": 0,
+            "summary": {
+                "completed_count": 0,
+                "in_progress_count": 0,
+                "scheduled_count": 0,
+                "completion_rate": 0.0,
+                "total_images": 0,
+                "total_cost_entries": 0,
+                "total_cost_amount": 0.0,
+            },
+            "category_summary": [],
+        }
+
+    requests_qs = (
+        MaintenanceRequest.objects.filter(car=selected_car)
+        .select_related("created_by", "car", "car__region", "car__department")
+        .prefetch_related("images", "costs")
+        .order_by("-created_at")
+    )
+
+    rows = []
+    summary = {
+        "completed_count": 0,
+        "in_progress_count": 0,
+        "scheduled_count": 0,
+        "total_images": 0,
+        "total_cost_entries": 0,
+        "total_cost_amount": 0.0,
+    }
+    category_totals = {
+        "oil": {"label": "Oil Change", "count": 0},
+        "brakes": {"label": "Brake Check", "count": 0},
+        "engine": {"label": "Engine Check", "count": 0},
+        "repair": {"label": "Repair Work", "count": 0},
+        "other": {"label": "General Maintenance", "count": 0},
+    }
+
+    for req in requests_qs:
+        category_key, category_label = _detect_maintenance_category(req)
+        state_key, state_label = _schedule_state_label(req)
+        image_count = req.images.count()
+        costs = list(req.costs.all())
+        cost_amount = float(sum((c.amount or 0) for c in costs))
+        work_parts = []
+        for cost in costs[:3]:
+            piece = (cost.description or cost.get_category_display() or "").strip()
+            if piece:
+                work_parts.append(piece)
+        work_summary = " | ".join(work_parts) if work_parts else (req.description or "")
+
+        rows.append(
+            {
+                "request": req,
+                "days_in_maintenance": req.get_days_in_maintenance(),
+                "images_count": image_count,
+                "costs_count": len(costs),
+                "cost_amount": cost_amount,
+                "category_key": category_key,
+                "category_label": category_label,
+                "state_key": state_key,
+                "state_label": state_label,
+                "work_summary": work_summary,
+            }
+        )
+
+        if state_key == "completed":
+            summary["completed_count"] += 1
+        elif state_key == "in_progress":
+            summary["in_progress_count"] += 1
+        else:
+            summary["scheduled_count"] += 1
+
+        summary["total_images"] += image_count
+        summary["total_cost_entries"] += len(costs)
+        summary["total_cost_amount"] += cost_amount
+        category_totals[category_key]["count"] += 1
+
+    total = len(rows)
+    summary["completion_rate"] = round((summary["completed_count"] / total) * 100, 1) if total else 0.0
+    category_summary = [category_totals[key] for key in ["oil", "brakes", "engine", "repair", "other"]]
+
+    return {
+        "maintenance_rows": rows,
+        "maintenance_count": total,
+        "summary": summary,
+        "category_summary": category_summary,
+    }
+
+
 class DashboardView(TemplateView):
     template_name = "reports/dashboard.html"
 
@@ -137,31 +279,195 @@ class CarMaintenanceReportView(LoginRequiredMixin, TemplateView):
         form.fields["car"].queryset = car_qs
         ctx["form"] = form
         ctx["selected_car"] = selected_car
-
-        if selected_car:
-            requests_qs = (
-                MaintenanceRequest.objects.filter(car=selected_car)
-                .select_related("created_by", "car", "car__region", "car__department")
-                .prefetch_related("images", "costs")
-                .order_by("-created_at")
-            )
-            today = timezone.localdate()
-            for req in requests_qs:
-                start_date = req.created_at.date()
-                end_date = req.completed_at.date() if req.status == "completed" and req.completed_at else today
-                days = (end_date - start_date).days + 1
-                requests.append(
-                    {
-                        "request": req,
-                        "days_in_maintenance": days,
-                        "images_count": req.images.count(),
-                        "costs_count": req.costs.count(),
-                    }
-                )
-
-        ctx["maintenance_rows"] = requests
-        ctx["maintenance_count"] = len(requests)
+        ctx.update(_build_car_maintenance_report_data(selected_car))
         return ctx
+
+
+class CarMaintenanceReportPdfView(LoginRequiredMixin, TemplateView):
+    def get(self, request, *args, **kwargs):
+        car_qs = Car.objects.exclude(status="inactive").select_related("region", "department").order_by("plate_number")
+        car_param = (request.GET.get("car") or "").strip()
+        selected_car = car_qs.filter(pk=int(car_param)).first() if car_param.isdigit() else None
+        if not selected_car:
+            return redirect("reports:car_maintenance_report")
+
+        report_data = _build_car_maintenance_report_data(selected_car)
+        summary = report_data["summary"]
+        rows = report_data["maintenance_rows"]
+        category_summary = report_data["category_summary"]
+
+        response = HttpResponse(content_type="application/pdf")
+        filename = f'car_maintenance_history_{selected_car.plate_number}.pdf'
+        response["Content-Disposition"] = f'inline; filename="{filename}"'
+
+        buffer = BytesIO()
+        doc = SimpleDocTemplate(
+            buffer,
+            pagesize=A4,
+            leftMargin=28,
+            rightMargin=28,
+            topMargin=28,
+            bottomMargin=28,
+            title=f"Car Maintenance History - {selected_car.plate_number}",
+        )
+        font_name = _get_pdf_font_name()
+        styles = getSampleStyleSheet()
+        title_style = ParagraphStyle(
+            "CarFlowTitle",
+            parent=styles["Heading1"],
+            fontName=font_name,
+            fontSize=16,
+            leading=20,
+            textColor=colors.HexColor("#111827"),
+            spaceAfter=8,
+        )
+        heading_style = ParagraphStyle(
+            "CarFlowHeading",
+            parent=styles["Heading2"],
+            fontName=font_name,
+            fontSize=11,
+            leading=14,
+            textColor=colors.HexColor("#1f2937"),
+            spaceAfter=6,
+        )
+        body_style = ParagraphStyle(
+            "CarFlowBody",
+            parent=styles["BodyText"],
+            fontName=font_name,
+            fontSize=8.5,
+            leading=11,
+            textColor=colors.HexColor("#374151"),
+        )
+        small_style = ParagraphStyle(
+            "CarFlowSmall",
+            parent=body_style,
+            fontSize=7.5,
+            leading=10,
+        )
+
+        story = []
+        story.append(Paragraph("Car Maintenance History Summary", title_style))
+        story.append(Paragraph(f"Generated at: {timezone.localtime().strftime('%Y-%m-%d %H:%M')}", body_style))
+        story.append(Spacer(1, 10))
+
+        vehicle_info = Table(
+            [
+                ["Plate", selected_car.plate_number, "Vehicle", f"{selected_car.brand} {selected_car.get_vehicle_type_display() or selected_car.vehicle_type}"],
+                ["Year", str(selected_car.year or "-"), "Region", str(selected_car.region or "-")],
+                ["Department", str(selected_car.department or "-"), "Current Mileage", f"{int(selected_car.current_mileage or 0):,}"],
+            ],
+            colWidths=[60, 170, 80, 190],
+        )
+        vehicle_info.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, -1), colors.whitesmoke),
+                    ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#d1d5db")),
+                    ("FONTNAME", (0, 0), (-1, -1), font_name),
+                    ("FONTSIZE", (0, 0), (-1, -1), 8.5),
+                    ("TOPPADDING", (0, 0), (-1, -1), 6),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+                ]
+            )
+        )
+        story.append(vehicle_info)
+        story.append(Spacer(1, 12))
+
+        story.append(Paragraph("Maintenance KPI Summary", heading_style))
+        kpi_table = Table(
+            [
+                ["Total Requests", str(report_data["maintenance_count"]), "Completion Rate", f"{summary['completion_rate']}%"],
+                ["Completed", str(summary["completed_count"]), "In Progress", str(summary["in_progress_count"])],
+                ["Scheduled", str(summary["scheduled_count"]), "Attached Images", str(summary["total_images"])],
+                ["Cost Entries", str(summary["total_cost_entries"]), "Total Cost", f"{summary['total_cost_amount']:.2f}"],
+            ],
+            colWidths=[90, 120, 100, 190],
+        )
+        kpi_table.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#f9fafb")),
+                    ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#d1d5db")),
+                    ("FONTNAME", (0, 0), (-1, -1), font_name),
+                    ("FONTSIZE", (0, 0), (-1, -1), 8.5),
+                    ("TOPPADDING", (0, 0), (-1, -1), 6),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+                ]
+            )
+        )
+        story.append(kpi_table)
+        story.append(Spacer(1, 12))
+
+        story.append(Paragraph("Maintenance Category Summary", heading_style))
+        category_table_data = [["Category", "Requests"]]
+        for item in category_summary:
+            category_table_data.append([item["label"], str(item["count"])])
+        category_table = Table(category_table_data, colWidths=[220, 80])
+        category_table.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#e5e7eb")),
+                    ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#d1d5db")),
+                    ("FONTNAME", (0, 0), (-1, -1), font_name),
+                    ("FONTSIZE", (0, 0), (-1, -1), 8.5),
+                ]
+            )
+        )
+        story.append(category_table)
+        story.append(Spacer(1, 12))
+
+        story.append(Paragraph("Unified Maintenance Log", heading_style))
+        log_data = [[
+            "ID",
+            "Status",
+            "Category",
+            "Created",
+            "Completed",
+            "Days",
+            "Odometer",
+            "Work Summary",
+        ]]
+        for row in rows:
+            req = row["request"]
+            log_data.append(
+                [
+                    f"#{req.pk}",
+                    row["state_label"],
+                    row["category_label"],
+                    timezone.localtime(req.created_at).strftime("%Y-%m-%d %H:%M") if req.created_at else "-",
+                    timezone.localtime(req.get_effective_completed_at()).strftime("%Y-%m-%d %H:%M") if req.get_effective_completed_at() else "-",
+                    str(row["days_in_maintenance"]),
+                    f"{int(req.odometer or 0):,}",
+                    Paragraph((row["work_summary"] or "-").replace("\n", "<br/>"), small_style),
+                ]
+            )
+        log_table = Table(log_data, colWidths=[34, 58, 72, 70, 70, 35, 48, 140], repeatRows=1)
+        log_table.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#dbeafe")),
+                    ("GRID", (0, 0), (-1, -1), 0.35, colors.HexColor("#cbd5e1")),
+                    ("FONTNAME", (0, 0), (-1, -1), font_name),
+                    ("FONTSIZE", (0, 0), (-1, -1), 7.2),
+                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                    ("TOPPADDING", (0, 0), (-1, -1), 5),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+                ]
+            )
+        )
+        story.append(log_table)
+
+        def draw_page_header_footer(pdf_canvas, _doc):
+            pdf_canvas.saveState()
+            pdf_canvas.setFont(font_name, 8)
+            pdf_canvas.setFillColor(colors.HexColor("#6b7280"))
+            pdf_canvas.drawString(28, A4[1] - 18, f"CarFlow | Vehicle: {selected_car.plate_number}")
+            pdf_canvas.drawRightString(A4[0] - 28, 18, f"Page {_doc.page}")
+            pdf_canvas.restoreState()
+
+        doc.build(story, onFirstPage=draw_page_header_footer, onLaterPages=draw_page_header_footer)
+        response.write(buffer.getvalue())
+        return response
 
 
 class KPIPdfView(TemplateView):

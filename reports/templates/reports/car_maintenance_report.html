@@ -11,6 +11,7 @@
       <div class="flex items-center gap-2">
         {% if selected_car %}
           <a href="{% url 'fleet:car_detail' selected_car.pk %}" class="tap-target inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-800 hover:bg-gray-50">ملف السيارة</a>
+          <a href="{% url 'reports:car_maintenance_report_pdf' %}?car={{ selected_car.pk }}" target="_blank" rel="noopener" class="tap-target inline-flex items-center justify-center rounded-lg border border-blue-200 bg-white px-4 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50">PDF</a>
           <button type="button" onclick="window.print()" class="tap-target inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">طباعة</button>
         {% endif %}
       </div>
@@ -40,12 +41,48 @@
           <div class="mt-1 text-lg font-bold text-gray-900">{{ selected_car.brand }} {{ selected_car.get_vehicle_type_display|default:selected_car.vehicle_type }}</div>
         </div>
         <div class="rounded-xl border border-gray-200 bg-gray-50 p-4">
+          <div class="text-xs text-gray-500">الموديل / السنة</div>
+          <div class="mt-1 text-lg font-bold text-gray-900">{{ selected_car.year|default:"-" }}</div>
+        </div>
+        <div class="rounded-xl border border-gray-200 bg-gray-50 p-4">
           <div class="text-xs text-gray-500">المنطقة</div>
           <div class="mt-1 text-lg font-bold text-gray-900">{{ selected_car.region|default:"-" }}</div>
         </div>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
         <div class="rounded-xl border border-gray-200 bg-gray-50 p-4">
           <div class="text-xs text-gray-500">عدد عمليات الصيانة</div>
           <div class="mt-1 text-lg font-bold text-gray-900">{{ maintenance_count }}</div>
+        </div>
+        <div class="rounded-xl border border-gray-200 bg-green-50 p-4">
+          <div class="text-xs text-gray-500">مكتملة</div>
+          <div class="mt-1 text-lg font-bold text-green-700">{{ summary.completed_count }}</div>
+        </div>
+        <div class="rounded-xl border border-gray-200 bg-amber-50 p-4">
+          <div class="text-xs text-gray-500">قيد التنفيذ</div>
+          <div class="mt-1 text-lg font-bold text-amber-700">{{ summary.in_progress_count }}</div>
+        </div>
+        <div class="rounded-xl border border-gray-200 bg-blue-50 p-4">
+          <div class="text-xs text-gray-500">مجدولة</div>
+          <div class="mt-1 text-lg font-bold text-blue-700">{{ summary.scheduled_count }}</div>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
+        <div class="rounded-xl border border-gray-200 bg-indigo-50 p-4">
+          <div class="text-xs text-gray-500">نسبة الإنجاز الكلية</div>
+          <div class="mt-1 text-lg font-bold text-indigo-700">{{ summary.completion_rate }}%</div>
+        </div>
+        <div class="rounded-xl border border-gray-200 bg-gray-50 p-4">
+          <div class="text-xs text-gray-500">إجمالي الصور</div>
+          <div class="mt-1 text-lg font-bold text-gray-900">{{ summary.total_images }}</div>
+        </div>
+        <div class="rounded-xl border border-gray-200 bg-gray-50 p-4">
+          <div class="text-xs text-gray-500">قيود التكاليف</div>
+          <div class="mt-1 text-lg font-bold text-gray-900">{{ summary.total_cost_entries }}</div>
+        </div>
+        <div class="rounded-xl border border-gray-200 bg-gray-50 p-4">
+          <div class="text-xs text-gray-500">إجمالي التكلفة</div>
+          <div class="mt-1 text-lg font-bold text-gray-900">{{ summary.total_cost_amount|floatformat:2 }}</div>
         </div>
       </div>
     </section>
@@ -53,8 +90,25 @@
     <section class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-200">
       <div class="flex items-center justify-between gap-3 mb-4">
         <div>
-          <h2 class="text-lg font-semibold text-gray-900">كل عمليات الصيانة</h2>
-          <p class="mt-1 text-sm text-gray-500">يشمل جميع الطلبات المسجلة لهذه السيارة بدون اختصار.</p>
+          <h2 class="text-lg font-semibold text-gray-900">ملخص بنود الصيانة</h2>
+          <p class="mt-1 text-sm text-gray-500">تصنيف تلقائي لسجل الصيانة: زيوت، فرامل، محرك، تصليح، وأعمال عامة.</p>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
+        {% for item in category_summary %}
+          <div class="rounded-xl border border-gray-200 bg-gray-50 p-4">
+            <div class="text-xs text-gray-500">{{ item.label }}</div>
+            <div class="mt-1 text-lg font-bold text-gray-900">{{ item.count }}</div>
+          </div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-200">
+      <div class="flex items-center justify-between gap-3 mb-4">
+        <div>
+          <h2 class="text-lg font-semibold text-gray-900">السجل الموحد لجميع عمليات الصيانة</h2>
+          <p class="mt-1 text-sm text-gray-500">يتضمن الأعمال المنجزة والحالية والمجدولة مستقبلًا ضمن سجل واحد قابل للطباعة أو التصدير PDF.</p>
         </div>
       </div>
 
@@ -63,12 +117,14 @@
           <thead class="bg-gray-50">
             <tr>
               <th class="px-4 py-3">#</th>
+              <th class="px-4 py-3">تصنيف الصيانة</th>
               <th class="px-4 py-3">العنوان</th>
-              <th class="px-4 py-3">الحالة</th>
+              <th class="px-4 py-3">حالة المهمة</th>
               <th class="px-4 py-3">أنشئ في</th>
               <th class="px-4 py-3">اكتمل في</th>
               <th class="px-4 py-3">الأيام</th>
               <th class="px-4 py-3">العداد</th>
+              <th class="px-4 py-3">أعمال الصيانة</th>
               <th class="px-4 py-3">الصور</th>
               <th class="px-4 py-3">التكاليف</th>
               <th class="px-4 py-3">الوصف</th>
@@ -79,14 +135,16 @@
             {% for row in maintenance_rows %}
               <tr class="border-t align-top">
                 <td class="px-4 py-3 font-medium text-gray-900">#{{ row.request.pk }}</td>
+                <td class="px-4 py-3">{{ row.category_label }}</td>
                 <td class="px-4 py-3 text-gray-900">{{ row.request.title }}</td>
-                <td class="px-4 py-3">{{ row.request.get_status_display }}</td>
+                <td class="px-4 py-3">{{ row.state_label }}</td>
                 <td class="px-4 py-3 whitespace-nowrap">{{ row.request.created_at|date:"Y-m-d H:i" }}</td>
-                <td class="px-4 py-3 whitespace-nowrap">{{ row.request.completed_at|date:"Y-m-d H:i"|default:"-" }}</td>
+                <td class="px-4 py-3 whitespace-nowrap">{% if row.request.get_effective_completed_at %}{{ row.request.get_effective_completed_at|date:"Y-m-d H:i" }}{% else %}-{% endif %}</td>
                 <td class="px-4 py-3">{{ row.days_in_maintenance }}</td>
                 <td class="px-4 py-3">{{ row.request.odometer|default:0|intcomma }}</td>
+                <td class="px-4 py-3 whitespace-pre-line min-w-[16rem]">{{ row.work_summary|default:"-" }}</td>
                 <td class="px-4 py-3">{{ row.images_count }}</td>
-                <td class="px-4 py-3">{{ row.costs_count }}</td>
+                <td class="px-4 py-3">{{ row.costs_count }} / {{ row.cost_amount|floatformat:2 }}</td>
                 <td class="px-4 py-3 whitespace-pre-line min-w-[18rem]">{{ row.request.description|default:"-" }}</td>
                 <td class="px-4 py-3">
                   <div class="flex flex-wrap gap-2">
@@ -104,7 +162,7 @@
               {% endif %}
             {% empty %}
               <tr>
-                <td class="px-4 py-6 text-center text-gray-500" colspan="11">لا توجد عمليات صيانة لهذه السيارة.</td>
+                <td class="px-4 py-6 text-center text-gray-500" colspan="13">لا توجد عمليات صيانة لهذه السيارة.</td>
               </tr>
             {% endfor %}
           </tbody>
@@ -114,4 +172,3 @@
   {% endif %}
 </div>
 {% endblock %}
-

@@ -1,6 +1,7 @@
 from django.db import models
 from django.conf import settings
 from django.urls import reverse
+from django.utils import timezone
 from fleet.models import Car
 
 class MaintenanceRequest(models.Model):
@@ -94,6 +95,31 @@ class MaintenanceRequest(models.Model):
             return reverse("fleet:branch_detail", kwargs={"pk": self.branch_id})
         return ""
 
+    def get_effective_completed_at(self):
+        if self.status != "completed":
+            return None
+        return self.completed_at or self.updated_at or self.created_at
+
+    def get_days_in_maintenance(self):
+        if not self.created_at:
+            return 0
+        start_dt = timezone.localtime(self.created_at) if timezone.is_aware(self.created_at) else self.created_at
+        end_dt = self.get_effective_completed_at()
+        if end_dt:
+            end_dt = timezone.localtime(end_dt) if timezone.is_aware(end_dt) else end_dt
+            end_date = end_dt.date()
+        else:
+            end_date = timezone.localdate()
+        days = (end_date - start_dt.date()).days + 1
+        return max(days, 1)
+
+    def get_schedule_state(self):
+        if self.status == "completed":
+            return "completed"
+        if self.status == "in_progress":
+            return "in_progress"
+        return "scheduled"
+
 class MaintenanceCategory(models.Model):
     name = models.CharField(max_length=100, unique=True)
     description = models.TextField(blank=True)
@@ -107,7 +133,6 @@ class MaintenanceCategory(models.Model):
         return self.name
 
 import os
-from django.utils import timezone
 
 def maintenance_image_upload_path(instance, filename):
     timestamp = timezone.now().strftime("%Y%m%d_%H%M%S")

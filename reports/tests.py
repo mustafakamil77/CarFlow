@@ -412,6 +412,33 @@ class VehicleQRReportTests(TestCase):
         self.assertIn(req2.pk, request_ids)
         self.assertNotContains(response, "Other Car Service")
 
+    def test_car_maintenance_report_pdf_returns_pdf(self):
+        user = get_user_model().objects.create_user(username="car_report_pdf", password="x")
+        self.client.force_login(user)
+        car = Car.objects.create(
+            plate_number="CAR-PDF-01",
+            brand="Hyundai",
+            vehicle_type="Sedan",
+            year=2025,
+            vin="",
+            status="available",
+            qr_enabled=True,
+        )
+        MaintenanceRequest.objects.create(
+            car=car,
+            branch=None,
+            title="Engine Repair",
+            description="Engine service and repair details",
+            created_by=user,
+            status="completed",
+            odometer=5000,
+        )
+
+        response = self.client.get(reverse("reports:car_maintenance_report_pdf"), {"car": car.pk})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "application/pdf")
+        self.assertTrue(response.content.startswith(b"%PDF"))
+
     def test_reference_compression_4k_under_100kb_with_psnr(self):
         def psnr(a, b):
             a_bytes = a.tobytes()
