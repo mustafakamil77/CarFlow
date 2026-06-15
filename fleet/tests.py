@@ -262,3 +262,39 @@ class BranchViewsAndDocumentsTests(TestCase):
         )
         self.assertEqual(resp.status_code, 302)
         self.assertFalse(BranchDocument.objects.filter(pk=self.doc.pk).exists())
+
+
+class CarMaintenanceDisplayTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user(username="car_maint_user", password="password")
+        self.car = Car.objects.create(
+            plate_number="CAR-53",
+            brand="Toyota",
+            vehicle_type="Sedan",
+            year=2025,
+            vin="VIN-53",
+            status="available",
+            qr_enabled=True,
+        )
+
+    def test_car_detail_displays_all_maintenance_requests(self):
+        from maintenance.models import MaintenanceRequest
+
+        for i in range(6):
+            MaintenanceRequest.objects.create(
+                car=self.car,
+                branch=None,
+                title=f"Req {i}",
+                description=f"Description {i}",
+                created_by=self.user,
+                status="new",
+                odometer=i,
+            )
+
+        self.client.login(username="car_maint_user", password="password")
+        resp = self.client.get(reverse("fleet:car_detail", kwargs={"pk": self.car.pk}))
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(len(resp.context["maintenance_items"]), 6)
+        self.assertContains(resp, "Req 0")
+        self.assertContains(resp, "Req 5")

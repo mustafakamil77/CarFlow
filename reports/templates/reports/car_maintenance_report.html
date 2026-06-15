@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-6">
+  <section class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-200">
+    <div class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+      <div>
+        <h1 class="text-xl sm:text-2xl font-bold text-gray-900">تقرير عمليات صيانة السيارة</h1>
+        <p class="mt-1 text-sm text-gray-600">اختر السيارة لعرض جميع طلبات الصيانة الخاصة بها داخل تقرير واحد.</p>
+      </div>
+      <div class="flex items-center gap-2">
+        {% if selected_car %}
+          <a href="{% url 'fleet:car_detail' selected_car.pk %}" class="tap-target inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-800 hover:bg-gray-50">ملف السيارة</a>
+          <button type="button" onclick="window.print()" class="tap-target inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">طباعة</button>
+        {% endif %}
+      </div>
+    </div>
+
+    <form method="get" class="mt-5 grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3">
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-2">{{ form.car.label }}</label>
+        {{ form.car }}
+      </div>
+      <div class="flex items-end gap-2">
+        <button type="submit" class="tap-target inline-flex items-center justify-center rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700">عرض التقرير</button>
+        <a href="{% url 'reports:car_maintenance_report' %}" class="tap-target inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-5 py-2.5 text-sm font-semibold text-gray-800 hover:bg-gray-50">مسح</a>
+      </div>
+    </form>
+  </section>
+
+  {% if selected_car %}
+    <section class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-200">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="rounded-xl border border-gray-200 bg-gray-50 p-4">
+          <div class="text-xs text-gray-500">رقم اللوحة</div>
+          <div class="mt-1 text-lg font-bold text-gray-900">{{ selected_car.plate_number }}</div>
+        </div>
+        <div class="rounded-xl border border-gray-200 bg-gray-50 p-4">
+          <div class="text-xs text-gray-500">السيارة</div>
+          <div class="mt-1 text-lg font-bold text-gray-900">{{ selected_car.brand }} {{ selected_car.get_vehicle_type_display|default:selected_car.vehicle_type }}</div>
+        </div>
+        <div class="rounded-xl border border-gray-200 bg-gray-50 p-4">
+          <div class="text-xs text-gray-500">المنطقة</div>
+          <div class="mt-1 text-lg font-bold text-gray-900">{{ selected_car.region|default:"-" }}</div>
+        </div>
+        <div class="rounded-xl border border-gray-200 bg-gray-50 p-4">
+          <div class="text-xs text-gray-500">عدد عمليات الصيانة</div>
+          <div class="mt-1 text-lg font-bold text-gray-900">{{ maintenance_count }}</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-200">
+      <div class="flex items-center justify-between gap-3 mb-4">
+        <div>
+          <h2 class="text-lg font-semibold text-gray-900">كل عمليات الصيانة</h2>
+          <p class="mt-1 text-sm text-gray-500">يشمل جميع الطلبات المسجلة لهذه السيارة بدون اختصار.</p>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left text-gray-600">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-4 py-3">#</th>
+              <th class="px-4 py-3">العنوان</th>
+              <th class="px-4 py-3">الحالة</th>
+              <th class="px-4 py-3">أنشئ في</th>
+              <th class="px-4 py-3">اكتمل في</th>
+              <th class="px-4 py-3">الأيام</th>
+              <th class="px-4 py-3">العداد</th>
+              <th class="px-4 py-3">الصور</th>
+              <th class="px-4 py-3">التكاليف</th>
+              <th class="px-4 py-3">الوصف</th>
+              <th class="px-4 py-3">الإجراءات</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in maintenance_rows %}
+              <tr class="border-t align-top">
+                <td class="px-4 py-3 font-medium text-gray-900">#{{ row.request.pk }}</td>
+                <td class="px-4 py-3 text-gray-900">{{ row.request.title }}</td>
+                <td class="px-4 py-3">{{ row.request.get_status_display }}</td>
+                <td class="px-4 py-3 whitespace-nowrap">{{ row.request.created_at|date:"Y-m-d H:i" }}</td>
+                <td class="px-4 py-3 whitespace-nowrap">{{ row.request.completed_at|date:"Y-m-d H:i"|default:"-" }}</td>
+                <td class="px-4 py-3">{{ row.days_in_maintenance }}</td>
+                <td class="px-4 py-3">{{ row.request.odometer|default:0|intcomma }}</td>
+                <td class="px-4 py-3">{{ row.images_count }}</td>
+                <td class="px-4 py-3">{{ row.costs_count }}</td>
+                <td class="px-4 py-3 whitespace-pre-line min-w-[18rem]">{{ row.request.description|default:"-" }}</td>
+                <td class="px-4 py-3">
+                  <div class="flex flex-wrap gap-2">
+                    <a href="{% url 'maintenance:request_detail' row.request.pk %}" class="px-3 py-1.5 bg-white border border-gray-300 rounded text-xs text-gray-700 hover:bg-gray-50">عرض</a>
+                    <a href="{% url 'maintenance:request_report' row.request.pk %}" class="px-3 py-1.5 bg-blue-600 rounded text-xs text-white hover:bg-blue-700">تقرير</a>
+                  </div>
+                </td>
+              </tr>
+              {% if row.request.completion_comment %}
+                <tr class="border-t bg-gray-50">
+                  <td class="px-4 py-3"></td>
+                  <td class="px-4 py-3 text-xs text-gray-500 font-semibold">ملاحظة الإغلاق</td>
+                  <td class="px-4 py-3 text-sm text-gray-700 whitespace-pre-line" colspan="9">{{ row.request.completion_comment }}</td>
+                </tr>
+              {% endif %}
+            {% empty %}
+              <tr>
+                <td class="px-4 py-6 text-center text-gray-500" colspan="11">لا توجد عمليات صيانة لهذه السيارة.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  {% endif %}
+</div>
+{% endblock %}
+

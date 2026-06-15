@@ -353,6 +353,65 @@ class VehicleQRReportTests(TestCase):
         self.assertEqual(pdf_resp.status_code, 302)
         self.assertIn(reverse("reports:vehicles_qr_pdf"), pdf_resp["Location"])
 
+    def test_car_maintenance_report_filters_by_selected_car(self):
+        user = get_user_model().objects.create_user(username="car_report", password="x")
+        self.client.force_login(user)
+
+        target_car = Car.objects.create(
+            plate_number="CAR-R-01",
+            brand="Toyota",
+            vehicle_type="Sedan",
+            year=2025,
+            vin="",
+            status="available",
+            qr_enabled=True,
+        )
+        other_car = Car.objects.create(
+            plate_number="CAR-R-02",
+            brand="Nissan",
+            vehicle_type="Sedan",
+            year=2025,
+            vin="",
+            status="available",
+            qr_enabled=True,
+        )
+        req1 = MaintenanceRequest.objects.create(
+            car=target_car,
+            branch=None,
+            title="Oil Change",
+            description="Oil service",
+            created_by=user,
+            status="new",
+            odometer=1200,
+        )
+        req2 = MaintenanceRequest.objects.create(
+            car=target_car,
+            branch=None,
+            title="Brake Check",
+            description="Brake service",
+            created_by=user,
+            status="completed",
+            odometer=1500,
+        )
+        MaintenanceRequest.objects.create(
+            car=other_car,
+            branch=None,
+            title="Other Car Service",
+            description="Other car only",
+            created_by=user,
+            status="new",
+            odometer=900,
+        )
+
+        response = self.client.get(reverse("reports:car_maintenance_report"), {"car": target_car.pk})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["selected_car"], target_car)
+        self.assertEqual(response.context["maintenance_count"], 2)
+        request_ids = [row["request"].pk for row in response.context["maintenance_rows"]]
+        self.assertIn(req1.pk, request_ids)
+        self.assertIn(req2.pk, request_ids)
+        self.assertNotContains(response, "Other Car Service")
+
     def test_reference_compression_4k_under_100kb_with_psnr(self):
         def psnr(a, b):
             a_bytes = a.tobytes()

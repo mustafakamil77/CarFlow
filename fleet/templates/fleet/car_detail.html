@@ -276,6 +276,7 @@
         <h2 class="text-lg font-semibold">Maintenance Requests</h2>
         <div class="flex items-center gap-2">
           <span class="text-sm text-gray-500">Total: {{ maintenance_count }}</span>
+          <a href="{% url 'reports:car_maintenance_report' %}?car={{ object.pk }}" class="px-3 py-2 bg-white border border-gray-300 text-gray-700 rounded text-sm">Maintenance Report</a>
           <a href="{% url 'maintenance:request_create_for_car' object.pk %}" class="px-3 py-2 bg-blue-600 text-white rounded text-sm">Add Maintenance Request</a>
         </div>
       </div>

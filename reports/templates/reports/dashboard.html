@@ -67,6 +67,9 @@
       <p class="mt-1 text-sm text-gray-600" data-i18n="subtitle">Overview of vehicles, requests, fuel, and operations</p>
     </div>
     <div class="flex items-center gap-2">
+      <a href="{% url 'reports:car_maintenance_report' %}" title="تقرير صيانة سيارة" aria-label="تقرير صيانة سيارة" class="tap-target inline-flex items-center justify-center h-10 w-10 rounded-lg border border-gray-200 bg-white text-gray-800 shadow-sm hover:bg-gray-50">
+        <i class="fa-solid fa-file-lines"></i>
+      </a>
       <a href="{% url 'reports:mileage_monthly' %}" target="_blank" rel="noopener" title="تقرير إرسال العداد (هذا الشهر)" aria-label="تقرير إرسال العداد (هذا الشهر)" class="tap-target inline-flex items-center justify-center h-10 w-10 rounded-lg border border-gray-200 bg-white text-gray-800 shadow-sm hover:bg-gray-50">
         <i class="fa-solid fa-gauge-high"></i>
       </a>

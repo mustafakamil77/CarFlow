@@ -12,6 +12,7 @@ from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.views.generic import TemplateView
 from django.views.generic.edit import FormView
+from django.contrib.auth.mixins import LoginRequiredMixin
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.utils import ImageReader
 from reportlab.pdfgen import canvas
@@ -23,7 +24,7 @@ from maintenance.models import MaintenanceRequest
 from staff.models import Employee, LeaveRequest
 from django.contrib.auth import get_user_model
 
-from .forms import VehicleInspectionForm
+from .forms import CarMaintenanceReportForm, VehicleInspectionForm
 from .models import VehicleInspection
 from pending_requests.models import PendingMileageReport
 
@@ -116,6 +117,50 @@ class MileageMonthlyReportView(TemplateView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx.update(_build_monthly_mileage_report_context())
+        return ctx
+
+
+class CarMaintenanceReportView(LoginRequiredMixin, TemplateView):
+    template_name = "reports/car_maintenance_report.html"
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        car_qs = Car.objects.exclude(status="inactive").select_related("region", "department").order_by("plate_number")
+        selected_car = None
+        requests = []
+
+        car_param = (self.request.GET.get("car") or "").strip()
+        if car_param.isdigit():
+            selected_car = car_qs.filter(pk=int(car_param)).first()
+
+        form = CarMaintenanceReportForm(initial={"car": selected_car.pk if selected_car else None})
+        form.fields["car"].queryset = car_qs
+        ctx["form"] = form
+        ctx["selected_car"] = selected_car
+
+        if selected_car:
+            requests_qs = (
+                MaintenanceRequest.objects.filter(car=selected_car)
+                .select_related("created_by", "car", "car__region", "car__department")
+                .prefetch_related("images", "costs")
+                .order_by("-created_at")
+            )
+            today = timezone.localdate()
+            for req in requests_qs:
+                start_date = req.created_at.date()
+                end_date = req.completed_at.date() if req.status == "completed" and req.completed_at else today
+                days = (end_date - start_date).days + 1
+                requests.append(
+                    {
+                        "request": req,
+                        "days_in_maintenance": days,
+                        "images_count": req.images.count(),
+                        "costs_count": req.costs.count(),
+                    }
+                )
+
+        ctx["maintenance_rows"] = requests
+        ctx["maintenance_count"] = len(requests)
         return ctx
 
 

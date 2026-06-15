@@ -1,5 +1,7 @@
 from django import forms
 
+from fleet.models import Car
+
 from .models import VehicleInspection
 
 
@@ -67,3 +69,17 @@ class VehicleInspectionForm(forms.ModelForm):
 
     def clean_image_odometer(self):
         return self._validate_image(self.cleaned_data.get("image_odometer"))
+
+
+class CarMaintenanceReportForm(forms.Form):
+    car = forms.ModelChoiceField(
+        queryset=Car.objects.exclude(status="inactive").order_by("plate_number"),
+        required=False,
+        empty_label="اختر السيارة",
+        widget=forms.Select(
+            attrs={
+                "class": "w-full rounded-lg border-gray-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500",
+            }
+        ),
+        label="السيارة",
+    )

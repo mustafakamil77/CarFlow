@@ -295,7 +295,7 @@ class CarDetailView(LoginRequiredMixin, DetailView):
         context["maintenance_count"] = car.maintenance_requests.count()
         today = timezone.localdate()
         maintenance_items = []
-        for req in car.maintenance_requests.order_by("-created_at")[:5]:
+        for req in car.maintenance_requests.order_by("-created_at"):
             start_date = req.created_at.date()
             end_date = req.updated_at.date() if req.status == "completed" else today
             days = (end_date - start_date).days + 1

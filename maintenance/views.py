@@ -486,6 +486,14 @@ class MaintenanceRequestUpdateView(MaintenanceStaffRequiredMixin, UpdateView):
     form_class = MaintenanceRequestEditForm
     template_name = "maintenance/request_edit.html"
 
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        created_at = form.cleaned_data.get("created_at")
+        if created_at:
+            MaintenanceRequest.objects.filter(pk=self.object.pk).update(created_at=created_at)
+            self.object.created_at = created_at
+        return response
+
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx["images"] = self.object.images.all().order_by("-created_at")
@@ -538,6 +546,11 @@ class MaintenanceRequestCompleteView(MaintenanceStaffRequiredMixin, FormView):
         ctx["object"] = self.obj
         return ctx
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["request_obj"] = self.obj
+        return kwargs
+
     def get_initial(self):
         initial = super().get_initial()
         initial["completion_comment"] = self.obj.completion_comment
@@ -546,9 +559,12 @@ class MaintenanceRequestCompleteView(MaintenanceStaffRequiredMixin, FormView):
     def form_valid(self, form):
         req = self.obj
         req.completion_comment = form.cleaned_data.get("completion_comment", "")
+        completed_at = form.cleaned_data.get("completed_at")
         if req.status != "completed":
             req.status = "completed"
-            req.completed_at = timezone.now()
+            req.completed_at = completed_at or timezone.now()
+        elif completed_at:
+            req.completed_at = completed_at
         req.save(update_fields=["status", "completed_at", "completion_comment"])
 
         images = form.cleaned_data.get("images") or []
