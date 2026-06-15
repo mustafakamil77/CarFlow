@@ -257,12 +257,16 @@ class BranchDetailView(LoginRequiredMixin, DetailView):
         context = super().get_context_data(**kwargs)
         branch = self.object
         context["maintenance_count"] = branch.maintenance_requests.count()
+        today = timezone.localdate()
         maintenance_items = []
         for req in branch.maintenance_requests.order_by("-created_at")[:5]:
+            start_date = req.created_at.date()
+            end_date = req.updated_at.date() if req.status == "completed" else today
+            days = (end_date - start_date).days + 1
             maintenance_items.append(
                 {
                     "request": req,
-                    "days_in_maintenance": req.get_days_in_maintenance(),
+                    "days_in_maintenance": days,
                     "created_date": req.created_at.date(),
                 }
             )

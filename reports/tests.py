@@ -1,6 +1,7 @@
 import base64
 from io import BytesIO
 import math
+from unittest.mock import patch
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.contrib.auth import get_user_model
@@ -11,6 +12,15 @@ from accounts.models import Region
 from fleet.models import Branch, Car, CarEvent
 
 from .models import VehicleInspection
+from .views import (
+    ArabicPdfFontConfigurationError,
+    _canvas_rtl_text,
+    _get_pdf_font_family,
+    _rtl_col_widths,
+    _rtl_table_matrix,
+    _rtl_text,
+    ar,
+)
 from maintenance.models import MaintenanceRequest
 from pending_requests.models import PendingMaintenanceImage, PendingMaintenanceReport, PendingMileageReport
 from PIL import Image, ImageDraw
@@ -438,6 +448,92 @@ class VehicleQRReportTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response["Content-Type"], "application/pdf")
         self.assertTrue(response.content.startswith(b"%PDF"))
+
+    def test_arabic_pdf_font_family_registers_regular_bold_italic_variants(self):
+        fonts = _get_pdf_font_family()
+        self.assertEqual(fonts["family"], "carflow_pdf_noto_naskh_arabic_project")
+        self.assertIn("family", fonts)
+        self.assertIn("regular", fonts)
+        self.assertIn("bold", fonts)
+        self.assertIn("italic", fonts)
+        self.assertIn("boldItalic", fonts)
+        self.assertNotEqual(fonts["regular"], fonts["bold"])
+        self.assertNotEqual(fonts["regular"], fonts["italic"])
+
+    def test_ar_function_applies_reshaping_and_bidi(self):
+        value = "سجل صيانة السيارة CAR-53"
+        with patch("reports.views.arabic_reshaper.reshape", side_effect=lambda x: f"RESHAPED::{x}") as mock_reshape:
+            with patch("reports.views.get_display", side_effect=lambda x: f"BIDI::{x}") as mock_bidi:
+                result = ar(value)
+        self.assertEqual(result, "BIDI::RESHAPED::سجل صيانة السيارة CAR-53")
+        mock_reshape.assert_called_once_with(value)
+        mock_bidi.assert_called_once_with("RESHAPED::سجل صيانة السيارة CAR-53")
+
+    def test_all_pdf_text_helpers_use_arabic_shaping_pipeline(self):
+        with patch("reports.views.ar", side_effect=lambda x: f"AR::{x}") as mock_ar:
+            self.assertEqual(_rtl_text("الصفحة"), "AR::الصفحة")
+            self.assertEqual(_canvas_rtl_text("الصفحة"), "AR::الصفحة")
+            self.assertEqual(mock_ar.call_count, 2)
+
+    def test_rtl_table_helpers_reverse_columns_for_pdf_tables(self):
+        rows = [[1, 2, 3], ["a", "b", "c"]]
+        widths = [10, 20, 30]
+        self.assertEqual(_rtl_table_matrix(rows), [[3, 2, 1], ["c", "b", "a"]])
+        self.assertEqual(_rtl_col_widths(widths), [30, 20, 10])
+
+    def test_car_maintenance_report_pdf_supports_arabic_text_and_styles(self):
+        user = get_user_model().objects.create_user(username="car_report_pdf_ar", password="x")
+        self.client.force_login(user)
+        car = Car.objects.create(
+            plate_number="AR-100",
+            brand="هيونداي",
+            vehicle_type="Sedan",
+            year=2025,
+            vin="",
+            status="available",
+            qr_enabled=True,
+        )
+        MaintenanceRequest.objects.create(
+            car=car,
+            branch=None,
+            title="فحص المحرك",
+            description="هذا النص العربي يستخدم لاختبار النمط العادي والعريض والمائل داخل ملف PDF النهائي.",
+            created_by=user,
+            status="in_progress",
+            odometer=5500,
+        )
+
+        response = self.client.get(reverse("reports:car_maintenance_report_pdf"), {"car": car.pk})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "application/pdf")
+        self.assertTrue(response.content.startswith(b"%PDF"))
+
+    def test_car_maintenance_report_pdf_returns_clear_error_when_fonts_are_missing(self):
+        user = get_user_model().objects.create_user(username="car_report_pdf_err", password="x")
+        self.client.force_login(user)
+        car = Car.objects.create(
+            plate_number="AR-ERR",
+            brand="Kia",
+            vehicle_type="Sedan",
+            year=2025,
+            vin="",
+            status="available",
+            qr_enabled=True,
+        )
+        MaintenanceRequest.objects.create(
+            car=car,
+            branch=None,
+            title="تغيير الزيت",
+            description="اختبار غياب الخطوط",
+            created_by=user,
+            status="completed",
+            odometer=1000,
+        )
+
+        with patch("reports.views._get_pdf_font_family", side_effect=ArabicPdfFontConfigurationError("missing fonts")):
+            response = self.client.get(reverse("reports:car_maintenance_report_pdf"), {"car": car.pk})
+        self.assertEqual(response.status_code, 500)
+        self.assertContains(response, "الخطوط العربية غير مهيأة", status_code=500)
 
     def test_reference_compression_4k_under_100kb_with_psnr(self):
         def psnr(a, b):

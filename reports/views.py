@@ -1,5 +1,6 @@
 import json
 import os
+import logging
 from io import BytesIO
 from datetime import datetime, timedelta
 from django.utils import timezone
@@ -21,15 +22,10 @@ from reportlab.lib.utils import ImageReader
 from reportlab.pdfgen import canvas
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.pdfbase.pdfmetrics import registerFontFamily
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
-try:
-    import arabic_reshaper
-except Exception:
-    arabic_reshaper = None
-try:
-    from bidi.algorithm import get_display
-except Exception:
-    get_display = None
+import arabic_reshaper
+from bidi.algorithm import get_display
 
 from accounts.models import Region
 from fleet.models import Branch, Car, CarAssignment, CarEvent
@@ -41,6 +37,12 @@ from django.contrib.auth import get_user_model
 from .forms import CarMaintenanceReportForm, VehicleInspectionForm
 from .models import VehicleInspection
 from pending_requests.models import PendingMileageReport
+
+logger = logging.getLogger(__name__)
+
+
+class ArabicPdfFontConfigurationError(RuntimeError):
+    pass
 
 
 def _build_monthly_mileage_report_context():
@@ -139,40 +141,135 @@ def _schedule_state_label(req):
     return state, mapping.get(state, req.get_status_display())
 
 
-def _rtl_text(value):
-    text = "" if value is None else str(value)
+def ar(text):
+    text = "" if text is None else str(text)
     if not text:
         return ""
     if arabic_reshaper and get_display:
         try:
             return get_display(arabic_reshaper.reshape(text))
         except Exception:
+            logger.exception("Failed to reshape Arabic text for PDF rendering")
             return text
     return text
 
 
+def _rtl_text(value):
+    text = "" if value is None else str(value)
+    if not text:
+        return ""
+    return ar(text)
+
+
+def _canvas_rtl_text(value):
+    return ar(value)
+
+
 def _rtl_paragraph(value, style):
-    text = _rtl_text(value).replace("\n", "<br/>")
-    return Paragraph(text, style)
+    raw = "" if value is None else str(value)
+    if not raw:
+        return Paragraph("", style)
+    normalized = raw.replace("<br/>", "\n").replace("<br />", "\n")
+    shaped_lines = [ar(line) if line else "" for line in normalized.splitlines()]
+    return Paragraph("<br/>".join(shaped_lines), style)
 
 
-def _get_pdf_font_name():
+def _rtl_table_matrix(rows):
+    return [list(reversed(row)) for row in rows]
+
+
+def _rtl_col_widths(widths):
+    return list(reversed(widths))
+
+
+def _get_pdf_font_family():
+    project_fonts_dir = os.path.join(settings.BASE_DIR, "fonts")
     candidates = [
-        r"C:\Windows\Fonts\arial.ttf",
-        r"C:\Windows\Fonts\Tahoma.ttf",
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-        "/usr/share/fonts/truetype/liberation2/LiberationSans-Regular.ttf",
+        {
+            "family": "noto_naskh_arabic_project",
+            "regular": os.path.join(project_fonts_dir, "NotoNaskhArabic-Regular.ttf"),
+            "bold": os.path.join(project_fonts_dir, "NotoNaskhArabic-Bold.ttf"),
+            "italic": os.path.join(project_fonts_dir, "NotoNaskhArabic-Regular.ttf"),
+            "boldItalic": os.path.join(project_fonts_dir, "NotoNaskhArabic-Bold.ttf"),
+        },
+        {
+            "family": "tahoma",
+            "regular": r"C:\Windows\Fonts\tahoma.ttf",
+            "bold": r"C:\Windows\Fonts\tahomabd.ttf",
+            "italic": r"C:\Windows\Fonts\tahoma.ttf",
+            "boldItalic": r"C:\Windows\Fonts\tahomabd.ttf",
+        },
+        {
+            "family": "arial",
+            "regular": r"C:\Windows\Fonts\arial.ttf",
+            "bold": r"C:\Windows\Fonts\arialbd.ttf",
+            "italic": r"C:\Windows\Fonts\ariali.ttf",
+            "boldItalic": r"C:\Windows\Fonts\arialbi.ttf",
+        },
+        {
+            "family": "dejavu",
+            "regular": "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+            "bold": "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+            "italic": "/usr/share/fonts/truetype/dejavu/DejaVuSans-Oblique.ttf",
+            "boldItalic": "/usr/share/fonts/truetype/dejavu/DejaVuSans-BoldOblique.ttf",
+        },
+        {
+            "family": "liberation",
+            "regular": "/usr/share/fonts/truetype/liberation2/LiberationSans-Regular.ttf",
+            "bold": "/usr/share/fonts/truetype/liberation2/LiberationSans-Bold.ttf",
+            "italic": "/usr/share/fonts/truetype/liberation2/LiberationSans-Italic.ttf",
+            "boldItalic": "/usr/share/fonts/truetype/liberation2/LiberationSans-BoldItalic.ttf",
+        },
     ]
-    for path in candidates:
+
+    for family in candidates:
         try:
-            if os.path.exists(path):
-                font_name = f"carflow_pdf_{abs(hash(path))}"
+            regular_path = family["regular"]
+            bold_path = family["bold"]
+            italic_path = family["italic"]
+            bold_italic_path = family["boldItalic"]
+            if not all(os.path.exists(p) for p in [regular_path, bold_path, italic_path, bold_italic_path]):
+                continue
+
+            family_name = f"carflow_pdf_{family['family']}"
+            regular_name = f"{family_name}_regular"
+            bold_name = f"{family_name}_bold"
+            italic_name = f"{family_name}_italic"
+            bold_italic_name = f"{family_name}_bold_italic"
+
+            registrations = [
+                (regular_name, regular_path),
+                (bold_name, bold_path),
+                (italic_name, italic_path),
+                (bold_italic_name, bold_italic_path),
+            ]
+            for font_name, path in registrations:
                 if font_name not in pdfmetrics.getRegisteredFontNames():
                     pdfmetrics.registerFont(TTFont(font_name, path))
-                return font_name
+
+            registerFontFamily(
+                family_name,
+                normal=regular_name,
+                bold=bold_name,
+                italic=italic_name,
+                boldItalic=bold_italic_name,
+            )
+
+            return {
+                "family": family_name,
+                "regular": regular_name,
+                "bold": bold_name,
+                "italic": italic_name,
+                "boldItalic": bold_italic_name,
+            }
         except Exception:
+            logger.exception("Failed to register Arabic PDF font family", extra={"font_family": family.get("family")})
             continue
-    return "Helvetica"
+
+    logger.error("Arabic PDF fonts are not configured on this server; PDF generation was aborted.")
+    raise ArabicPdfFontConfigurationError(
+        "Arabic PDF fonts are not configured. Install an Arabic-capable font family with regular, bold, italic, and bold-italic variants."
+    )
 
 
 def _build_car_maintenance_report_data(selected_car):
@@ -313,191 +410,273 @@ class CarMaintenanceReportPdfView(LoginRequiredMixin, TemplateView):
         selected_car = car_qs.filter(pk=int(car_param)).first() if car_param.isdigit() else None
         if not selected_car:
             return redirect("reports:car_maintenance_report")
+        try:
+            report_data = _build_car_maintenance_report_data(selected_car)
+            summary = report_data["summary"]
+            rows = report_data["maintenance_rows"]
+            category_summary = report_data["category_summary"]
 
-        report_data = _build_car_maintenance_report_data(selected_car)
-        summary = report_data["summary"]
-        rows = report_data["maintenance_rows"]
-        category_summary = report_data["category_summary"]
+            response = HttpResponse(content_type="application/pdf")
+            filename = f'car_maintenance_history_{selected_car.plate_number}.pdf'
+            response["Content-Disposition"] = f'inline; filename="{filename}"'
 
-        response = HttpResponse(content_type="application/pdf")
-        filename = f'car_maintenance_history_{selected_car.plate_number}.pdf'
-        response["Content-Disposition"] = f'inline; filename="{filename}"'
-
-        buffer = BytesIO()
-        doc = SimpleDocTemplate(
-            buffer,
-            pagesize=A4,
-            leftMargin=28,
-            rightMargin=28,
-            topMargin=28,
-            bottomMargin=28,
-            title=f"سجل صيانة السيارة - {selected_car.plate_number}",
-        )
-        font_name = _get_pdf_font_name()
-        styles = getSampleStyleSheet()
-        title_style = ParagraphStyle(
-            "CarFlowTitle",
-            parent=styles["Heading1"],
-            fontName=font_name,
-            fontSize=16,
-            leading=20,
-            textColor=colors.HexColor("#111827"),
-            spaceAfter=8,
-            alignment=2,
-        )
-        heading_style = ParagraphStyle(
-            "CarFlowHeading",
-            parent=styles["Heading2"],
-            fontName=font_name,
-            fontSize=11,
-            leading=14,
-            textColor=colors.HexColor("#1f2937"),
-            spaceAfter=6,
-            alignment=2,
-        )
-        body_style = ParagraphStyle(
-            "CarFlowBody",
-            parent=styles["BodyText"],
-            fontName=font_name,
-            fontSize=8.5,
-            leading=11,
-            textColor=colors.HexColor("#374151"),
-            alignment=2,
-        )
-        small_style = ParagraphStyle(
-            "CarFlowSmall",
-            parent=body_style,
-            fontSize=7.5,
-            leading=10,
-        )
-
-        story = []
-        story.append(_rtl_paragraph("التقرير الشامل لسجل صيانة السيارة", title_style))
-        story.append(_rtl_paragraph(f"تاريخ إنشاء التقرير: {timezone.localtime().strftime('%Y-%m-%d %H:%M')}", body_style))
-        story.append(Spacer(1, 10))
-
-        vehicle_info = Table(
-            [
-                [_rtl_text("رقم اللوحة"), selected_car.plate_number, _rtl_text("السيارة"), _rtl_text(f"{selected_car.brand} {selected_car.get_vehicle_type_display() or selected_car.vehicle_type}")],
-                [_rtl_text("الموديل / السنة"), str(selected_car.year or "-"), _rtl_text("المنطقة"), _rtl_text(selected_car.region or "-")],
-                [_rtl_text("القسم"), _rtl_text(selected_car.department or "-"), _rtl_text("العداد الحالي"), f"{int(selected_car.current_mileage or 0):,}"],
-            ],
-            colWidths=[60, 170, 80, 190],
-        )
-        vehicle_info.setStyle(
-            TableStyle(
-                [
-                    ("BACKGROUND", (0, 0), (-1, -1), colors.whitesmoke),
-                    ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#d1d5db")),
-                    ("FONTNAME", (0, 0), (-1, -1), font_name),
-                    ("FONTSIZE", (0, 0), (-1, -1), 8.5),
-                    ("TOPPADDING", (0, 0), (-1, -1), 6),
-                    ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
-                    ("ALIGN", (0, 0), (-1, -1), "RIGHT"),
-                ]
+            buffer = BytesIO()
+            doc = SimpleDocTemplate(
+                buffer,
+                pagesize=A4,
+                leftMargin=28,
+                rightMargin=28,
+                topMargin=28,
+                bottomMargin=28,
+                title=f"سجل صيانة السيارة - {selected_car.plate_number}",
             )
-        )
-        story.append(vehicle_info)
-        story.append(Spacer(1, 12))
-
-        story.append(_rtl_paragraph("الملخص الإحصائي للصيانة", heading_style))
-        kpi_table = Table(
-            [
-                [_rtl_text("إجمالي الطلبات"), str(report_data["maintenance_count"]), _rtl_text("نسبة الإنجاز"), f"{summary['completion_rate']}%"],
-                [_rtl_text("مكتملة"), str(summary["completed_count"]), _rtl_text("قيد التنفيذ"), str(summary["in_progress_count"])],
-                [_rtl_text("مجدولة"), str(summary["scheduled_count"]), _rtl_text("إجمالي الصور"), str(summary["total_images"])],
-                [_rtl_text("قيود التكاليف"), str(summary["total_cost_entries"]), _rtl_text("إجمالي التكلفة"), f"{summary['total_cost_amount']:.2f}"],
-            ],
-            colWidths=[90, 120, 100, 190],
-        )
-        kpi_table.setStyle(
-            TableStyle(
-                [
-                    ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#f9fafb")),
-                    ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#d1d5db")),
-                    ("FONTNAME", (0, 0), (-1, -1), font_name),
-                    ("FONTSIZE", (0, 0), (-1, -1), 8.5),
-                    ("TOPPADDING", (0, 0), (-1, -1), 6),
-                    ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
-                    ("ALIGN", (0, 0), (-1, -1), "RIGHT"),
-                ]
+            font_family = _get_pdf_font_family()
+            styles = getSampleStyleSheet()
+            title_style = ParagraphStyle(
+                "CarFlowTitle",
+                parent=styles["Heading1"],
+                fontName=font_family["bold"],
+                fontSize=16,
+                leading=20,
+                textColor=colors.HexColor("#111827"),
+                spaceAfter=8,
+                alignment=2,
             )
-        )
-        story.append(kpi_table)
-        story.append(Spacer(1, 12))
-
-        story.append(_rtl_paragraph("ملخص بنود الصيانة", heading_style))
-        category_table_data = [[_rtl_text("البند"), _rtl_text("عدد الطلبات")]]
-        for item in category_summary:
-            category_table_data.append([_rtl_text(item["label"]), str(item["count"])])
-        category_table = Table(category_table_data, colWidths=[220, 80])
-        category_table.setStyle(
-            TableStyle(
-                [
-                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#e5e7eb")),
-                    ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#d1d5db")),
-                    ("FONTNAME", (0, 0), (-1, -1), font_name),
-                    ("FONTSIZE", (0, 0), (-1, -1), 8.5),
-                    ("ALIGN", (0, 0), (-1, -1), "RIGHT"),
-                ]
+            heading_style = ParagraphStyle(
+                "CarFlowHeading",
+                parent=styles["Heading2"],
+                fontName=font_family["bold"],
+                fontSize=11,
+                leading=14,
+                textColor=colors.HexColor("#1f2937"),
+                spaceAfter=6,
+                alignment=2,
             )
-        )
-        story.append(category_table)
-        story.append(Spacer(1, 12))
-
-        story.append(_rtl_paragraph("السجل الموحد لجميع عمليات الصيانة", heading_style))
-        log_data = [[
-            _rtl_text("الرقم"),
-            _rtl_text("الحالة"),
-            _rtl_text("التصنيف"),
-            _rtl_text("أنشئ في"),
-            _rtl_text("اكتمل في"),
-            _rtl_text("الأيام"),
-            _rtl_text("العداد"),
-            _rtl_text("أعمال الصيانة"),
-        ]]
-        for row in rows:
-            req = row["request"]
-            log_data.append(
-                [
-                    f"#{req.pk}",
-                    _rtl_text(row["state_label"]),
-                    _rtl_text(row["category_label"]),
-                    timezone.localtime(req.created_at).strftime("%Y-%m-%d %H:%M") if req.created_at else "-",
-                    timezone.localtime(req.get_effective_completed_at()).strftime("%Y-%m-%d %H:%M") if req.get_effective_completed_at() else "-",
-                    str(row["days_in_maintenance"]),
-                    f"{int(req.odometer or 0):,}",
-                    _rtl_paragraph(row["work_summary"] or "-", small_style),
-                ]
+            body_style = ParagraphStyle(
+                "CarFlowBody",
+                parent=styles["BodyText"],
+                fontName=font_family["regular"],
+                fontSize=8.5,
+                leading=11,
+                textColor=colors.HexColor("#374151"),
+                alignment=2,
             )
-        log_table = Table(log_data, colWidths=[34, 58, 72, 70, 70, 35, 48, 140], repeatRows=1)
-        log_table.setStyle(
-            TableStyle(
-                [
-                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#dbeafe")),
-                    ("GRID", (0, 0), (-1, -1), 0.35, colors.HexColor("#cbd5e1")),
-                    ("FONTNAME", (0, 0), (-1, -1), font_name),
-                    ("FONTSIZE", (0, 0), (-1, -1), 7.2),
-                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                    ("TOPPADDING", (0, 0), (-1, -1), 5),
-                    ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
-                    ("ALIGN", (0, 0), (-1, -1), "RIGHT"),
-                ]
+            small_style = ParagraphStyle(
+                "CarFlowSmall",
+                parent=body_style,
+                fontName=font_family["regular"],
+                fontSize=7.5,
+                leading=10,
             )
-        )
-        story.append(log_table)
+            italic_style = ParagraphStyle(
+                "CarFlowItalic",
+                parent=body_style,
+                fontName=font_family["italic"],
+                fontSize=8,
+                leading=10,
+                textColor=colors.HexColor("#4b5563"),
+            )
+            table_label_style = ParagraphStyle(
+                "CarFlowTableLabel",
+                parent=body_style,
+                fontName=font_family["bold"],
+                fontSize=8.2,
+                leading=10,
+                alignment=2,
+            )
+            table_value_style = ParagraphStyle(
+                "CarFlowTableValue",
+                parent=body_style,
+                fontName=font_family["regular"],
+                fontSize=8.2,
+                leading=10,
+                alignment=2,
+            )
+            table_header_style = ParagraphStyle(
+                "CarFlowTableHeader",
+                parent=body_style,
+                fontName=font_family["bold"],
+                fontSize=7.8,
+                leading=10,
+                alignment=2,
+            )
+            note_style = ParagraphStyle(
+                "CarFlowNote",
+                parent=body_style,
+                fontName=font_family["regular"],
+                fontSize=7.6,
+                leading=9.5,
+                alignment=2,
+            )
 
-        def draw_page_header_footer(pdf_canvas, _doc):
-            pdf_canvas.saveState()
-            pdf_canvas.setFont(font_name, 8)
-            pdf_canvas.setFillColor(colors.HexColor("#6b7280"))
-            pdf_canvas.drawString(28, A4[1] - 18, _rtl_text(f"CarFlow | السيارة: {selected_car.plate_number}"))
-            pdf_canvas.drawRightString(A4[0] - 28, 18, _rtl_text(f"الصفحة {_doc.page}"))
-            pdf_canvas.restoreState()
+            story = []
+            story.append(_rtl_paragraph("التقرير الشامل لسجل صيانة السيارة", title_style))
+            story.append(_rtl_paragraph(f"تاريخ إنشاء التقرير: {timezone.localtime().strftime('%Y-%m-%d %H:%M')}", body_style))
+            story.append(_rtl_paragraph("هذا التقرير يعرض السجل الموحد لجميع أعمال الصيانة المكتملة والحالية والمجدولة.", italic_style))
+            story.append(Spacer(1, 10))
 
-        doc.build(story, onFirstPage=draw_page_header_footer, onLaterPages=draw_page_header_footer)
-        response.write(buffer.getvalue())
-        return response
+            vehicle_info_rows = [
+                [
+                    _rtl_paragraph("رقم اللوحة", table_label_style),
+                    _rtl_paragraph(selected_car.plate_number, table_value_style),
+                    _rtl_paragraph("السيارة", table_label_style),
+                    _rtl_paragraph(f"{selected_car.brand} {selected_car.get_vehicle_type_display() or selected_car.vehicle_type}", table_value_style),
+                ],
+                [
+                    _rtl_paragraph("الموديل / السنة", table_label_style),
+                    _rtl_paragraph(str(selected_car.year or "-"), table_value_style),
+                    _rtl_paragraph("المنطقة", table_label_style),
+                    _rtl_paragraph(selected_car.region or "-", table_value_style),
+                ],
+                [
+                    _rtl_paragraph("القسم", table_label_style),
+                    _rtl_paragraph(selected_car.department or "-", table_value_style),
+                    _rtl_paragraph("العداد الحالي", table_label_style),
+                    _rtl_paragraph(f"{int(selected_car.current_mileage or 0):,}", table_value_style),
+                ],
+            ]
+            vehicle_info = Table(
+                _rtl_table_matrix(vehicle_info_rows),
+                colWidths=_rtl_col_widths([60, 170, 80, 190]),
+            )
+            vehicle_info.setStyle(
+                TableStyle(
+                    [
+                        ("BACKGROUND", (0, 0), (-1, -1), colors.whitesmoke),
+                        ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#d1d5db")),
+                        ("FONTNAME", (0, 0), (-1, -1), font_family["regular"]),
+                        ("FONTSIZE", (0, 0), (-1, -1), 8.5),
+                        ("TOPPADDING", (0, 0), (-1, -1), 6),
+                        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+                        ("ALIGN", (0, 0), (-1, -1), "RIGHT"),
+                    ]
+                )
+            )
+            story.append(vehicle_info)
+            story.append(Spacer(1, 12))
+
+            story.append(_rtl_paragraph("الملخص الإحصائي للصيانة", heading_style))
+            kpi_table_rows = [
+                [_rtl_paragraph("إجمالي الطلبات", table_label_style), _rtl_paragraph(str(report_data["maintenance_count"]), table_value_style), _rtl_paragraph("نسبة الإنجاز", table_label_style), _rtl_paragraph(f"{summary['completion_rate']}%", table_value_style)],
+                [_rtl_paragraph("مكتملة", table_label_style), _rtl_paragraph(str(summary["completed_count"]), table_value_style), _rtl_paragraph("قيد التنفيذ", table_label_style), _rtl_paragraph(str(summary["in_progress_count"]), table_value_style)],
+                [_rtl_paragraph("مجدولة", table_label_style), _rtl_paragraph(str(summary["scheduled_count"]), table_value_style), _rtl_paragraph("إجمالي الصور", table_label_style), _rtl_paragraph(str(summary["total_images"]), table_value_style)],
+                [_rtl_paragraph("قيود التكاليف", table_label_style), _rtl_paragraph(str(summary["total_cost_entries"]), table_value_style), _rtl_paragraph("إجمالي التكلفة", table_label_style), _rtl_paragraph(f"{summary['total_cost_amount']:.2f}", table_value_style)],
+            ]
+            kpi_table = Table(
+                _rtl_table_matrix(kpi_table_rows),
+                colWidths=_rtl_col_widths([90, 120, 100, 190]),
+            )
+            kpi_table.setStyle(
+                TableStyle(
+                    [
+                        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#f9fafb")),
+                        ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#d1d5db")),
+                        ("FONTNAME", (0, 0), (-1, -1), font_family["regular"]),
+                        ("FONTSIZE", (0, 0), (-1, -1), 8.5),
+                        ("TOPPADDING", (0, 0), (-1, -1), 6),
+                        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+                        ("ALIGN", (0, 0), (-1, -1), "RIGHT"),
+                    ]
+                )
+            )
+            story.append(kpi_table)
+            story.append(Spacer(1, 12))
+
+            story.append(_rtl_paragraph("ملخص بنود الصيانة", heading_style))
+            category_table_data = [[_rtl_paragraph("البند", table_header_style), _rtl_paragraph("عدد الطلبات", table_header_style)]]
+            for item in category_summary:
+                category_table_data.append([_rtl_paragraph(item["label"], table_value_style), _rtl_paragraph(str(item["count"]), table_value_style)])
+            category_table = Table(
+                _rtl_table_matrix(category_table_data),
+                colWidths=_rtl_col_widths([220, 80]),
+            )
+            category_table.setStyle(
+                TableStyle(
+                    [
+                        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#e5e7eb")),
+                        ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#d1d5db")),
+                        ("FONTNAME", (0, 0), (-1, -1), font_family["regular"]),
+                        ("FONTSIZE", (0, 0), (-1, -1), 8.5),
+                        ("ALIGN", (0, 0), (-1, -1), "RIGHT"),
+                    ]
+                )
+            )
+            story.append(category_table)
+            story.append(Spacer(1, 12))
+
+            story.append(_rtl_paragraph("السجل الموحد لجميع عمليات الصيانة", heading_style))
+            log_data = [[
+                _rtl_paragraph("الرقم", table_header_style),
+                _rtl_paragraph("الخدمة", table_header_style),
+                _rtl_paragraph("الحالة", table_header_style),
+                _rtl_paragraph("أنشئ في", table_header_style),
+                _rtl_paragraph("اكتمل في", table_header_style),
+                _rtl_paragraph("الأيام", table_header_style),
+                _rtl_paragraph("التكلفة", table_header_style),
+                _rtl_paragraph("ملاحظات الفنيين", table_header_style),
+            ]]
+            for row in rows:
+                req = row["request"]
+                technician_notes = req.completion_comment or req.description or "-"
+                service_name = f"{row['category_label']} - {req.title}" if req.title else row["category_label"]
+                log_data.append(
+                    [
+                        _rtl_paragraph(f"#{req.pk}", table_value_style),
+                        _rtl_paragraph(service_name, note_style),
+                        _rtl_paragraph(row["state_label"], table_value_style),
+                        _rtl_paragraph(timezone.localtime(req.created_at).strftime("%Y-%m-%d %H:%M") if req.created_at else "-", table_value_style),
+                        _rtl_paragraph(timezone.localtime(req.get_effective_completed_at()).strftime("%Y-%m-%d %H:%M") if req.get_effective_completed_at() else "-", table_value_style),
+                        _rtl_paragraph(str(row["days_in_maintenance"]), table_value_style),
+                        _rtl_paragraph(f"{row['cost_amount']:.2f}", table_value_style),
+                        _rtl_paragraph(f"الأعمال: {row['work_summary'] or '-'}<br/>الملاحظات: {technician_notes}", note_style),
+                    ]
+                )
+            log_table = Table(
+                _rtl_table_matrix(log_data),
+                colWidths=_rtl_col_widths([34, 110, 56, 66, 66, 34, 50, 134]),
+                repeatRows=1,
+            )
+            log_table.setStyle(
+                TableStyle(
+                    [
+                        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#dbeafe")),
+                        ("GRID", (0, 0), (-1, -1), 0.35, colors.HexColor("#cbd5e1")),
+                        ("FONTNAME", (0, 0), (-1, -1), font_family["regular"]),
+                        ("FONTSIZE", (0, 0), (-1, -1), 7.2),
+                        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                        ("TOPPADDING", (0, 0), (-1, -1), 5),
+                        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+                        ("ALIGN", (0, 0), (-1, -1), "RIGHT"),
+                    ]
+                )
+            )
+            story.append(log_table)
+
+            def draw_page_header_footer(pdf_canvas, _doc):
+                pdf_canvas.saveState()
+                pdf_canvas.setFont(font_family["regular"], 8)
+                pdf_canvas.setFillColor(colors.HexColor("#6b7280"))
+                pdf_canvas.drawRightString(A4[0] - 28, A4[1] - 18, _canvas_rtl_text(f"CarFlow | السيارة: {selected_car.plate_number}"))
+                pdf_canvas.drawRightString(A4[0] - 28, 18, _canvas_rtl_text(f"الصفحة {_doc.page}"))
+                pdf_canvas.restoreState()
+
+            doc.build(story, onFirstPage=draw_page_header_footer, onLaterPages=draw_page_header_footer)
+            response.write(buffer.getvalue())
+            return response
+        except ArabicPdfFontConfigurationError as exc:
+            logger.exception("Arabic PDF generation aborted due to font configuration issue", extra={"car_id": selected_car.pk})
+            return HttpResponse(
+                f"تعذر إنشاء ملف PDF بالعربية لأن الخطوط العربية غير مهيأة على الخادم.\n{exc}",
+                content_type="text/plain; charset=utf-8",
+                status=500,
+            )
+        except Exception:
+            logger.exception("Unexpected error while generating Arabic car maintenance PDF", extra={"car_id": selected_car.pk})
+            return HttpResponse(
+                "حدث خطأ غير متوقع أثناء إنشاء ملف PDF العربي. تم تسجيل الخطأ للمراجعة.",
+                content_type="text/plain; charset=utf-8",
+                status=500,
+            )
 
 
 class KPIPdfView(TemplateView):
