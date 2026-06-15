@@ -22,6 +22,14 @@ from reportlab.pdfgen import canvas
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+try:
+    import arabic_reshaper
+except Exception:
+    arabic_reshaper = None
+try:
+    from bidi.algorithm import get_display
+except Exception:
+    get_display = None
 
 from accounts.models import Region
 from fleet.models import Branch, Car, CarAssignment, CarEvent
@@ -110,25 +118,42 @@ def _build_monthly_mileage_report_context():
 def _detect_maintenance_category(req):
     text = f"{req.title or ''} {req.description or ''}".lower()
     rules = [
-        ("oil", "Oil Change", ["oil", "زيت", "فلتر", "filter", "lubric"]),
-        ("brakes", "Brake Check", ["brake", "فرامل", "brakes", "هوبات", "pads"]),
-        ("engine", "Engine Check", ["engine", "محرك", "مكينة", "حرارة", "coolant"]),
-        ("repair", "Repair Work", ["repair", "اصلاح", "تصليح", "ورشة", "fix", "broken", "عطل"]),
+        ("oil", "تغيير الزيت", ["oil", "زيت", "فلتر", "filter", "lubric"]),
+        ("brakes", "فحص الفرامل", ["brake", "فرامل", "brakes", "هوبات", "pads"]),
+        ("engine", "فحص المحرك", ["engine", "محرك", "مكينة", "حرارة", "coolant"]),
+        ("repair", "أعمال التصليح", ["repair", "اصلاح", "تصليح", "ورشة", "fix", "broken", "عطل"]),
     ]
     for key, label, keywords in rules:
         if any(word in text for word in keywords):
             return key, label
-    return "other", "General Maintenance"
+    return "other", "صيانة عامة"
 
 
 def _schedule_state_label(req):
     state = req.get_schedule_state()
     mapping = {
-        "completed": "Completed",
-        "in_progress": "In Progress",
-        "scheduled": "Scheduled",
+        "completed": "مكتملة",
+        "in_progress": "قيد التنفيذ",
+        "scheduled": "مجدولة",
     }
     return state, mapping.get(state, req.get_status_display())
+
+
+def _rtl_text(value):
+    text = "" if value is None else str(value)
+    if not text:
+        return ""
+    if arabic_reshaper and get_display:
+        try:
+            return get_display(arabic_reshaper.reshape(text))
+        except Exception:
+            return text
+    return text
+
+
+def _rtl_paragraph(value, style):
+    text = _rtl_text(value).replace("\n", "<br/>")
+    return Paragraph(text, style)
 
 
 def _get_pdf_font_name():
@@ -184,11 +209,11 @@ def _build_car_maintenance_report_data(selected_car):
         "total_cost_amount": 0.0,
     }
     category_totals = {
-        "oil": {"label": "Oil Change", "count": 0},
-        "brakes": {"label": "Brake Check", "count": 0},
-        "engine": {"label": "Engine Check", "count": 0},
-        "repair": {"label": "Repair Work", "count": 0},
-        "other": {"label": "General Maintenance", "count": 0},
+        "oil": {"label": "تغيير الزيت", "count": 0},
+        "brakes": {"label": "فحص الفرامل", "count": 0},
+        "engine": {"label": "فحص المحرك", "count": 0},
+        "repair": {"label": "أعمال التصليح", "count": 0},
+        "other": {"label": "صيانة عامة", "count": 0},
     }
 
     for req in requests_qs:
@@ -269,8 +294,6 @@ class CarMaintenanceReportView(LoginRequiredMixin, TemplateView):
         ctx = super().get_context_data(**kwargs)
         car_qs = Car.objects.exclude(status="inactive").select_related("region", "department").order_by("plate_number")
         selected_car = None
-        requests = []
-
         car_param = (self.request.GET.get("car") or "").strip()
         if car_param.isdigit():
             selected_car = car_qs.filter(pk=int(car_param)).first()
@@ -308,7 +331,7 @@ class CarMaintenanceReportPdfView(LoginRequiredMixin, TemplateView):
             rightMargin=28,
             topMargin=28,
             bottomMargin=28,
-            title=f"Car Maintenance History - {selected_car.plate_number}",
+            title=f"سجل صيانة السيارة - {selected_car.plate_number}",
         )
         font_name = _get_pdf_font_name()
         styles = getSampleStyleSheet()
@@ -320,6 +343,7 @@ class CarMaintenanceReportPdfView(LoginRequiredMixin, TemplateView):
             leading=20,
             textColor=colors.HexColor("#111827"),
             spaceAfter=8,
+            alignment=2,
         )
         heading_style = ParagraphStyle(
             "CarFlowHeading",
@@ -329,6 +353,7 @@ class CarMaintenanceReportPdfView(LoginRequiredMixin, TemplateView):
             leading=14,
             textColor=colors.HexColor("#1f2937"),
             spaceAfter=6,
+            alignment=2,
         )
         body_style = ParagraphStyle(
             "CarFlowBody",
@@ -337,6 +362,7 @@ class CarMaintenanceReportPdfView(LoginRequiredMixin, TemplateView):
             fontSize=8.5,
             leading=11,
             textColor=colors.HexColor("#374151"),
+            alignment=2,
         )
         small_style = ParagraphStyle(
             "CarFlowSmall",
@@ -346,15 +372,15 @@ class CarMaintenanceReportPdfView(LoginRequiredMixin, TemplateView):
         )
 
         story = []
-        story.append(Paragraph("Car Maintenance History Summary", title_style))
-        story.append(Paragraph(f"Generated at: {timezone.localtime().strftime('%Y-%m-%d %H:%M')}", body_style))
+        story.append(_rtl_paragraph("التقرير الشامل لسجل صيانة السيارة", title_style))
+        story.append(_rtl_paragraph(f"تاريخ إنشاء التقرير: {timezone.localtime().strftime('%Y-%m-%d %H:%M')}", body_style))
         story.append(Spacer(1, 10))
 
         vehicle_info = Table(
             [
-                ["Plate", selected_car.plate_number, "Vehicle", f"{selected_car.brand} {selected_car.get_vehicle_type_display() or selected_car.vehicle_type}"],
-                ["Year", str(selected_car.year or "-"), "Region", str(selected_car.region or "-")],
-                ["Department", str(selected_car.department or "-"), "Current Mileage", f"{int(selected_car.current_mileage or 0):,}"],
+                [_rtl_text("رقم اللوحة"), selected_car.plate_number, _rtl_text("السيارة"), _rtl_text(f"{selected_car.brand} {selected_car.get_vehicle_type_display() or selected_car.vehicle_type}")],
+                [_rtl_text("الموديل / السنة"), str(selected_car.year or "-"), _rtl_text("المنطقة"), _rtl_text(selected_car.region or "-")],
+                [_rtl_text("القسم"), _rtl_text(selected_car.department or "-"), _rtl_text("العداد الحالي"), f"{int(selected_car.current_mileage or 0):,}"],
             ],
             colWidths=[60, 170, 80, 190],
         )
@@ -367,19 +393,20 @@ class CarMaintenanceReportPdfView(LoginRequiredMixin, TemplateView):
                     ("FONTSIZE", (0, 0), (-1, -1), 8.5),
                     ("TOPPADDING", (0, 0), (-1, -1), 6),
                     ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+                    ("ALIGN", (0, 0), (-1, -1), "RIGHT"),
                 ]
             )
         )
         story.append(vehicle_info)
         story.append(Spacer(1, 12))
 
-        story.append(Paragraph("Maintenance KPI Summary", heading_style))
+        story.append(_rtl_paragraph("الملخص الإحصائي للصيانة", heading_style))
         kpi_table = Table(
             [
-                ["Total Requests", str(report_data["maintenance_count"]), "Completion Rate", f"{summary['completion_rate']}%"],
-                ["Completed", str(summary["completed_count"]), "In Progress", str(summary["in_progress_count"])],
-                ["Scheduled", str(summary["scheduled_count"]), "Attached Images", str(summary["total_images"])],
-                ["Cost Entries", str(summary["total_cost_entries"]), "Total Cost", f"{summary['total_cost_amount']:.2f}"],
+                [_rtl_text("إجمالي الطلبات"), str(report_data["maintenance_count"]), _rtl_text("نسبة الإنجاز"), f"{summary['completion_rate']}%"],
+                [_rtl_text("مكتملة"), str(summary["completed_count"]), _rtl_text("قيد التنفيذ"), str(summary["in_progress_count"])],
+                [_rtl_text("مجدولة"), str(summary["scheduled_count"]), _rtl_text("إجمالي الصور"), str(summary["total_images"])],
+                [_rtl_text("قيود التكاليف"), str(summary["total_cost_entries"]), _rtl_text("إجمالي التكلفة"), f"{summary['total_cost_amount']:.2f}"],
             ],
             colWidths=[90, 120, 100, 190],
         )
@@ -392,16 +419,17 @@ class CarMaintenanceReportPdfView(LoginRequiredMixin, TemplateView):
                     ("FONTSIZE", (0, 0), (-1, -1), 8.5),
                     ("TOPPADDING", (0, 0), (-1, -1), 6),
                     ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+                    ("ALIGN", (0, 0), (-1, -1), "RIGHT"),
                 ]
             )
         )
         story.append(kpi_table)
         story.append(Spacer(1, 12))
 
-        story.append(Paragraph("Maintenance Category Summary", heading_style))
-        category_table_data = [["Category", "Requests"]]
+        story.append(_rtl_paragraph("ملخص بنود الصيانة", heading_style))
+        category_table_data = [[_rtl_text("البند"), _rtl_text("عدد الطلبات")]]
         for item in category_summary:
-            category_table_data.append([item["label"], str(item["count"])])
+            category_table_data.append([_rtl_text(item["label"]), str(item["count"])])
         category_table = Table(category_table_data, colWidths=[220, 80])
         category_table.setStyle(
             TableStyle(
@@ -410,35 +438,36 @@ class CarMaintenanceReportPdfView(LoginRequiredMixin, TemplateView):
                     ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#d1d5db")),
                     ("FONTNAME", (0, 0), (-1, -1), font_name),
                     ("FONTSIZE", (0, 0), (-1, -1), 8.5),
+                    ("ALIGN", (0, 0), (-1, -1), "RIGHT"),
                 ]
             )
         )
         story.append(category_table)
         story.append(Spacer(1, 12))
 
-        story.append(Paragraph("Unified Maintenance Log", heading_style))
+        story.append(_rtl_paragraph("السجل الموحد لجميع عمليات الصيانة", heading_style))
         log_data = [[
-            "ID",
-            "Status",
-            "Category",
-            "Created",
-            "Completed",
-            "Days",
-            "Odometer",
-            "Work Summary",
+            _rtl_text("الرقم"),
+            _rtl_text("الحالة"),
+            _rtl_text("التصنيف"),
+            _rtl_text("أنشئ في"),
+            _rtl_text("اكتمل في"),
+            _rtl_text("الأيام"),
+            _rtl_text("العداد"),
+            _rtl_text("أعمال الصيانة"),
         ]]
         for row in rows:
             req = row["request"]
             log_data.append(
                 [
                     f"#{req.pk}",
-                    row["state_label"],
-                    row["category_label"],
+                    _rtl_text(row["state_label"]),
+                    _rtl_text(row["category_label"]),
                     timezone.localtime(req.created_at).strftime("%Y-%m-%d %H:%M") if req.created_at else "-",
                     timezone.localtime(req.get_effective_completed_at()).strftime("%Y-%m-%d %H:%M") if req.get_effective_completed_at() else "-",
                     str(row["days_in_maintenance"]),
                     f"{int(req.odometer or 0):,}",
-                    Paragraph((row["work_summary"] or "-").replace("\n", "<br/>"), small_style),
+                    _rtl_paragraph(row["work_summary"] or "-", small_style),
                 ]
             )
         log_table = Table(log_data, colWidths=[34, 58, 72, 70, 70, 35, 48, 140], repeatRows=1)
@@ -452,6 +481,7 @@ class CarMaintenanceReportPdfView(LoginRequiredMixin, TemplateView):
                     ("VALIGN", (0, 0), (-1, -1), "TOP"),
                     ("TOPPADDING", (0, 0), (-1, -1), 5),
                     ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+                    ("ALIGN", (0, 0), (-1, -1), "RIGHT"),
                 ]
             )
         )
@@ -461,8 +491,8 @@ class CarMaintenanceReportPdfView(LoginRequiredMixin, TemplateView):
             pdf_canvas.saveState()
             pdf_canvas.setFont(font_name, 8)
             pdf_canvas.setFillColor(colors.HexColor("#6b7280"))
-            pdf_canvas.drawString(28, A4[1] - 18, f"CarFlow | Vehicle: {selected_car.plate_number}")
-            pdf_canvas.drawRightString(A4[0] - 28, 18, f"Page {_doc.page}")
+            pdf_canvas.drawString(28, A4[1] - 18, _rtl_text(f"CarFlow | السيارة: {selected_car.plate_number}"))
+            pdf_canvas.drawRightString(A4[0] - 28, 18, _rtl_text(f"الصفحة {_doc.page}"))
             pdf_canvas.restoreState()
 
         doc.build(story, onFirstPage=draw_page_header_footer, onLaterPages=draw_page_header_footer)
