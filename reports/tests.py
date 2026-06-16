@@ -17,6 +17,7 @@ from .views import (
     _canvas_rtl_text,
     _get_pdf_font_family,
     _rtl_col_widths,
+    _wrap_rtl_text_lines,
     _rtl_table_matrix,
     _rtl_text,
     ar,
@@ -503,6 +504,21 @@ class VehicleQRReportTests(TestCase):
         widths = [10, 20, 30]
         self.assertEqual(_rtl_table_matrix(rows), [[3, 2, 1], ["c", "b", "a"]])
         self.assertEqual(_rtl_col_widths(widths), [30, 20, 10])
+
+    def test_wrap_rtl_text_lines_preserves_word_order_before_pdf_line_breaks(self):
+        class DummyStyle:
+            fontName = "Helvetica"
+            fontSize = 10
+
+        text = "السياره يوجد فيها ريحه شياط وبطلت وما دارت"
+        with patch("reports.views.ar", side_effect=lambda x: x):
+            with patch("reports.views.pdfmetrics.stringWidth", side_effect=lambda text, *_: len(text) * 5):
+                lines = _wrap_rtl_text_lines(text, DummyStyle(), max_width=70)
+
+        self.assertGreater(len(lines), 1)
+        self.assertEqual(lines[0], "السياره يوجد")
+        self.assertEqual(" ".join(lines), text)
+        self.assertTrue(lines[-1].endswith("وما دارت"))
 
     def test_car_maintenance_report_pdf_supports_arabic_text_and_styles(self):
         user = get_user_model().objects.create_user(username="car_report_pdf_ar", password="x")

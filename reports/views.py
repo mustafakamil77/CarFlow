@@ -12,6 +12,7 @@ from django.db.models.functions import TruncDate, TruncMonth
 from django.http import HttpResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
+from django.utils.html import escape
 from django.views.generic import TemplateView
 from django.views.generic.edit import FormView
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -165,13 +166,46 @@ def _canvas_rtl_text(value):
     return ar(value)
 
 
-def _rtl_paragraph(value, style):
+def _wrap_rtl_text_lines(value, style, max_width):
+    raw = "" if value is None else str(value)
+    normalized = raw.replace("<br/>", "\n").replace("<br />", "\n")
+    if not normalized:
+        return []
+
+    wrapped_lines = []
+    for block in normalized.splitlines():
+        stripped = block.strip()
+        if not stripped:
+            wrapped_lines.append("")
+            continue
+
+        words = stripped.split()
+        current_words = []
+        for word in words:
+            candidate = " ".join(current_words + [word]) if current_words else word
+            candidate_width = pdfmetrics.stringWidth(ar(candidate), style.fontName, style.fontSize)
+            if current_words and candidate_width > max_width:
+                wrapped_lines.append(ar(" ".join(current_words)))
+                current_words = [word]
+            else:
+                current_words.append(word)
+
+        if current_words:
+            wrapped_lines.append(ar(" ".join(current_words)))
+
+    return wrapped_lines
+
+
+def _rtl_paragraph(value, style, max_width=None):
     raw = "" if value is None else str(value)
     if not raw:
         return Paragraph("", style)
-    normalized = raw.replace("<br/>", "\n").replace("<br />", "\n")
-    shaped_lines = [ar(line) if line else "" for line in normalized.splitlines()]
-    return Paragraph("<br/>".join(shaped_lines), style)
+    if max_width:
+        shaped_lines = _wrap_rtl_text_lines(raw, style, max_width)
+    else:
+        normalized = raw.replace("<br/>", "\n").replace("<br />", "\n")
+        shaped_lines = [ar(line) if line else "" for line in normalized.splitlines()]
+    return Paragraph("<br/>".join(escape(line) for line in shaped_lines), style)
 
 
 def _rtl_table_matrix(rows):
@@ -604,13 +638,13 @@ class CarMaintenanceReportPdfView(LoginRequiredMixin, TemplateView):
                 log_data.append(
                     [
                         _rtl_paragraph(f"#{req.pk}", table_value_style),
-                        _rtl_paragraph(problem_description, note_style),
+                        _rtl_paragraph(problem_description, note_style, max_width=98),
                         _rtl_paragraph(row["state_label"], table_value_style),
                         _rtl_paragraph(created_date, table_value_style),
                         _rtl_paragraph(completed_date, table_value_style),
                         _rtl_paragraph(str(row["days_in_maintenance"]), table_value_style),
                         _rtl_paragraph(f"{row['cost_amount']:.2f}", table_value_style),
-                        _rtl_paragraph(completion_note, note_style),
+                        _rtl_paragraph(completion_note, note_style, max_width=122),
                     ]
                 )
             log_table = Table(
