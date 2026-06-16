@@ -398,6 +398,7 @@ class CarMaintenanceReportView(LoginRequiredMixin, TemplateView):
         form = CarMaintenanceReportForm(initial={"car": selected_car.pk if selected_car else None})
         form.fields["car"].queryset = car_qs
         ctx["form"] = form
+        ctx["report_cars"] = list(car_qs)
         ctx["selected_car"] = selected_car
         ctx.update(_build_car_maintenance_report_data(selected_car))
         return ctx
@@ -582,53 +583,34 @@ class CarMaintenanceReportPdfView(LoginRequiredMixin, TemplateView):
             story.append(kpi_table)
             story.append(Spacer(1, 12))
 
-            story.append(_rtl_paragraph("ملخص بنود الصيانة", heading_style))
-            category_table_data = [[_rtl_paragraph("البند", table_header_style), _rtl_paragraph("عدد الطلبات", table_header_style)]]
-            for item in category_summary:
-                category_table_data.append([_rtl_paragraph(item["label"], table_value_style), _rtl_paragraph(str(item["count"]), table_value_style)])
-            category_table = Table(
-                _rtl_table_matrix(category_table_data),
-                colWidths=_rtl_col_widths([220, 80]),
-            )
-            category_table.setStyle(
-                TableStyle(
-                    [
-                        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#e5e7eb")),
-                        ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#d1d5db")),
-                        ("FONTNAME", (0, 0), (-1, -1), font_family["regular"]),
-                        ("FONTSIZE", (0, 0), (-1, -1), 8.5),
-                        ("ALIGN", (0, 0), (-1, -1), "RIGHT"),
-                    ]
-                )
-            )
-            story.append(category_table)
-            story.append(Spacer(1, 12))
-
             story.append(_rtl_paragraph("السجل الموحد لجميع عمليات الصيانة", heading_style))
             log_data = [[
                 _rtl_paragraph("الرقم", table_header_style),
-                _rtl_paragraph("الخدمة", table_header_style),
+                _rtl_paragraph("وصف المشكلة", table_header_style),
                 _rtl_paragraph("الحالة", table_header_style),
                 _rtl_paragraph("أنشئ في", table_header_style),
                 _rtl_paragraph("اكتمل في", table_header_style),
                 _rtl_paragraph("الأيام", table_header_style),
                 _rtl_paragraph("التكلفة", table_header_style),
-                _rtl_paragraph("ملاحظات الفنيين", table_header_style),
+                _rtl_paragraph("ملاحظة بعد اكتمال الصيانة", table_header_style),
             ]]
             for row in rows:
                 req = row["request"]
-                technician_notes = req.completion_comment or req.description or "-"
-                service_name = f"{row['category_label']} - {req.title}" if req.title else row["category_label"]
+                problem_description = req.description or "-"
+                completion_note = req.completion_comment or "-"
+                created_date = timezone.localtime(req.created_at).strftime("%Y/%m/%d") if req.created_at else "-"
+                completed_at = req.get_effective_completed_at()
+                completed_date = timezone.localtime(completed_at).strftime("%Y/%m/%d") if completed_at else "-"
                 log_data.append(
                     [
                         _rtl_paragraph(f"#{req.pk}", table_value_style),
-                        _rtl_paragraph(service_name, note_style),
+                        _rtl_paragraph(problem_description, note_style),
                         _rtl_paragraph(row["state_label"], table_value_style),
-                        _rtl_paragraph(timezone.localtime(req.created_at).strftime("%Y-%m-%d %H:%M") if req.created_at else "-", table_value_style),
-                        _rtl_paragraph(timezone.localtime(req.get_effective_completed_at()).strftime("%Y-%m-%d %H:%M") if req.get_effective_completed_at() else "-", table_value_style),
+                        _rtl_paragraph(created_date, table_value_style),
+                        _rtl_paragraph(completed_date, table_value_style),
                         _rtl_paragraph(str(row["days_in_maintenance"]), table_value_style),
                         _rtl_paragraph(f"{row['cost_amount']:.2f}", table_value_style),
-                        _rtl_paragraph(f"الأعمال: {row['work_summary'] or '-'}<br/>الملاحظات: {technician_notes}", note_style),
+                        _rtl_paragraph(completion_note, note_style),
                     ]
                 )
             log_table = Table(

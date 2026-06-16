@@ -1,165 +1,174 @@
 {% extends "base.html" %}
 {% load humanize %}
 {% block content %}
-<div class="max-w-7xl mx-auto space-y-6">
-  <section class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-200">
-    <div class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-      <div>
-        <h1 class="text-xl sm:text-2xl font-bold text-gray-900">تقرير عمليات صيانة السيارة</h1>
-        <p class="mt-1 text-sm text-gray-600">اختر السيارة لعرض جميع طلبات الصيانة الخاصة بها داخل تقرير واحد.</p>
+<div class="max-w-7xl mx-auto space-y-6 px-4 sm:px-6 lg:px-8 py-6">
+  <section class="rounded-3xl bg-gradient-to-br from-white via-white to-blue-50/70 p-5 sm:p-6 shadow-sm ring-1 ring-gray-200">
+    <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+      <div class="flex items-start gap-3">
+        <div class="h-11 w-11 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-sm">
+          <i class="fa-solid fa-screwdriver-wrench"></i>
+        </div>
+        <div>
+          <h1 class="text-xl sm:text-2xl font-bold text-gray-900">تقرير صيانة السيارة</h1>
+          <p class="mt-1 text-sm text-gray-600">ابحث عن السيارة داخل القائمة ثم اعرض السجل مباشرة.</p>
+        </div>
       </div>
-      <div class="flex items-center gap-2">
+      <div class="flex flex-wrap items-center gap-2">
         {% if selected_car %}
-          <a href="{% url 'fleet:car_detail' selected_car.pk %}" class="tap-target inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-800 hover:bg-gray-50">ملف السيارة</a>
-          <a href="{% url 'reports:car_maintenance_report_pdf' %}?car={{ selected_car.pk }}" target="_blank" rel="noopener" class="tap-target inline-flex items-center justify-center rounded-lg border border-blue-200 bg-white px-4 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50">PDF</a>
-          <button type="button" onclick="window.print()" class="tap-target inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">طباعة</button>
+          <a href="{% url 'fleet:car_detail' selected_car.pk %}" class="tap-target inline-flex items-center gap-2 justify-center rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-800 shadow-sm hover:bg-gray-50">
+            <i class="fa-regular fa-id-card"></i>
+            <span>ملف السيارة</span>
+          </a>
+          <a href="{% url 'reports:car_maintenance_report_pdf' %}?car={{ selected_car.pk }}" target="_blank" rel="noopener" class="tap-target inline-flex items-center gap-2 justify-center rounded-xl border border-blue-200 bg-white px-4 py-2 text-sm font-semibold text-blue-700 shadow-sm hover:bg-blue-50">
+            <i class="fa-regular fa-file-pdf"></i>
+            <span>PDF</span>
+          </a>
+          <button type="button" onclick="window.print()" class="tap-target inline-flex items-center gap-2 justify-center rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700">
+            <i class="fa-solid fa-print"></i>
+            <span>طباعة</span>
+          </button>
         {% endif %}
       </div>
     </div>
 
-    <form method="get" class="mt-5 grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3">
-      <div>
-        <label class="block text-sm font-semibold text-gray-700 mb-2">{{ form.car.label }}</label>
-        {{ form.car }}
-      </div>
-      <div class="flex items-end gap-2">
-        <button type="submit" class="tap-target inline-flex items-center justify-center rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700">عرض التقرير</button>
-        <a href="{% url 'reports:car_maintenance_report' %}" class="tap-target inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-5 py-2.5 text-sm font-semibold text-gray-800 hover:bg-gray-50">مسح</a>
+    <form id="carReportForm" method="get" class="mt-5">
+      <label for="carComboInput" class="block text-sm font-semibold text-gray-700 mb-2">السيارة</label>
+      <div id="carComboRoot" class="relative" dir="rtl">
+        <div class="flex items-stretch gap-2">
+          <div class="relative flex-1">
+            <input
+              id="carComboInput"
+              type="text"
+              inputmode="search"
+              autocomplete="off"
+              placeholder="اكتب رقم اللوحة للبحث داخل القائمة"
+              value="{% if selected_car %}{{ selected_car.plate_number }}{% endif %}"
+              role="combobox"
+              aria-autocomplete="list"
+              aria-expanded="false"
+              aria-controls="carComboMenu"
+              class="w-full rounded-xl border-gray-200 bg-white pl-10 pr-10 text-sm shadow-sm placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+            >
+            <button id="carComboToggle" type="button" class="absolute inset-y-0 left-0 px-3 text-gray-500 hover:text-gray-700" aria-label="فتح القائمة" aria-controls="carComboMenu" aria-expanded="false">
+              <i class="fa-solid fa-chevron-down text-xs"></i>
+            </button>
+          </div>
+          <a href="{% url 'reports:car_maintenance_report' %}" class="tap-target inline-flex items-center gap-2 justify-center rounded-xl border border-gray-200 bg-white px-4 text-sm font-semibold text-gray-800 shadow-sm hover:bg-gray-50">
+            <i class="fa-solid fa-rotate-left"></i>
+            <span class="hidden sm:inline">مسح</span>
+          </a>
+        </div>
+
+        <input type="hidden" name="car" id="carComboValue" value="{% if selected_car %}{{ selected_car.pk }}{% endif %}">
+
+        <p id="carComboError" class="mt-2 hidden text-sm font-medium text-red-600">أدخل رقم سيارة صالحًا باستخدام الحروف أو الأرقام أو الشرطة فقط.</p>
+        <p id="carComboEmpty" class="mt-2 hidden text-sm font-medium text-amber-700">لا توجد سيارات مطابقة.</p>
+
+        <div id="carComboMenu" role="listbox" class="absolute right-0 left-0 mt-2 hidden max-h-80 overflow-auto rounded-2xl border border-gray-200 bg-white shadow-xl z-20">
+          <div class="p-3 text-xs text-gray-500 flex items-center justify-between">
+            <span>النتائج</span>
+            <span id="carComboCount">{{ report_cars|length }}</span>
+          </div>
+          <div class="border-t border-gray-100"></div>
+          <div id="carComboItems" class="p-2 space-y-1">
+            {% for car in report_cars %}
+              <button
+                type="button"
+                role="option"
+                class="w-full text-right rounded-xl px-3 py-2 transition-colors hover:bg-gray-50 focus:bg-gray-50 active:bg-gray-100"
+                data-car-option
+                data-car-id="{{ car.pk }}"
+                data-car-plate="{{ car.plate_number|lower }}"
+                data-car-label="{{ car.plate_number }}"
+              >
+                <div class="flex items-center justify-between gap-3">
+                  <div class="font-semibold text-gray-900">{{ car.plate_number }}</div>
+                  <div class="text-xs text-gray-500">{{ car.year|default:"-" }}</div>
+                </div>
+                <div class="mt-1 text-xs text-gray-600">{{ car.brand }} {{ car.get_vehicle_type_display|default:car.vehicle_type }}</div>
+              </button>
+            {% endfor %}
+          </div>
+        </div>
       </div>
     </form>
   </section>
 
   {% if selected_car %}
-    <section class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-200">
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div class="rounded-xl border border-gray-200 bg-gray-50 p-4">
-          <div class="text-xs text-gray-500">رقم اللوحة</div>
-          <div class="mt-1 text-lg font-bold text-gray-900">{{ selected_car.plate_number }}</div>
-        </div>
-        <div class="rounded-xl border border-gray-200 bg-gray-50 p-4">
-          <div class="text-xs text-gray-500">السيارة</div>
-          <div class="mt-1 text-lg font-bold text-gray-900">{{ selected_car.brand }} {{ selected_car.get_vehicle_type_display|default:selected_car.vehicle_type }}</div>
-        </div>
-        <div class="rounded-xl border border-gray-200 bg-gray-50 p-4">
-          <div class="text-xs text-gray-500">الموديل / السنة</div>
-          <div class="mt-1 text-lg font-bold text-gray-900">{{ selected_car.year|default:"-" }}</div>
-        </div>
-        <div class="rounded-xl border border-gray-200 bg-gray-50 p-4">
-          <div class="text-xs text-gray-500">المنطقة</div>
-          <div class="mt-1 text-lg font-bold text-gray-900">{{ selected_car.region|default:"-" }}</div>
-        </div>
-      </div>
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
-        <div class="rounded-xl border border-gray-200 bg-gray-50 p-4">
-          <div class="text-xs text-gray-500">عدد عمليات الصيانة</div>
-          <div class="mt-1 text-lg font-bold text-gray-900">{{ maintenance_count }}</div>
-        </div>
-        <div class="rounded-xl border border-gray-200 bg-green-50 p-4">
-          <div class="text-xs text-gray-500">مكتملة</div>
-          <div class="mt-1 text-lg font-bold text-green-700">{{ summary.completed_count }}</div>
-        </div>
-        <div class="rounded-xl border border-gray-200 bg-amber-50 p-4">
-          <div class="text-xs text-gray-500">قيد التنفيذ</div>
-          <div class="mt-1 text-lg font-bold text-amber-700">{{ summary.in_progress_count }}</div>
-        </div>
-        <div class="rounded-xl border border-gray-200 bg-blue-50 p-4">
-          <div class="text-xs text-gray-500">مجدولة</div>
-          <div class="mt-1 text-lg font-bold text-blue-700">{{ summary.scheduled_count }}</div>
-        </div>
-      </div>
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
-        <div class="rounded-xl border border-gray-200 bg-indigo-50 p-4">
-          <div class="text-xs text-gray-500">نسبة الإنجاز الكلية</div>
-          <div class="mt-1 text-lg font-bold text-indigo-700">{{ summary.completion_rate }}%</div>
-        </div>
-        <div class="rounded-xl border border-gray-200 bg-gray-50 p-4">
-          <div class="text-xs text-gray-500">إجمالي الصور</div>
-          <div class="mt-1 text-lg font-bold text-gray-900">{{ summary.total_images }}</div>
-        </div>
-        <div class="rounded-xl border border-gray-200 bg-gray-50 p-4">
-          <div class="text-xs text-gray-500">قيود التكاليف</div>
-          <div class="mt-1 text-lg font-bold text-gray-900">{{ summary.total_cost_entries }}</div>
-        </div>
-        <div class="rounded-xl border border-gray-200 bg-gray-50 p-4">
-          <div class="text-xs text-gray-500">إجمالي التكلفة</div>
-          <div class="mt-1 text-lg font-bold text-gray-900">{{ summary.total_cost_amount|floatformat:2 }}</div>
-        </div>
-      </div>
-    </section>
-
-    <section class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-200">
+    <section class="rounded-3xl bg-white p-5 sm:p-6 shadow-sm ring-1 ring-gray-200">
       <div class="flex items-center justify-between gap-3 mb-4">
         <div>
-          <h2 class="text-lg font-semibold text-gray-900">ملخص بنود الصيانة</h2>
-          <p class="mt-1 text-sm text-gray-500">تصنيف تلقائي لسجل الصيانة: زيوت، فرامل، محرك، تصليح، وأعمال عامة.</p>
-        </div>
-      </div>
-      <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
-        {% for item in category_summary %}
-          <div class="rounded-xl border border-gray-200 bg-gray-50 p-4">
-            <div class="text-xs text-gray-500">{{ item.label }}</div>
-            <div class="mt-1 text-lg font-bold text-gray-900">{{ item.count }}</div>
+          <h2 class="text-lg font-semibold text-gray-900">سجل الصيانة</h2>
+          <div class="mt-3 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 text-sm">
+            <div class="rounded-2xl bg-gray-50 px-3 py-2 border border-gray-200">
+              <div class="text-xs text-gray-500">السيارة</div>
+              <div class="font-semibold text-gray-900 truncate">{{ selected_car.plate_number }} — {{ selected_car.brand }}</div>
+            </div>
+            <div class="rounded-2xl bg-gray-50 px-3 py-2 border border-gray-200">
+              <div class="text-xs text-gray-500">السنة</div>
+              <div class="font-semibold text-gray-900">{{ selected_car.year|default:"-" }}</div>
+            </div>
+            <div class="rounded-2xl bg-gray-50 px-3 py-2 border border-gray-200">
+              <div class="text-xs text-gray-500">عمليات الصيانة</div>
+              <div class="font-semibold text-gray-900">{{ maintenance_count }}</div>
+            </div>
+            <div class="rounded-2xl bg-gray-50 px-3 py-2 border border-gray-200">
+              <div class="text-xs text-gray-500">مكتملة</div>
+              <div class="font-semibold text-gray-900">{{ summary.completed_count }}</div>
+            </div>
+            <div class="rounded-2xl bg-gray-50 px-3 py-2 border border-gray-200">
+              <div class="text-xs text-gray-500">قيد التنفيذ</div>
+              <div class="font-semibold text-gray-900">{{ summary.in_progress_count }}</div>
+            </div>
+            <div class="rounded-2xl bg-gray-50 px-3 py-2 border border-gray-200">
+              <div class="text-xs text-gray-500">إجمالي التكلفة</div>
+              <div class="font-semibold text-gray-900">{{ summary.total_cost_amount|floatformat:2 }}</div>
+            </div>
           </div>
-        {% endfor %}
-      </div>
-    </section>
-
-    <section class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-200">
-      <div class="flex items-center justify-between gap-3 mb-4">
-        <div>
-          <h2 class="text-lg font-semibold text-gray-900">السجل الموحد لجميع عمليات الصيانة</h2>
-          <p class="mt-1 text-sm text-gray-500">يتضمن الأعمال المنجزة والحالية والمجدولة مستقبلًا ضمن سجل واحد قابل للطباعة أو التصدير PDF.</p>
         </div>
       </div>
 
-      <div class="overflow-x-auto">
-        <table class="w-full text-sm text-left text-gray-600">
-          <thead class="bg-gray-50">
+      <div class="overflow-x-auto rounded-2xl ring-1 ring-gray-200" dir="rtl">
+        <table class="w-full text-sm text-right text-gray-700">
+          <thead class="bg-gray-50 sticky top-0 z-10">
             <tr>
               <th class="px-4 py-3">#</th>
-              <th class="px-4 py-3">تصنيف الصيانة</th>
-              <th class="px-4 py-3">العنوان</th>
+              <th class="px-4 py-3 hidden lg:table-cell">تصنيف الصيانة</th>
+              <th class="px-4 py-3">وصف المشكلة</th>
               <th class="px-4 py-3">حالة المهمة</th>
               <th class="px-4 py-3">أنشئ في</th>
-              <th class="px-4 py-3">اكتمل في</th>
+              <th class="px-4 py-3 hidden md:table-cell">اكتمل في</th>
               <th class="px-4 py-3">الأيام</th>
-              <th class="px-4 py-3">العداد</th>
-              <th class="px-4 py-3">أعمال الصيانة</th>
-              <th class="px-4 py-3">الصور</th>
-              <th class="px-4 py-3">التكاليف</th>
-              <th class="px-4 py-3">الوصف</th>
+              <th class="px-4 py-3 hidden xl:table-cell">العداد</th>
+              <th class="px-4 py-3 hidden xl:table-cell">أعمال الصيانة</th>
+              <th class="px-4 py-3 hidden lg:table-cell">الصور</th>
+              <th class="px-4 py-3 hidden lg:table-cell">التكاليف</th>
+              <th class="px-4 py-3 hidden xl:table-cell">ملاحظة بعد اكتمال الصيانة</th>
               <th class="px-4 py-3">الإجراءات</th>
             </tr>
           </thead>
           <tbody>
             {% for row in maintenance_rows %}
-              <tr class="border-t align-top">
+              <tr class="border-t align-top odd:bg-white even:bg-gray-50/40 hover:bg-blue-50/40 transition-colors">
                 <td class="px-4 py-3 font-medium text-gray-900">#{{ row.request.pk }}</td>
-                <td class="px-4 py-3">{{ row.category_label }}</td>
-                <td class="px-4 py-3 text-gray-900">{{ row.request.title }}</td>
+                <td class="px-4 py-3 hidden lg:table-cell">{{ row.category_label }}</td>
+                <td class="px-4 py-3 text-gray-900 whitespace-pre-line min-w-[18rem]">{{ row.request.description|default:"-" }}</td>
                 <td class="px-4 py-3">{{ row.state_label }}</td>
-                <td class="px-4 py-3 whitespace-nowrap">{{ row.request.created_at|date:"Y-m-d H:i" }}</td>
-                <td class="px-4 py-3 whitespace-nowrap">{% if row.request.get_effective_completed_at %}{{ row.request.get_effective_completed_at|date:"Y-m-d H:i" }}{% else %}-{% endif %}</td>
+                <td class="px-4 py-3 whitespace-nowrap">{{ row.request.created_at|date:"Y/m/d" }}</td>
+                <td class="px-4 py-3 whitespace-nowrap hidden md:table-cell">{% if row.request.get_effective_completed_at %}{{ row.request.get_effective_completed_at|date:"Y/m/d" }}{% else %}-{% endif %}</td>
                 <td class="px-4 py-3">{{ row.days_in_maintenance }}</td>
-                <td class="px-4 py-3">{{ row.request.odometer|default:0|intcomma }}</td>
-                <td class="px-4 py-3 whitespace-pre-line min-w-[16rem]">{{ row.work_summary|default:"-" }}</td>
-                <td class="px-4 py-3">{{ row.images_count }}</td>
-                <td class="px-4 py-3">{{ row.costs_count }} / {{ row.cost_amount|floatformat:2 }}</td>
-                <td class="px-4 py-3 whitespace-pre-line min-w-[18rem]">{{ row.request.description|default:"-" }}</td>
+                <td class="px-4 py-3 hidden xl:table-cell">{{ row.request.odometer|default:0|intcomma }}</td>
+                <td class="px-4 py-3 whitespace-pre-line min-w-[16rem] hidden xl:table-cell">{{ row.work_summary|default:"-" }}</td>
+                <td class="px-4 py-3 hidden lg:table-cell">{{ row.images_count }}</td>
+                <td class="px-4 py-3 hidden lg:table-cell">{{ row.costs_count }} / {{ row.cost_amount|floatformat:2 }}</td>
+                <td class="px-4 py-3 whitespace-pre-line min-w-[18rem] hidden xl:table-cell">{{ row.request.completion_comment|default:"-" }}</td>
                 <td class="px-4 py-3">
                   <div class="flex flex-wrap gap-2">
-                    <a href="{% url 'maintenance:request_detail' row.request.pk %}" class="px-3 py-1.5 bg-white border border-gray-300 rounded text-xs text-gray-700 hover:bg-gray-50">عرض</a>
-                    <a href="{% url 'maintenance:request_report' row.request.pk %}" class="px-3 py-1.5 bg-blue-600 rounded text-xs text-white hover:bg-blue-700">تقرير</a>
+                    <a href="{% url 'maintenance:request_detail' row.request.pk %}" class="px-3 py-1.5 bg-white border border-gray-300 rounded-lg text-xs font-semibold text-gray-700 hover:bg-gray-50">عرض</a>
+                    <a href="{% url 'maintenance:request_report' row.request.pk %}" class="px-3 py-1.5 bg-blue-600 rounded-lg text-xs font-semibold text-white hover:bg-blue-700">تقرير</a>
                   </div>
                 </td>
               </tr>
-              {% if row.request.completion_comment %}
-                <tr class="border-t bg-gray-50">
-                  <td class="px-4 py-3"></td>
-                  <td class="px-4 py-3 text-xs text-gray-500 font-semibold">ملاحظة الإغلاق</td>
-                  <td class="px-4 py-3 text-sm text-gray-700 whitespace-pre-line" colspan="11">{{ row.request.completion_comment }}</td>
-                </tr>
-              {% endif %}
             {% empty %}
               <tr>
                 <td class="px-4 py-6 text-center text-gray-500" colspan="13">لا توجد عمليات صيانة لهذه السيارة.</td>
@@ -171,4 +180,157 @@
     </section>
   {% endif %}
 </div>
+<script>
+  (function () {
+    const form = document.getElementById('carReportForm');
+    const root = document.getElementById('carComboRoot');
+    const input = document.getElementById('carComboInput');
+    const toggle = document.getElementById('carComboToggle');
+    const valueEl = document.getElementById('carComboValue');
+    const menu = document.getElementById('carComboMenu');
+    const options = Array.from(document.querySelectorAll('[data-car-option]'));
+    const invalidMsg = document.getElementById('carComboError');
+    const emptyMsg = document.getElementById('carComboEmpty');
+    const countEl = document.getElementById('carComboCount');
+    const allowedPattern = /^[a-zA-Z0-9\u0600-\u06FF\s-]*$/;
+
+    if (!form || !root || !input || !toggle || !valueEl || !menu || !invalidMsg || !emptyMsg || !countEl) {
+      return;
+    }
+
+    let activeIndex = -1;
+
+    const openMenu = () => {
+      menu.classList.remove('hidden');
+      input.setAttribute('aria-expanded', 'true');
+      toggle.setAttribute('aria-expanded', 'true');
+    };
+
+    const closeMenu = () => {
+      menu.classList.add('hidden');
+      input.setAttribute('aria-expanded', 'false');
+      toggle.setAttribute('aria-expanded', 'false');
+      activeIndex = -1;
+      options.forEach((opt) => opt.classList.remove('bg-gray-50'));
+    };
+
+    const visibleOptions = () => options.filter((opt) => !opt.classList.contains('hidden'));
+
+    const updateList = () => {
+      const rawValue = input.value || '';
+      const query = rawValue.trim().toLowerCase();
+
+      if (!allowedPattern.test(rawValue)) {
+        invalidMsg.classList.remove('hidden');
+        emptyMsg.classList.add('hidden');
+        options.forEach((opt) => opt.classList.add('hidden'));
+        countEl.textContent = '0';
+        openMenu();
+        return;
+      }
+
+      invalidMsg.classList.add('hidden');
+
+      let visibleCount = 0;
+      options.forEach((opt) => {
+        const plate = (opt.dataset.carPlate || '').toLowerCase();
+        const isMatch = !query || plate.includes(query);
+        opt.classList.toggle('hidden', !isMatch);
+        if (isMatch) visibleCount += 1;
+      });
+
+      countEl.textContent = String(visibleCount);
+      emptyMsg.classList.toggle('hidden', visibleCount > 0);
+      activeIndex = -1;
+      options.forEach((opt) => opt.classList.remove('bg-gray-50'));
+      openMenu();
+    };
+
+    const pickOption = (opt) => {
+      const label = opt.dataset.carLabel || '';
+      const id = opt.dataset.carId || '';
+      input.value = label;
+      valueEl.value = id;
+      closeMenu();
+      form.submit();
+    };
+
+    const toggleMenu = () => {
+      if (menu.classList.contains('hidden')) {
+        updateList();
+      } else {
+        closeMenu();
+      }
+    };
+
+    toggle.addEventListener('click', toggleMenu);
+
+    input.addEventListener('focus', updateList);
+    input.addEventListener('click', updateList);
+    input.addEventListener('input', updateList);
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeMenu();
+        return;
+      }
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (menu.classList.contains('hidden')) updateList();
+        const visible = visibleOptions();
+        if (!visible.length) return;
+        activeIndex = Math.min(activeIndex + 1, visible.length - 1);
+        visible.forEach((opt) => opt.classList.remove('bg-gray-50'));
+        const active = visible[activeIndex];
+        active.classList.add('bg-gray-50');
+        active.scrollIntoView({ block: 'nearest' });
+        return;
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        const visible = visibleOptions();
+        if (!visible.length) return;
+        activeIndex = Math.max(activeIndex - 1, 0);
+        visible.forEach((opt) => opt.classList.remove('bg-gray-50'));
+        const active = visible[activeIndex];
+        active.classList.add('bg-gray-50');
+        active.scrollIntoView({ block: 'nearest' });
+        return;
+      }
+      if (e.key === 'Enter') {
+        const visible = visibleOptions();
+        if (!visible.length) return;
+        if (menu.classList.contains('hidden')) {
+          updateList();
+          return;
+        }
+        const active = activeIndex >= 0 ? visible[activeIndex] : (visible.length === 1 ? visible[0] : null);
+        if (active) {
+          e.preventDefault();
+          pickOption(active);
+        }
+      }
+    });
+
+    options.forEach((opt) => {
+      opt.addEventListener('click', () => pickOption(opt));
+    });
+
+    input.addEventListener('pointerdown', () => {
+      if (menu.classList.contains('hidden')) updateList();
+    });
+    toggle.addEventListener('pointerdown', () => {
+      if (menu.classList.contains('hidden')) updateList();
+    });
+
+    document.addEventListener(
+      'pointerdown',
+      (e) => {
+        if (!root.contains(e.target)) {
+          closeMenu();
+        }
+      },
+      true
+    );
+  })();
+</script>
 {% endblock %}

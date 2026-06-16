@@ -421,6 +421,29 @@ class VehicleQRReportTests(TestCase):
         self.assertIn(req1.pk, request_ids)
         self.assertIn(req2.pk, request_ids)
         self.assertNotContains(response, "Other Car Service")
+        self.assertContains(response, 'id="carComboInput"')
+        self.assertContains(response, 'id="carComboMenu"')
+        self.assertContains(response, 'id="carComboRoot"')
+        self.assertContains(response, reverse("reports:car_maintenance_report"))
+        self.assertContains(response, "data-car-option")
+        self.assertContains(response, "أدخل رقم سيارة صالحًا")
+        self.assertContains(response, "لا توجد سيارات مطابقة")
+        report_car_ids = [car.pk for car in response.context["report_cars"]]
+        self.assertIn(target_car.pk, report_car_ids)
+        self.assertIn(other_car.pk, report_car_ids)
+
+    def test_reports_dashboard_and_sidebar_include_car_maintenance_report_link(self):
+        user = get_user_model().objects.create_user(username="report_link_user", password="x")
+        self.client.force_login(user)
+
+        dashboard_response = self.client.get(reverse("reports:dashboard"))
+        self.assertEqual(dashboard_response.status_code, 200)
+        self.assertContains(dashboard_response, reverse("reports:car_maintenance_report"))
+        self.assertContains(dashboard_response, "Car Maintenance Report")
+
+        report_response = self.client.get(reverse("reports:car_maintenance_report"))
+        self.assertEqual(report_response.status_code, 200)
+        self.assertContains(report_response, reverse("reports:car_maintenance_report"))
 
     def test_car_maintenance_report_pdf_returns_pdf(self):
         user = get_user_model().objects.create_user(username="car_report_pdf", password="x")
