@@ -297,6 +297,14 @@ class VehicleQRReportTests(TestCase):
         self.assertEqual(branch_list.status_code, 200)
         self.assertEqual(branch_list.context["page_obj"].paginator.count, 1)
 
+    def test_qr_branch_report_form_includes_client_side_image_compression(self):
+        branch = Branch.objects.create(name="BR-QR-FORM", legal_name="BR-QR-FORM LLC", qr_enabled=True)
+        response = self.client.get(reverse("qr_branch_report", kwargs={"token": branch.qr_token}))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "compressMaintenanceImage")
+        self.assertContains(response, "100KB")
+        self.assertContains(response, "3MB")
+
     def test_vehicles_qr_pdf_by_region(self):
         User = get_user_model()
         user = User.objects.create_user(username="pdf", password="x")

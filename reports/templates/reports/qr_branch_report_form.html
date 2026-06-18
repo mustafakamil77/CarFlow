@@ -88,7 +88,7 @@
         branch_name: "اسم الفرع:",
         upload_images: "رفع صور العطل (1 إلى 10 صور)",
         capture_photo: "التقاط صورة",
-        images_help: "يسمح بصور JPEG أو PNG فقط.",
+        images_help: "سيتم ضغط كل صورة إلى أقل من 100KB، وبحد إجمالي 3MB.",
         issue_details: "تفاصيل العطل",
         submit_request: "إرسال الطلب",
         powered_by: "مشغل بواسطة CarFlow",
@@ -96,6 +96,8 @@
         back: "العودة",
         err_images_count: "الرجاء رفع بين 1 و 10 صور",
         err_images_type: "يسمح فقط بصور JPEG أو PNG",
+        err_images_total: "الحجم الإجمالي للصور يجب ألا يتجاوز 3MB",
+        err_images_compress: "تعذر ضغط إحدى الصور إلى أقل من 100KB",
         err_description_len: "تفاصيل العطل يجب أن تكون بين 20 و 1000 حرف",
         err_generic: "حدث خطأ غير متوقع. الرجاء المحاولة مجدداً."
       },
@@ -106,7 +108,7 @@
         branch_name: "Branch:",
         upload_images: "Upload Issue Images (1 to 10 images)",
         capture_photo: "Capture Photo",
-        images_help: "Only JPEG or PNG images are allowed.",
+        images_help: "Each image will be compressed under 100KB, total up to 3MB.",
         issue_details: "Issue Details",
         submit_request: "Submit Request",
         powered_by: "Powered by CarFlow",
@@ -114,6 +116,8 @@
         back: "Go Back",
         err_images_count: "Please upload between 1 and 10 images",
         err_images_type: "Only JPEG or PNG images are allowed",
+        err_images_total: "Total images size must be <= 3MB",
+        err_images_compress: "Couldn't compress one of the images under 100KB",
         err_description_len: "Issue details must be between 20 and 1000 characters",
         err_generic: "Unexpected error. Please try again."
       }
@@ -145,20 +149,21 @@
     const successMessage = document.getElementById("successMessage");
     const successText = document.getElementById("successText");
 
+    let compressedMaintenanceFiles = [];
+    let previewUrls = [];
+    let maintenanceBusy = false;
+
     captureBtn.addEventListener("click", () => imagesInput.click());
     descriptionInput.addEventListener("input", () => {
       charCount.textContent = `${descriptionInput.value.length}/1000`;
     });
 
-    imagesInput.addEventListener("change", () => {
-      imagePreviewContainer.innerHTML = "";
-      const files = Array.from(imagesInput.files || []);
-      files.forEach(f => {
-        const img = document.createElement("img");
-        img.src = URL.createObjectURL(f);
-        imagePreviewContainer.appendChild(img);
-      });
-    });
+    function _cleanupPreviews() {
+      for (const url of previewUrls) {
+        try { URL.revokeObjectURL(url); } catch (_e) {}
+      }
+      previewUrls = [];
+    }
 
     function setLoading(isLoading) {
       loadingOverlay.classList.toggle("hidden", !isLoading);
@@ -169,21 +174,184 @@
       alert((translations[currentLang] && translations[currentLang][msgKey]) || translations[currentLang].err_generic);
     }
 
-    async function submitMaintenance(ev) {
-      ev.preventDefault();
+    function _canvasToBlob(canvas, type, quality) {
+      return new Promise((resolve) => {
+        if (canvas.toBlob) {
+          canvas.toBlob((blob) => resolve(blob), type, quality);
+          return;
+        }
+        const dataUrl = canvas.toDataURL(type, quality);
+        const parts = dataUrl.split(",");
+        const header = parts[0] || "";
+        const base64 = parts[1] || "";
+        const mime = (header.match(/data:(.*?);base64/) || [])[1] || type;
+        const binary = atob(base64);
+        const len = binary.length;
+        const bytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) {
+          bytes[i] = binary.charCodeAt(i);
+        }
+        resolve(new Blob([bytes], { type: mime }));
+      });
+    }
+
+    function _decodeImageBitmap(file) {
+      if (window.createImageBitmap) {
+        return createImageBitmap(file);
+      }
+      return new Promise((resolve, reject) => {
+        const url = URL.createObjectURL(file);
+        const img = new Image();
+        img.onload = () => {
+          try { URL.revokeObjectURL(url); } catch (_e) {}
+          resolve(img);
+        };
+        img.onerror = () => {
+          try { URL.revokeObjectURL(url); } catch (_e) {}
+          reject(new Error("invalid_image"));
+        };
+        img.src = url;
+      });
+    }
+
+    async function compressMaintenanceImage(file) {
+      const MAX_BYTES = 100 * 1024;
+      if (!file || !file.type || !file.type.startsWith("image/")) {
+        throw new Error("invalid_image");
+      }
+      if (!["image/jpeg", "image/png"].includes(file.type)) {
+        throw new Error("invalid_type");
+      }
+
+      const bitmap = await _decodeImageBitmap(file);
+      const originalW = bitmap.width;
+      const originalH = bitmap.height;
+
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d", { alpha: false });
+      if (!ctx) {
+        throw new Error("no_canvas");
+      }
+
+      const maxEdges = [1600, 1400, 1200, 1000, 850, 700, 600, 512, 420, 360, 320];
+      const qualities = [0.86, 0.82, 0.78, 0.72, 0.66, 0.6, 0.54, 0.48, 0.42, 0.36];
+
+      let best = null;
+      for (const maxEdge of maxEdges) {
+        const scale = Math.min(1, maxEdge / Math.max(originalW, originalH));
+        const w = Math.max(1, Math.round(originalW * scale));
+        const h = Math.max(1, Math.round(originalH * scale));
+
+        canvas.width = w;
+        canvas.height = h;
+        ctx.clearRect(0, 0, w, h);
+        ctx.drawImage(bitmap, 0, 0, w, h);
+
+        for (const q of qualities) {
+          const blob = await _canvasToBlob(canvas, "image/jpeg", q);
+          if (!blob) {
+            continue;
+          }
+          if (!best || blob.size < best.size) {
+            best = { blob, size: blob.size };
+          }
+          if (blob.size <= MAX_BYTES) {
+            return new File([blob], `maintenance_${Date.now()}.jpg`, { type: "image/jpeg", lastModified: Date.now() });
+          }
+        }
+      }
+
+      if (best && best.size <= MAX_BYTES) {
+        return new File([best.blob], `maintenance_${Date.now()}.jpg`, { type: "image/jpeg", lastModified: Date.now() });
+      }
+      throw new Error("too_large");
+    }
+
+    imagesInput.addEventListener("change", async () => {
+      if (maintenanceBusy) {
+        return;
+      }
       const files = Array.from(imagesInput.files || []);
-      if (files.length < 1 || files.length > 10) { showError("err_images_count"); return; }
+      compressedMaintenanceFiles = [];
+      _cleanupPreviews();
+      imagePreviewContainer.innerHTML = "";
+
+      if (!files.length) {
+        return;
+      }
+      if (files.length < 1 || files.length > 10) {
+        showError("err_images_count");
+        imagesInput.value = "";
+        return;
+      }
       for (const f of files) {
         const type = (f.type || "").toLowerCase();
-        if (type !== "image/jpeg" && type !== "image/png") { showError("err_images_type"); return; }
+        if (type !== "image/jpeg" && type !== "image/png") {
+          showError("err_images_type");
+          imagesInput.value = "";
+          return;
+        }
       }
+
+      maintenanceBusy = true;
+      setLoading(true);
+      try {
+        let totalBytes = 0;
+        for (const f of files) {
+          let compressed;
+          try {
+            compressed = await compressMaintenanceImage(f);
+          } catch (_err) {
+            showError("err_images_compress");
+            imagesInput.value = "";
+            compressedMaintenanceFiles = [];
+            _cleanupPreviews();
+            imagePreviewContainer.innerHTML = "";
+            return;
+          }
+
+          totalBytes += compressed.size || 0;
+          if (totalBytes > 3 * 1024 * 1024) {
+            showError("err_images_total");
+            imagesInput.value = "";
+            compressedMaintenanceFiles = [];
+            _cleanupPreviews();
+            imagePreviewContainer.innerHTML = "";
+            return;
+          }
+
+          compressedMaintenanceFiles.push(compressed);
+          const url = URL.createObjectURL(compressed);
+          previewUrls.push(url);
+          const img = document.createElement("img");
+          img.src = url;
+          img.loading = "lazy";
+          img.decoding = "async";
+          img.alt = currentLang === "ar" ? "صورة العطل" : "Issue image";
+          img.onerror = () => img.remove();
+          imagePreviewContainer.appendChild(img);
+        }
+      } finally {
+        maintenanceBusy = false;
+        setLoading(false);
+      }
+    });
+
+    async function submitMaintenance(ev) {
+      ev.preventDefault();
+      if (maintenanceBusy) {
+        return;
+      }
+      if (compressedMaintenanceFiles.length < 1 || compressedMaintenanceFiles.length > 10) { showError("err_images_count"); return; }
+      const totalBytes = compressedMaintenanceFiles.reduce((s, f) => s + (f.size || 0), 0);
+      if (totalBytes > 3 * 1024 * 1024) { showError("err_images_total"); return; }
       const desc = (descriptionInput.value || "").trim();
       if (desc.length < 20 || desc.length > 1000) { showError("err_description_len"); return; }
 
       const formData = new FormData();
       formData.append("csrfmiddlewaretoken", document.querySelector('input[name="csrfmiddlewaretoken"]').value);
       formData.append("description", desc);
-      for (const f of files) formData.append("images", f);
+      for (const f of compressedMaintenanceFiles) formData.append("images", f);
 
       setLoading(true);
       try {
@@ -210,6 +378,8 @@
     function resetForms() {
       imagesInput.value = "";
       imagePreviewContainer.innerHTML = "";
+      compressedMaintenanceFiles = [];
+      _cleanupPreviews();
       descriptionInput.value = "";
       charCount.textContent = "0/1000";
       successMessage.classList.add("hidden");
@@ -218,4 +388,3 @@
   </script>
 </body>
 </html>
-
